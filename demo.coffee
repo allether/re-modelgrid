@@ -1,9 +1,8 @@
 {render,h,Component} = require 'preact'
 
 ModelGrid = require './components/ModelGrid.coffee'
-ModelForm = require './components/ModelForm.coffee'
-
-Input = require './components/Input.coffee'
+{Style} = require 'lerp-ui'
+# Input = require 'Input.coffee'
 
 onStaticFn = (opts)->
 	console.log opts
@@ -223,6 +222,11 @@ room_model =
 
 
 class Demo extends Component
+	constructor: (props)->
+		super(props)
+		@state =
+			primary:'#1B1C1D'
+			secondary:'#4D6977'
 	render: (props,state)->
 		h Style,
 			primary: state.primary

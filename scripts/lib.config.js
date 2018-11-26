@@ -18,6 +18,12 @@ var cfg = {
 	entry: {
 		index: "./components/index.coffee",
 	},
+	resolve: {
+	    'alias': {
+	    	'react': 'preact-compat',
+	    	'react-dom': 'preact-compat'
+	  	}
+	},
 	externals: ["preact","preact-slide","classnames","color"],
 	output: {
 		path: path.join(__dirname,'..','/dist'),

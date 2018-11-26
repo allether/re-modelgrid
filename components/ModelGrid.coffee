@@ -1,14 +1,10 @@
 Color = require 'color'
 {render,h,Component} = require 'preact'
 Slide = require 'preact-slide'
-Style = require './Style.coffee'
-Input = require './Input.coffee'
-AlertDot = require './AlertDot.coffee'
+{Style,Input,MenuTab,Menu,Bar} = require 'lerp-ui'
 require 'normalize.css'
 css = require './ModelGrid.less'
-Bar = require './Bar.coffee'
-MenuTab = require './MenuTab.coffee'
-Menu = require './Menu.coffee'
+
 {MultiGrid} = require 'react-virtualized/dist/commonjs/MultiGrid'
 
 {List} = require 'react-virtualized/dist/commonjs/List'

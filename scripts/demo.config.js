@@ -30,7 +30,7 @@ var cfg = {
 		filename: "demo.js",
 	},
 	devServer: {
-		port: 3234
+		port: 3235
 	}
 }
 module.exports = cfg;
