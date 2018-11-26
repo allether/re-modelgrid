@@ -1,0 +1,131 @@
+@import './_globals.less';
+.model-grid{
+	height: 100%;
+	width: 100%;
+}
+.model-grid-slash{
+	opacity: 0.4;
+	padding: 0 4;
+}
+.model-grid-slash-right{
+	opacity: 0.4;
+	padding-right:4;
+}
+.model-grid-slide{
+	width: 100%;
+	height: 100%;
+}
+.model-grid-opaque{
+	opacity: 0.5;
+}
+.model-grid-add-doc-form{
+	max-height: 300px;
+	height: fit-content;
+	overflow-y: scroll;
+}
+
+.model-grid-label-float-right{
+	right: 10px;
+    position: absolute;
+}
+
+.model-grid-search-query-l-item{
+	min-height: 30px;
+	.search-query-item-label{
+		// font-size: 15;
+		position: absolute;
+		// width: 30px;
+		font-size: 10px;
+		opacity: 0.5;
+		padding: 4px;
+		right: 0;
+		// height: 100%;
+		top: 0;
+		// font-size: 16px !important;
+		// color: white;
+		// &:hover{
+		// 	// color: yellow;
+		// 	opacity: 1;
+		// }
+	}
+	.json{
+		position: relative;
+		min-height: 30px;
+		margin: 0;
+		overflow-wrap: break-word;
+		
+		padding: 8px;
+		font-size: 12px;
+		cursor: pointer;
+		white-space: pre;
+	}
+}
+
+*{
+	outline: none;
+}
+.menu-slide{
+	overflow: visible;
+	// overflow-x: hidden;
+}
+
+.model-grid-search-query-helper{
+	background: black;
+}
+
+.model-grid-key{
+	cursor: pointer;
+	// transition: color @ease;
+	.model-grid-key-toggle{
+		opacity: 0.5;
+		transition: opacity @ease;
+	}
+	&:hover{
+		.model-grid-key-toggle{
+			opacity: 1;
+			// font-weight: 600;
+			// text-decoration: underline;
+		}
+	}
+}
+.model-grid-key-toggle{
+	// transition: transform 0.3;
+	line-height: 30px;
+	// margin-left: 2px;
+}
+
+.model-grid-cell{
+	display: flex;
+	height: 30;
+	font-family: @monofont;
+	font-size: 13;
+	vertical-align: middle;
+	line-height: 30px;
+	overflow: hidden;
+    text-align: left;
+    padding: 0px 10px;
+}
+.model-grid-list-menu-right{
+	width: 100%;
+    flex-direction: row-reverse;
+}
+.model-grid-list-layout-button{
+	width: 140px;
+}
+.layout-form-keys-container{
+	width: 100%;
+	overflow-y: scroll;
+	overflow-x: hidden;
+	display: flex;
+	flex-direction: column;
+	height: auto;
+	max-height: 250px;
+
+}
+.model-grid-list-menu{
+
+}
+
+.model-grid-selection-menu{
+
+}
