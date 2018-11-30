@@ -10,9 +10,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/lerp-io/lerp-ui.git"
+    "url": "git+ssh://git@github.com/lerp-io/model-grid.git"
   },
-  "homepage": "https://lerp-io.github.io/lerp-ui/",
+  "homepage": "https://lerp-io.github.io/model-grid/",
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -30,6 +30,7 @@
     "preact-compat": "^3.18.4",
     "preact-slide": "^0.4.7",
     "raw-loader": "^0.5.1",
+    "react-json-pretty": "git+https://github.com/lerp-io/react-json-pretty.git",
     "react-virtualized": "^9.21.0",
     "style-loader": "^0.21.0",
     "webpack": "^4.26.0",
@@ -45,5 +46,8 @@
     "normalize.css": "^8.0.1",
     "preact": "^8.3.1",
     "preact-slide": "^0.4.7"
+  },
+  "dependencies": {
+    "adler-32": "^1.2.0"
   }
 }

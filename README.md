@@ -2,7 +2,7 @@
 mongoose/mongodb ui mapping cms/helper - peer deps are included in the package file
 react component to help map a backend database/documents/methods to an admin panel or cms.
 
-view the [demo]
+view the [demo](https://lerp-io.github.io/model-grid/)
 
 ### supports:
 - document selection
@@ -16,6 +16,4 @@ view the [demo]
 
 
 ### does not support:
-- any sort of aggregation
-- any sort of document client caching
-- things i don't need
+- things i don't need right now

@@ -1,225 +1,13 @@
 {render,h,Component} = require 'preact'
 
 ModelGrid = require './components/ModelGrid.coffee'
-{Style} = require 'lerp-ui'
-# Input = require 'Input.coffee'
+window.log = console.log.bind(console)
+Slide = require 'preact-slide'
+{Style,Input,MenuTab,Menu,Bar} = require 'lerp-ui'
+adler = require 'adler-32'
+demo_models = require './demo-models.coffee'
 
-onStaticFn = (opts)->
-	console.log opts
-onMethodFn = (opts)->
-	console.log opts
-onFormSubmit = (opts)->
-	console.log opts
-
-user_data = [
-	{
-		project: 'My Project'
-		_id: 1
-		_name: 'Jake'
-		_age: 10
-	},{
-		project: 'My Project'
-		_id: 2
-		_name: 'Paul'
-		_age: 11
-	},{
-		project: 'My Project'
-		_id: 3
-		_name: 'Sam Hyde'
-		_age: 13
-	},{
-		project: 'Your Project'
-		_id: 4
-		_name: 'Ron'
-	}
-]
-
-
-for i in [0...1000]
-	user_data.push
-		project: Math.random().toString(Math.floor(2+Math.random()*5)).substring(2)
-		_id: Math.random().toString(36).substring(7)
-		_name: Math.random().toString(36).substring(7) + ' ' + Math.random().toString(36).substring(7).toLocaleUpperCase()
-		_age: Math.floor(Math.random()*100)
-
-room_data = [
-	{
-		project: 'My Project'
-		_id: 1
-		_type: 'private'
-	},{
-		project: 'My Project'
-		_id: 2
-		_type: 'public'
-	}
-]
-
-event_data = [
-	{
-		project: 'My Project'
-		_id: 1
-		_name: 'birthday party'
-		created_at: Date.now()
-	},{
-		project: 'My Project'
-		_id: 2
-		_name: 'meeting'
-		created_at: Date.now() - 1000
-	}
-]
-
-
-user_model = 
-	name: 'user'
-	label: 'Users'
-	parent_category: 'My Project'
-	global_filter: (obj)->
-		obj.project == 'My Project'
-	
-
-	keys_array: ['project','_name','_id','_age']
-	
-	keys:
-		_id:
-			label: 'ID'
-			col_width: 70
-			indexed: yes
-			placeholder: '-'
-			onEdit: (val)->
-				alert('_id edit '+val)
-		_name:
-			label: 'Name'
-			form_render:yes
-			form_required: no
-			indexed: true
-			type: String
-			col_width: 150
-			placeholder: '-'
-			onEdit: (val)->
-				alert('_name edit '+val)
-		_age:
-			label: 'Age'
-			col_width: 70
-			form_render:yes
-			indexed: true
-			form_required: yes
-			type: String
-			center: yes
-			placeholder: '-'
-			onEdit: (val)->
-				alert('_age edit '+val)
-		project:
-			label: 'Project'
-			col_width: 350
-			form_render:yes
-			# indexed: true
-			form_autofill: 'My Project'
-			form_required: yes
-			type: String
-			placeholder: '-'
-			onEdit: (val)->
-				alert('project edit '+val)
-	
-	statics: [
-		{
-			method_label: 'update all users'
-			method_name: 'update-all-users'
-			fn: onStaticFn
-		},
-		{
-			method_label: 'alert all users'
-			method_name: 'update-all-users'
-			fn: onStaticFn
-		},
-		
-	]
-
-	methods: [
-		{
-			method_label: 'Delete User'
-			method_name: 'delete'
-			fn: onMethodFn
-		},
-		{
-			method_label: 'View User'
-			method_name: 'view'
-			fn: onMethodFn
-		},
-		{
-			method_label: 'Rank User'
-			method_name: 'set-rank'
-			render: ->
-				h ModelGridForm,
-					values: [
-						{
-							key: 'rank'
-							required: yes
-							type: 'text'
-							validate: (val)->
-								if val != 'admin'
-									return false
-								return true
-						}
-						{
-							render: (opts)->
-								h 'div',
-									classNam: 'seperator'
-									'-------'
-						}
-						{
-							key: 'rank'
-							type: 'toggle'
-							required: yes
-						}
-					]
-					submit:
-						label: 'submit'
-						fn: onFormSubmit
-		}
-	]
-
-
-event_model =
-	
-	keys: [
-		_id:
-			label: 'ID'
-			col_width: 300
-			placeholder: '-'
-			onEdit: (val)->
-				alert('_id edit '+val)
-		_name:
-			label: 'Name'
-			col_width: 100
-			placeholder: '-'
-			onEdit: (val)->
-				alert('_name edit '+val)
-		created_at:
-			label: 'Created At'
-			col_width: 60
-			placeholder: '-'
-			onEdit: (val)->
-				alert('created_at edit '+val)
-	]
-
-
-room_model =
-	keys: [
-		_id:
-			label: 'ID'
-			col_width: 300
-			placeholder: '-'
-			onEdit: (val)->
-				alert('_id edit '+val)
-		_type:
-			label: 'Type'
-			col_width: 100
-			placeholder: '-'
-			onEdit: (val)->
-				alert('_type edit '+val)
-	]	
-
-
+window.adler = adler
 
 class Demo extends Component
 	constructor: (props)->
@@ -227,72 +15,122 @@ class Demo extends Component
 		@state =
 			primary:'#1B1C1D'
 			secondary:'#4D6977'
+			primary2:'#fff'
+			secondary2:'#4D6977'
+
+	onSetStyle: (primary,secondary)=>
+		# log 'on set styl'
+		@setState
+			background: primary.inv[0]
+			color: primary.color[0]
+	onSetStyle2: (primary,secondary)=>
+		@setState
+			background2: primary.inv[0]
+			color2: primary.color[0]
+
 	render: (props,state)->
 		h Style,
 			primary: state.primary
 			secondary: state.secondary
-			onSetStyle: (@primary,@secondary)=>
-				@_top_container.style.background = @primary.inv[0]
-				@_top_container.style.color = @primary.color[0]
-			h 'div',
-				style: 
-					display: 'flex'
-					flexDirection: 'column'
-				h 'div',
+			onSetStyle: @onSetStyle
+			h Slide,
+				vert:yes
+				beta: 100
+				h Slide,
+					beta: 50
 					style:
-						height: '50%'
-					ref: (e)=>
-						@_top_container = e
-					h ModelGrid,
-						opts: user_model
-						data: user_data
-						
-						loadCfg: (defaults)->
-							for key,value of defaults
-								# log 'load',key,value
-								got_key = localStorage.getItem(key)
-								defaults[key] = if got_key then JSON.parse(got_key) else value
-
-							# query_helper_tab_name: 'bookmark'
-						
-						saveCfg: (cfg)->
-							for key,value of cfg
-								# log 'save',key,value
-								localStorage.setItem(key,JSON.stringify(value))
-				h 'div',
+						background: @state.background
+						color: @state.color
+					h ModelGridExample
+				h Slide,
+					beta: 50
 					style:
-						height: '50%'
-					ref: (e)=>
-						@_bot_container = e
+						background: @state.background2
+						color: @state.color2
 					h Style,
-						primary: '#fff'
-						secondary: state.secondary
-						onSetStyle: (@primary,@secondary)=>
-							@_bot_container.style.background = @primary.inv[0]
-							@_bot_container.style.color = @primary.color[0]
-						h ModelGrid,
-							opts: user_model
-							data: user_data
-							
-							loadCfg: (defaults)->
-								for key,value of defaults
-									# log 'load',key,value
-									got_key = localStorage.getItem(key)
-									defaults[key] = if got_key then JSON.parse(got_key) else value
+						primary: state.primary2
+						secondary: state.secondary2
+						onSetStyle: @onSetStyle2
+						h ModelGridExample					
 
-								# query_helper_tab_name: 'bookmark'
-							
-							saveCfg: (cfg)->
-								for key,value of cfg
-									# log 'save',key,value
-									localStorage.setItem(key,JSON.stringify(value))
-					
 
+getStateConfig = (model)->
+	model_cfg = localStorage.getItem(model.name)
+	if model_cfg
+		log 'load config for',model.name,localStorage.getItem(model.name+'-sum')
+		return JSON.parse(model_cfg)
+
+	
+
+setStateConfig = (model,cfg)->
+	cfg = JSON.stringify(cfg)
+	cfg_sum = (adler.str(cfg,"overkill") >>> 0).toString(32)
+	prev_sum = localStorage.getItem(model.name+'-sum')
+	if prev_sum != cfg_sum
+		log 'save config for',model.name,cfg_sum
+		localStorage.setItem(model.name+'-sum',cfg_sum)
+		localStorage.setItem(model.name,cfg)
+	
 
 
 class ModelGridExample extends Component
+	constructor: (props)->
+		super(props)
+		@state =
+			selected_model_index: 0
+
+	
+	selectModelIndex: (i)=>
+		@setState
+			selected_model_index: i
+
+
+	mapMenuModels: (model,i)=>
+		h MenuTab,
+			key: model.name
+			content: h Input,
+				type: 'button'
+				btn_type: 'primary'
+				label: model.label
+				onClick: @selectModelIndex.bind(@,i)
+				select: i == @state.selected_model_index
+
+
 	render: (props,state)->
-		
+		h Slide,
+			vert: no
+			h Style,
+				primary: '#81ffcd'
+				secondary: '#81ffcd'
+				h Slide,
+					style:
+						background: '#81ffcd'
+						overflow: 'visible'
+						zIndex: 9999
+					dim: 30
+					h Menu,
+						hover_reveal_enabled: yes
+						big: no
+						vert: yes
+						split_x: 1
+						split_y: 1
+						h MenuTab,
+							# reveal: yes
+							content: h Input,
+								i: 'menu'
+								btn_type: 'primary'
+								type: 'button'
+							demo_models.models.map @mapMenuModels
+			h Slide,
+				beta: 100
+				h ModelGrid,
+					opts: demo_models.models[@state.selected_model_index]
+					data: demo_models.data[@state.selected_model_index]
+					getState: getStateConfig
+					setState: setStateConfig
+					onQuery: (model,query,next,done)->
+						log model,query,next,done
+
 
 
 render(h(Demo),document.body)
