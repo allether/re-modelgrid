@@ -28,7 +28,7 @@ class MenuView extends Component
 
 	
 	componentWillUpdate: (props,state)->
-		if props.opts.name != @props.opts.name
+		if props.schema.name != @props.schema.name
 			Object.assign state,@getDefaultState()
 			# log @state
 			
@@ -80,14 +80,13 @@ class MenuView extends Component
 
 
 	render: (props,state)->
-		opts = props.opts
+		schema = props.schema
 		data = props.data
-		cfg = props.cfg
 		bb = props.bounding_box
 
 
 		
-		common_menu_opts = 
+		common_menu_schema = 
 			vert: no
 			bounding_box: bb
 			backdrop_color: @context.__theme.primary.inv[3]
@@ -96,12 +95,12 @@ class MenuView extends Component
 			big: true
 		
 		# LEFT MENU OPTIONS
-		left_menu_opts = Object.assign {},common_menu_opts,
+		left_menu_schema = Object.assign {},common_menu_schema,
 			key: 'left-menu'
 			className: css['model-grid-list-menu-left']
 	
 		# RIGHT MENU OPTIONS
-		right_menu_opts = Object.assign {},common_menu_opts,
+		right_menu_schema = Object.assign {},common_menu_schema,
 			key: 'right-menu'
 			className: css['model-grid-list-menu-right']
 		
@@ -115,9 +114,9 @@ class MenuView extends Component
 				name: 'document'
 				btn_type: 'flat'
 				label: [
-					opts.global_filter && h 'span',{},opts.global_filter.label
-					opts.global_filter && h 'span',{className: css['model-grid-slash']},'/'
-					h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},opts.label
+					schema.global_filter && h 'span',{},schema.global_filter.label
+					schema.global_filter && h 'span',{className: css['model-grid-slash']},'/'
+					h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},schema.label
 				]
 
 		# MODEL STATICS TAB
@@ -130,14 +129,14 @@ class MenuView extends Component
 				type: 'button'
 				btn_type: 'flat'
 				i: 'menu'
-			opts.statics.map @mapMenuStaticsButtons
+			schema.statics.map @mapMenuStaticsButtons
 
 		# ADD NEW DOCUMENT TAB / VIEW
 		new_doc_tab = h CreateDocView,
 			reveal: @getPinMenuBoolean('add-doc',true)
-			keys: opts.keys
-			new_doc: cfg.new_doc
-			keys_array: opts.keys_array
+			keys: schema.keys
+			new_doc: props.new_doc
+			keys_array: schema.keys_array
 			onClick: @togglePinMenu.bind(@,'add-doc',true)
 			onHide: @togglePinMenu.bind(@,null,false)
 			onCreateDocument: props.onCreateDocument
@@ -154,47 +153,29 @@ class MenuView extends Component
 			updateQueryItem: props.updateQueryItem
 			cloneQueryItemAndSet: props.cloneQueryItemAndSet
 			cloneQueryItem: props.cloneQueryItem
-			searchQueryItem: props.searchQueryItem
+			runQuery: props.runQuery
 			setQueryItem: props.setQueryItem
 			
-			queries: cfg.queries
-			bookmarks: cfg.bookmarks
-			keys_array: opts.keys_array
-			keys: opts.keys
-			query_item: cfg.query_item
+			queries: props.queries
+			bookmarks: props.bookmarks
+			keys_array: schema.keys_array
+			keys: schema.keys
+			query_item: props.query_item
 			
-			
-		
-		# log cfg.search_query
-		# BOOKMARKS TAB / VIEW
-		# bookmarks_tab = h BookmarksView,
-		# 	reveal: @getPinMenuBoolean('bookmarks',true)
-		# 	onClick: @togglePinMenu.bind(@,'bookmarks',true)
-		# 	onHide: @togglePinMenu.bind(@,null,false)
-			
-		# 	createOrUpdateQueryItem: props.createOrUpdateQueryItem
-		# 	setQueryItem: props.setQueryItem
-		# 	saveQueryItem: props.saveQueryItem
-		# 	searchQueryItem: props.searchQueryItem
-			
-		# 	bookmarks: cfg.bookmarks
-		# 	query_item: cfg.query_item
-
-
-
 		# # LAYOUTS TAB / VIEW
 		layouts_tab = h LayoutsView,
 			reveal: @getPinMenuBoolean('layouts',true)
 			onClick: @togglePinMenu.bind(@,'layouts',true)
 			onHide: @togglePinMenu.bind(@,null,false)
-			keys_array: opts.keys_array
+			keys_array: schema.keys_array
+			runQuery: props.runQuery
 			updateQueryItemAndSet: props.updateQueryItemAndSet
 			updateQueryItem: props.updateQueryItem
 			cloneQueryItemAndSet: props.cloneQueryItemAndSet
 			cloneQueryItem: props.cloneQueryItem
 			setQueryItem: props.setQueryItem
-			keys: opts.keys
-			query_item: cfg.query_item
+			keys: schema.keys
+			query_item: props.query_item
 
 		# BASE SLIDE
 		h Slide,
@@ -202,14 +183,14 @@ class MenuView extends Component
 			vert : no
 			className: css['menu-slide']
 			h Menu,
-				left_menu_opts
+				left_menu_schema
 				model_title_tab
 				model_statics_tab
 				new_doc_tab
 				# bookmarks_tab
 				search_tab
 			h Menu,
-				right_menu_opts
+				right_menu_schema
 				layouts_tab
 				
 

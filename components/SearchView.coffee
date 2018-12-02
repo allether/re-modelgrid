@@ -3,12 +3,14 @@ Slide = require 'preact-slide'
 {Input,MenuTab,Menu,Bar} = require 'lerp-ui'
 css = require './ModelGrid.less'
 cn = require 'classnames'
-JSONPretty = require('react-json-pretty')
-
+JsonView = require './JsonView.coffee'
 {List} = require 'react-virtualized/dist/commonjs/List'
 {CellMeasurer,CellMeasurerCache} = require 'react-virtualized/dist/commonjs/CellMeasurer'
 
 MAX_CHAR = 32
+
+
+
 
 class SearchView extends Component
 	constructor: (props)->
@@ -21,7 +23,7 @@ class SearchView extends Component
 	
 	onFocus: =>
 
-		if @props.query_item.called_at
+		if @props.query_item.called_at && @props.reveal
 			@props.cloneQueryItemAndSet(label: false,@props.query_item)
 			
 		@props.onClick()
@@ -33,7 +35,7 @@ class SearchView extends Component
 		@state.force_update_grid = true
 		@state.force_render_grid = true
 		@_cell_cache.clearAll()
-		@props.searchQueryItem()
+		@props.runQuery()
 
 	buildCache: ->
 		
@@ -182,13 +184,14 @@ class SearchView extends Component
 						color: cell_color
 						background: cell_bg
 					className: css['json']
-					h JSONPretty,
+					h JsonView,
 						json: query_item.value
-						key_color: 'orange'
-						value_color: @context.__theme.primary.true
-						string_color: !is_selected && @context.__theme.primary.color[0] || @context.__theme.secondary.inv[0] 
-						boolean_color: 'magenta'
-						# string_color: @context.__theme.primary.warn
+						colors:
+							key: !is_selected && @context.__theme.primary.color[0] || @context.__theme.secondary.inv[0]
+							number: 'orange'
+							string: @context.__theme.primary.true
+							boolean: @context.__theme.primary.false
+
 					h 'div',
 						className: css['search-query-item-label']
 						query_item.label && h 'i',
@@ -506,13 +509,19 @@ class SearchView extends Component
 			className: css['search-query-menu-icon']
 			onMouseEnter: @mouseEnterMenuIcon
 			onMouseLeave: @mouseLeaveMenuIcon
-			pos: @state.hover_menu_icon && 1 || (qi.type == 'bookmark' && 1 || 0)
+			pos: @state.hover_menu_icon && 2 || (qi.type == 'bookmark' && 2 || qi.type == 'key' && 1 || qi.type == 'json' && 0)
 			h Slide,
 				beta: 100
 				center: yes
 				h 'i',
 					className: 'material-icons'
-					qi.type == 'json' && 'code' || 'search'
+					'code'
+			h Slide,
+				beta: 100
+				center: yes
+				h 'i',
+					className: 'material-icons'
+					'search'
 			h Slide,
 				beta: 100
 				center: yes

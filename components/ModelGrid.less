@@ -11,6 +11,10 @@
 	opacity: 0.4;
 	padding-right:4;
 }
+.model-grid-key-toggle{
+	width: 30px;
+	height: 30px;
+}
 .model-grid-slide{
 	width: 100%;
 	height: 100%;
@@ -27,6 +31,7 @@
 .search-query-menu-search-label{
 	white-space: nowrap;
 	margin-left: 3px;
+	margin-top: 1px;
 }
 
 .model-grid-label-float-right{
@@ -164,9 +169,14 @@
 	line-height: 30px;
 	// margin-left: 2px;
 }
-
+.json-close{
+	position: absolute;
+	top: 0px;
+	right: 0px;
+}
 .model-grid-cell{
 	display: flex;
+	cursor: pointer;
 	height: 30;
 	font-family: @monofont;
 	font-size: @fontsize;
@@ -175,6 +185,37 @@
 	overflow: hidden;
     text-align: left;
     padding: 0px 10px;
+    input{
+    	// border: 2px solid cyan;
+    	font-family: @monofont;
+    	font-size: @fontsize;
+    	// color: white;
+    	padding: 0px 10px;
+    	padding-top: 2px;
+    	transition: background 0.3s ease;
+    	width: 100%;
+    	// background: yellow;
+    	outline: none;
+    	// border: 1px dashed;
+    	&::placeholder{
+			color: inherit;
+			opacity: 0.5;
+		}
+    }
+}
+.react-json-wrap{
+
+	:global(.react-json-view){
+		padding: 12px;
+		font-size: 13px;
+		overflow: scroll;
+		svg{
+			font-size:13px !important;
+		}
+		background: none;
+		background-color: inherit !important;
+		width: 100%;
+	}
 }
 .model-grid-list-menu-right{
 	width: 100%;

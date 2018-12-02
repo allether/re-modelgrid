@@ -41,7 +41,7 @@ class Demo extends Component
 					style:
 						background: @state.background
 						color: @state.color
-					h ModelGridExample
+					# h ModelGridExample
 				h Slide,
 					beta: 50
 					style:
@@ -78,7 +78,7 @@ class ModelGridExample extends Component
 		super(props)
 		@state =
 			selected_model_index: 0
-
+			schema_state_id: Date.now()
 	
 	selectModelIndex: (i)=>
 		@setState
@@ -97,8 +97,13 @@ class ModelGridExample extends Component
 
 
 	render: (props,state)->
+
+		schema_state = getStateConfig(demo_models.models[@state.selected_model_index])
+		
+
 		h Slide,
 			vert: no
+			
 			h Style,
 				primary: '#81ffcd'
 				secondary: '#81ffcd'
@@ -115,22 +120,40 @@ class ModelGridExample extends Component
 						split_x: 1
 						split_y: 1
 						h MenuTab,
-							# reveal: yes
 							content: h Input,
 								i: 'menu'
 								btn_type: 'primary'
 								type: 'button'
 							demo_models.models.map @mapMenuModels
+			
 			h Slide,
 				beta: 100
 				h ModelGrid,
-					opts: demo_models.models[@state.selected_model_index]
-					data: demo_models.data[@state.selected_model_index]
-					getState: getStateConfig
-					setState: setStateConfig
-					onQuery: (model,query,next,done)->
-						log model,query,next,done
+					schema: demo_models.models[@state.selected_model_index]
+					schema_state: schema_state
+					schema_state_id: @state.schema_state_id
+					onSchemaStateUpdated: setStateConfig
+					updateDataItem: (doc_id,updates)=>
+						log 'update data item',doc_id,updates
+						return new Promise (resolve,rejecet)=>
+							for d,i in demo_models.data[@state.selected_model_index]
+								if d._id == doc_id
+									Object.assign d,updates
+									return resolve(d)
+							reject(new Error 'not found')
+					
+					getDocumentById: (doc_id)=>
+						return new Promise (resolve,rejecet)=>
+							for d,i in demo_models.data[@state.selected_model_index]
+								if d._id == doc_id
+									return resolve(d)
+							reject(new Error 'not found')
+
+					runQuery: (query)=>
+						log 'runQuery',query
+						new Promise (resolve,reject)=>
+							resolve(demo_models.data[@state.selected_model_index])
 
 
 
-render(h(Demo),document.body)
+window.demo = render(h(Demo),document.body,window.demo)

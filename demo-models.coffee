@@ -73,6 +73,7 @@ user_model =
 			label: 'ID'
 			col_width: 70
 			indexed: yes
+			can_edit: no
 			placeholder: '-'
 			onEdit: (val)->
 				alert('_id edit '+val)
@@ -80,6 +81,7 @@ user_model =
 			label: 'Name'
 			form_render:yes
 			form_required: no
+			can_edit: yes
 			indexed: true
 			type: String
 			col_width: 150
@@ -91,6 +93,7 @@ user_model =
 			col_width: 70
 			form_render:yes
 			indexed: true
+			can_edit: yes
 			form_required: yes
 			type: String
 			center: yes
@@ -101,6 +104,7 @@ user_model =
 			label: 'Project'
 			col_width: 350
 			form_render:yes
+			can_edit: no
 			# indexed: true
 			form_autofill: 'My Project'
 			form_required: yes

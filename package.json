@@ -48,6 +48,7 @@
     "preact-slide": "^0.4.7"
   },
   "dependencies": {
-    "adler-32": "^1.2.0"
+    "adler-32": "^1.2.0",
+    "react-json-view": "^1.19.1"
   }
 }
