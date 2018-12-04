@@ -17,15 +17,18 @@ class LayoutsView extends Component
 		else
 			key_arr.push key_name
 
+		if key_arr.length == 0
+			key_arr = ['_id']
+
 		if @props.query_item.called_at
 			@props.cloneQueryItemAndSet
 				layout_keys: key_arr
 			,@props.query_item
 		else
-			@props.updateQueryItem
+			@props.updateQueryItemAndSet
 				layout_keys: key_arr
 			,@props.query_item
-			@forceUpdate()
+			# @forceUpdate()
 
 
 	setNewLayoutNameValue: (e)=>
@@ -66,7 +69,7 @@ class LayoutsView extends Component
 	renderForm: ->
 		return [
 			h MenuTab,
-				className: css['layout-form-keys-container']
+				className: css['methods-list-container']
 				tab_style:
 					background: @context.__theme.primary.inv[0]
 				content: @props.keys_array.map (key_name)=>

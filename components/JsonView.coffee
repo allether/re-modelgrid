@@ -39,6 +39,10 @@ class JsonView extends Component
 				children[i+1] = children[i+1].slice(1)
 			else if val_map[val]
 				t = 'string'
+				val = '"' + val + '"'
+				children[i-1] = children[i-1].slice(0,-1)
+				children[i+1] = children[i+1].slice(1)
+
 			
 			if t
 				children[i] = h 'span',

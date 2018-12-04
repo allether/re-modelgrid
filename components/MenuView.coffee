@@ -7,6 +7,9 @@ Slide = require 'preact-slide'
 {Input,MenuTab,Menu,Bar} = require 'lerp-ui'
 css = require './ModelGrid.less'
 
+MethodsView = require './MethodsView.coffee'
+ 
+MAX_CHAR = 32
 class MenuView extends Component
 	constructor: (props)->
 		super(props)
@@ -32,16 +35,7 @@ class MenuView extends Component
 			Object.assign state,@getDefaultState()
 			# log @state
 			
-	mapMenuStaticsButtons: (static_method,i)=>
-		h MenuTab,
-			key: i
-			# className: css['model-grid-menu-tab-option']
-			content: h Input,
-				onClick: static_method.fn?.bind(undefined,static_method)
-				type: 'button'
-				# btn_type: 'flat'
-				label: static_method.method_label
-	
+
 	mapMenuFilterButtons: (filter,i)=>
 		h MenuTab,
 			key: i
@@ -114,22 +108,31 @@ class MenuView extends Component
 				name: 'document'
 				btn_type: 'flat'
 				label: [
-					schema.global_filter && h 'span',{},schema.global_filter.label
-					schema.global_filter && h 'span',{className: css['model-grid-slash']},'/'
+					schema.filter && h 'span',{},schema.filter.label
+					schema.filter && h 'span',{className: css['model-grid-slash']},'/'
 					h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},schema.label
 				]
 
 		# MODEL STATICS TAB
 		model_statics_tab = h MenuTab,
 			vert: yes
+			big: no
 			show_backdrop: @getPinMenuBoolean('statics',true)
 			onClick: @togglePinMenu.bind(@,'statics',true)
 			reveal: @getPinMenuBoolean('statics',true)
 			content: h Input,
 				type: 'button'
 				btn_type: 'flat'
-				i: 'menu'
-			schema.statics.map @mapMenuStaticsButtons
+				i: 'more_vert'
+			h MethodsView,
+				data_item: @props.data_item
+				methods: schema.statics
+
+			# h MenuTab,
+			# 	className: css['layout-form-keys-container']
+			# 	tab_style:
+			# 		background: @context.__theme.primary.inv[0]
+			# 	content: schema.statics.map @mapMenuStaticsButtons
 
 		# ADD NEW DOCUMENT TAB / VIEW
 		new_doc_tab = h CreateDocView,
@@ -157,11 +160,14 @@ class MenuView extends Component
 			setQueryItem: props.setQueryItem
 			
 			queries: props.queries
+			queries_updated_at: props.queries_updated_at
 			bookmarks: props.bookmarks
+			bookmarks_updated_at: props.bookmarks_updated_at
 			keys_array: schema.keys_array
 			keys: schema.keys
 			query_item: props.query_item
-			
+
+
 		# # LAYOUTS TAB / VIEW
 		layouts_tab = h LayoutsView,
 			reveal: @getPinMenuBoolean('layouts',true)
@@ -177,6 +183,7 @@ class MenuView extends Component
 			keys: schema.keys
 			query_item: props.query_item
 
+
 		# BASE SLIDE
 		h Slide,
 			dim: 40
@@ -184,8 +191,9 @@ class MenuView extends Component
 			className: css['menu-slide']
 			h Menu,
 				left_menu_schema
-				model_title_tab
 				model_statics_tab
+				model_title_tab
+				
 				new_doc_tab
 				# bookmarks_tab
 				search_tab

@@ -30,7 +30,6 @@
     "preact-compat": "^3.18.4",
     "preact-slide": "^0.4.7",
     "raw-loader": "^0.5.1",
-    "react-json-pretty": "git+https://github.com/lerp-io/react-json-pretty.git",
     "react-virtualized": "^9.21.0",
     "style-loader": "^0.21.0",
     "webpack": "^4.26.0",

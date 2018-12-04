@@ -50,6 +50,13 @@
     }
 
 }
+
+.search-query-item-label2{
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	padding: 20px;
+}
 .search-query-item-label{
 	// font-size: 15;
 	position: absolute;
@@ -100,7 +107,7 @@
 		margin: 0;
 		overflow-wrap: break-word;
 		padding: 8px;
-		font-size: 12px;
+		font-size: 11px;
 		color: grey;
 		cursor: pointer;
 		white-space: pre;
@@ -126,8 +133,21 @@
 	outline: none;
 }
 .menu-slide{
-	overflow: visible;
+	overflow: visible !important;
 	// overflow-x: hidden;
+}
+.model-grid-cell-method-button{
+	display: flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 15 !important;
+    width: 30;
+    opacity: 0.2;
+    transition: opacity 0.3s;
+    cursor: pointer;
+    &:hover{
+    	opacity: 1;
+    }
 }
 .search-keys-container{
 	width: auto;
@@ -149,12 +169,19 @@
     flex-direction: column;
 }
 
+.data-item-method-menu{
+	position: absolute;
+	left: 0;
+	top: 0;
+}
+
 .model-grid-key{
 	cursor: pointer;
 	// transition: color @ease;
 	.model-grid-key-toggle{
 		opacity: 0.5;
 		transition: opacity @ease;
+		line-height: inherit;
 	}
 	&:hover{
 		.model-grid-key-toggle{
@@ -169,31 +196,43 @@
 	line-height: 30px;
 	// margin-left: 2px;
 }
+
 .json-close{
-	position: absolute;
+	position: absolute !important;
 	top: 0px;
 	right: 0px;
 }
+
 .model-grid-cell{
-	display: flex;
+	// display: flex;
 	cursor: pointer;
-	height: 30;
+	height: 100%;
 	font-family: @monofont;
 	font-size: @fontsize;
 	vertical-align: middle;
-	line-height: 30px;
+	line-height:30px;
 	overflow: hidden;
     text-align: left;
+    white-space: nowrap;
     padding: 0px 10px;
+    .model-grid-label{
+    	float: left;
+    }
     input{
     	// border: 2px solid cyan;
     	font-family: @monofont;
     	font-size: @fontsize;
     	// color: white;
     	padding: 0px 10px;
-    	padding-top: 2px;
+    	// padding-bottom: 2px;
+    	margin-left: -10px;
+    	margin-right: -10px;
+    	// margin-top: -1px;
+    	// margin-bottom: -1px;
+    	// padding-top: -1px;
     	transition: background 0.3s ease;
     	width: 100%;
+    	height: 30px;
     	// background: yellow;
     	outline: none;
     	// border: 1px dashed;
@@ -204,7 +243,9 @@
     }
 }
 .react-json-wrap{
-
+	// align-content: flex-start;
+ //    justify-content: flex-start;
+ //    align-items: flex-start;
 	:global(.react-json-view){
 		padding: 12px;
 		font-size: 13px;
@@ -212,8 +253,8 @@
 		svg{
 			font-size:13px !important;
 		}
-		background: none;
-		background-color: inherit !important;
+		// background: none;
+		// background-color: inherit !important;
 		width: 100%;
 	}
 }
@@ -224,25 +265,27 @@
 .model-grid-list-layout-button{
 	width: 140px;
 }
-.layout-form-keys-container{
+.methods-list-container{
 	overflow-y: scroll;
+	transform: translate(0px);
 	overflow-x: hidden;
 	display: flex;
 	flex-direction: column;
-	height: 170px;	
+	height: 170px;
+	width: 100%;
 
 }
-.layouts-list-container,.bookmarks-list-container{
-	overflow-y: scroll;
-	overflow-x: hidden;
-	display: flex;
-	flex-direction: column;
-	height: 200px;
-	width: 285px;
-}
-.model-grid-list-menu{
+// .layouts-list-container,.bookmarks-list-container{
+// 	overflow-y: scroll;
+// 	overflow-x: hidden;
+// 	display: flex;
+// 	flex-direction: column;
+// 	height: 200px;
+// 	width: 285px;
+// }
+// .model-grid-list-menu{
 
-}
+// }
 
 .model-grid-selection-menu{
 

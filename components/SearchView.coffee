@@ -1,6 +1,6 @@
 {render,h,Component} = require 'preact'
 Slide = require 'preact-slide'
-{Input,MenuTab,Menu,Bar} = require 'lerp-ui'
+{Input,MenuTab,Menu,Bar,SquareLoader} = require 'lerp-ui'
 css = require './ModelGrid.less'
 cn = require 'classnames'
 JsonView = require './JsonView.coffee'
@@ -112,47 +112,45 @@ class SearchView extends Component
 
 
 	componentWillUpdate: (props,state)->
-		
-		if props.query_item && props.query_item != @props.query_item || props.reveal != @props.reveal 
+		if props.query_item._id != @props.query_item._id || props.reveal != @props.reveal || props.queries_updated_at != @props.queries_updated_at || props.bookmarks_updated_at != @props.bookmarks_updated_at
+			if props.queries_updated_at != @props.queries_updated_at
+				@_cell_cache?.clearAll()
+			log props.queries.indexOf(props.query_item)
 			state.scroll_queries_index = props.queries.indexOf(props.query_item)
-			
-			
-		if state.selected_item != @state.selected_item
-			state.force_update_grid = true
-			
-		if state.selected_item && state.selected_item.value != state.search_query
-			state.selected_item = undefined
-			state.force_update_grid = true
+			# state.force_update_grid = true
+			# state.force_render_grid = true
 
-		if props.queries.length != state.queries_l || props.bookmarks.length != state.bookmarks_l
-			state.queries_l = props.queries.length
-			state.bookmarks_l = props.bookmarks.length
-			state.force_render_grid = true
-			state.force_update_grid = true
+
 
 
 	componentDidUpdate: (props,state)->
 		# if state.g_id != @state.g_id
 		# 	force_update_grid = true
 		# log @state.force_update_grid,@state.force_render_grid
-		if (@state.force_update_grid || @state.force_render_grid) && @_list
-			@state.force_update_grid = false
-			if @state.force_render_grid
-				@state.force_render_grid = false
-				@_cell_cache?.clearAll()
-			@_list.forceUpdateGrid()
+		# log @state.force_update_grid,@state.force_render_grid
+		# if (@state.force_update_grid || @state.force_render_grid) && @_list
+		# 	@state.force_update_grid = false
+		# 	if @state.force_render_grid
+		# 		@state.force_render_grid = false
+		# 		@_cell_cache?.clearAll()
+		# 	@_list.forceUpdateGrid()
+
+		# 	log 'force update grid',@props.queries.indexOf(@props.query_item)
+		# 	@setState
+		# 		scroll_queries_index: @props.queries.indexOf(@props.query_item)
+
 
 	listRef: (el)=>
 		@_list = el
 
 
 	selectItem: (query_item)=>
-		@props.setQueryItem(query_item)
-		
+		@props.setQueryItem(query_item,true)
 
 
-	renderQueryListItem: (query_list,r_opts)=>
-		query_item = query_list[r_opts.index]
+
+	renderQueryListItem: (r_opts)=>
+		query_item = @props.queries[r_opts.index]
 		
 		if !query_item
 			return false
@@ -160,7 +158,11 @@ class SearchView extends Component
 		r_opts.style.height = 'auto'
 		
 		is_selected = @props.query_item._id == query_item._id
-		
+
+		# log is_selected,query_item.label || query_item._id
+
+
+		# log is_selected
 		if is_selected
 			cell_bg = @context.__theme.secondary.color[0]
 			cell_color = @context.__theme.secondary.inv[1]
@@ -168,7 +170,12 @@ class SearchView extends Component
 		else
 			cell_bg = (r_opts.index % 2) && @context.__theme.primary.inv[1] || null
 			cell_color = @context.__theme.primary.color[3]
-		# log @state.lists[tab_name]._parsed[r_opts.index]
+		
+
+
+		query_item_is_loading = query_item.called_at && !query_item.completed_at
+
+
 		h CellMeasurer,
 			cache: @_cell_cache
 			rowIndex: r_opts.index
@@ -194,10 +201,22 @@ class SearchView extends Component
 
 					h 'div',
 						className: css['search-query-item-label']
+						query_item.label && '#'+query_item.label || null
 						query_item.label && h 'i',
 							className: 'material-icons'
 							'bookmark'
 						query_item.call_count
+					
+
+					h 'div',
+						className: css['search-query-item-label2']
+						query_item_is_loading && ( h SquareLoader,
+							background: @context.__theme.secondary.color[1]
+							is_loading: yes
+						) || null
+						# JSON.stringify(query_item.sort_keys)
+
+
 					
 
 	# onNewBookmarkLabelValue: (e)=>
@@ -209,6 +228,7 @@ class SearchView extends Component
 	# 	else
 	# 		@props.selectSearchQueryViewTab('bookmark')
 	renderBookmarkItem: (r_opts)=>
+		log 'render bookmark'
 		query_item = @props.bookmarks[r_opts.index]
 		is_selected = @props.query_item._id == query_item._id
 		r_opts.style.background = (r_opts.index % 2) && @context.__theme.primary.inv[1] || null
@@ -223,36 +243,34 @@ class SearchView extends Component
 
 
 
-	renderBookmarksList: (query_list,key)->
+	renderBookmarksList: ()->
+		log 'render bookmarks'
+		log @props.bookmarks.length
 		h List,
 			height: 260
 			width: 300
-			ref: @listRef
 			key: 'bookmarks'
 			rowHeight: 30
 			rowCount: @props.bookmarks.length
 			rowRenderer: @renderBookmarkItem
 	
-	renderQueryList: (query_list,key)->
-		# scroll_bot = @state.scroll_bot
-		# @state.scroll_bot = false
+	renderQueryList: ->
+		log 'render queries'
+		
 		scroll_queries_index = @state.scroll_queries_index
 		@state.scroll_queries_index = undefined
 
-		# if !scroll_queries_index && scroll_bot
-		# 	scroll_queries_index = @props.query_list.length-1
-		
 		h List,
 			height: 260
 			width: 300
 			ref: @listRef
-			key: 'queries'
+			key: 'queries-'+@props.queries_updated_at
 			scrollToAlignment: 'start'
-			scrollToIndex: scroll_queries_index || -1
+			scrollToIndex: scroll_queries_index
 			rowHeight: @_cell_cache.rowHeight
-			rowCount: query_list.length
+			rowCount: @props.queries.length
 			deferredMeasurementCache: @_cell_cache
-			rowRenderer: @renderQueryListItem.bind(@,query_list)
+			rowRenderer: @renderQueryListItem
 
 
 # style:
@@ -380,7 +398,7 @@ class SearchView extends Component
 					key.label.padEnd(10)
 					h 'span',{className: (css['model-grid-label-float-right']+' '+css['model-grid-opaque'])},String(key_name)
 				]
-	
+
 	renderKeysView: ->
 		h 'div',
 			style: 
@@ -410,7 +428,7 @@ class SearchView extends Component
 
 
 
-		
+		query_item_is_loading = qi.called_at && !qi.completed_at
 		
 		if qi.match_label
 			l_q_i = qi.match_label.indexOf(qi.match_label_q)
@@ -475,13 +493,17 @@ class SearchView extends Component
 			info_btn_type = 'primary'
 		else
 			info_btn_type = 'default'
-		
+
+	
 		if props.query_item.label && !props.reveal
 			search_input_label = true 
 			search_input_label_value = h 'span',
 				className: css['search-query-menu-search-label']
 				qi.input_value
 
+		if query_item_is_loading
+			bar_style = 
+				background: @context.__theme.secondary.color[2]
 
 		search_input = h Input,
 			onFocus: @onFocus
@@ -490,52 +512,64 @@ class SearchView extends Component
 			style: 
 				paddingLeft: 0
 				background: 'none'
+				color: qi.type == 'json' && @context.__theme.secondary.color[2] || @context.__theme.primary.color[0]
 				width: 260
 			value: qi.input_value
+			bar_style: bar_style
 			onInput: @setSearchValue
 			onEnter: @onSearchEnter
 			bar: yes
 			onClick: search_input_label && props.onClick
 			placeholder: search_placeholder
 			search_input_label_value
-			
-	
+
+
+
+
 		search_i = h Slide,
-			vert: no
+			vert: yes
 			width: 40
 			height: 40
 			slide: yes
-			onClick: @onClickIcon
+			pos: if query_item_is_loading then 0 else 1
 			className: css['search-query-menu-icon']
-			onMouseEnter: @mouseEnterMenuIcon
-			onMouseLeave: @mouseLeaveMenuIcon
-			pos: @state.hover_menu_icon && 2 || (qi.type == 'bookmark' && 2 || qi.type == 'key' && 1 || qi.type == 'json' && 0)
 			h Slide,
 				beta: 100
 				center: yes
-				h 'i',
-					className: 'material-icons'
-					'code'
+				h SquareLoader,
+					background: @context.__theme.primary.color[0]
+					is_loading: query_item_is_loading
 			h Slide,
+				vert: no
+				slide: yes
 				beta: 100
-				center: yes
-				h 'i',
-					className: 'material-icons'
-					'search'
-			h Slide,
-				beta: 100
-				center: yes
-				h 'i',
-					className: 'material-icons'
-					'bookmark'
+				onMouseEnter: @mouseEnterMenuIcon
+				onMouseLeave: @mouseLeaveMenuIcon
+				onClick: @onClickIcon
+				pos: @state.hover_menu_icon && 2 || (qi.type == 'bookmark' && 2 || qi.type == 'key' && 1 || qi.type == 'json' && 0)
+				h Slide,
+					beta: 100
+					center: yes
+					h 'i',
+						className: 'material-icons'
+						'code'
+				h Slide,
+					beta: 100
+					center: yes
+					h 'i',
+						className: 'material-icons'
+						'search'
+				h Slide,
+					beta: 100
+					center: yes
+					h 'i',
+						className: 'material-icons'
+						'bookmark'
 
 
 		
 
 		search_placeholder = '#tag | {json} | key'
-
-		# if !props.reveal
-		# 	info_type = 'label'
 
 		
 
@@ -561,14 +595,13 @@ class SearchView extends Component
 			# select: info
 			label: info_label
 		
-		if state.show_list_key
-			query_list = @renderQueryList(props.bookmarks,'bookmark')
-
+	
+		# log qi
 		if props.reveal
 			if qi.type == 'bookmark' && !qi.called_at
 				query_list = @renderBookmarksList()
 			else
-				query_list = @renderQueryList(props.queries,'history')
+				query_list = @renderQueryList()
 
 
 		h MenuTab,
@@ -588,12 +621,6 @@ class SearchView extends Component
 					background: props.reveal && @context.__theme.primary.inv[1] || @context.__theme.primary.inv[0]
 				search_i
 				search_input
-				# h Input,
-				# 	type: 'button'
-				# 	i: 'hourglass_empty'
-				# 	disabled: yes
-				# 	select: no
-				# 	btn_type: 'flat'
 			force_split_y: 1
 			
 			h MenuTab,

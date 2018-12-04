@@ -1,9 +1,10 @@
 Color = require 'color'
 {render,h,Component} = require 'preact'
 Slide = require 'preact-slide'
-{Input,MenuTab,Menu,Bar} = require 'lerp-ui'
+
 require 'normalize.css'
 css = require './ModelGrid.less'
+{Input,MenuTab,Menu,Bar,Overlay} = require 'lerp-ui'
 adler = require 'adler-32'
 
 ReactJson = require 'react-json-view'
@@ -19,9 +20,9 @@ class ModelGrid extends Component
 		super(props)
 		@state = @getDefaultConfig(props)
 		@g_props = 
-			
 			selectDataItem: @selectDataItem
 			updateDataItem: @updateDataItem
+			deleteDataItem: @deleteDataItem
 			showJSONView: @showJSONView
 			setQueryItem: @setQueryItem
 			updateQueryItemAndSet: @updateQueryItemAndSet
@@ -29,7 +30,7 @@ class ModelGrid extends Component
 			cloneQueryItemAndSet: @cloneQueryItemAndSet
 			cloneQueryItem: @cloneQueryItem
 			runQuery: @runQuery
-
+			runDataItemMethod: @runDataItemMethod
 			updateSelectedDocument: @updateSelectedDocument
 			
 			
@@ -38,12 +39,17 @@ class ModelGrid extends Component
 	getDefaultConfig: (props)=>
 		
 		queries: [] # array <query_item>
+		queries_updated_at: 0
 		query_map: {} # array <query_item>
 		bookmarks: [] 	# array <query_item_id>
 		data: {} # <query._id> : [<data_item>]
 		query_item: @createQueryItem
 			key: props.schema.keys_array[0]
 			type: 'key'
+		data_item_query:
+			data_item_id: null
+			called_at: 0
+			completed_at: 0
 	
 		data_item: null
 		
@@ -51,6 +57,7 @@ class ModelGrid extends Component
 
 
 	selectDataItem: (item)=>
+		log 'select data item'
 		@setState
 			data_item: Object.assign {},item
 
@@ -66,21 +73,26 @@ class ModelGrid extends Component
 			state.query_map[q._id] = q
 			if state.query_item?._id == q._id
 				state.query_item = q
+		state.bookmarks_updated_at = Date.now() 
 
 	# mapDataItems: (props,state)=>
 	# 	state = state || @state
 	# 	props = props || @props
 	# 	if state.data_item && state.data[state.query_item._id]
-	# 		for item in state.data[state.query_item._id]
+	# 		for item,i in state.data[state.query_item._id]
+	# 			# state.
 	# 			if item._id == state.data_item._id
 	# 				log 'mapDataItems: found & updated data_item'
+
 	# 				state.data_item = Object.assign {},item
+	# 				# state.data_item._index = i
 	# 				return
+	# 		state.data_item = null
 
 
-	setQueryItem: (query_item)=>
+	setQueryItem: (query_item,run_query_once)=>
 		@setState
-			run_query_once: yes
+			run_query_once: run_query_once
 			query_item: query_item
 
 
@@ -110,7 +122,7 @@ class ModelGrid extends Component
 		
 
 	createQueryItem: (query_item)->
-		sort_keys: query_item?.sort_keys || []
+		sort_keys: query_item?.sort_keys || {}
 		layout_keys: query_item?.layout_keys || []
 		key: query_item?.key || props.schema.keys_array[0]
 		label: query_item?.label
@@ -169,23 +181,18 @@ class ModelGrid extends Component
 			return null
 
 
-	cloneQueryItemAndSet: (schema,query_item)=>
+	cloneQueryItemAndSet: (schema,query_item,run_query_once)=>
 		query_item = @cloneQueryItem(schema,query_item)
 		@mapQueryItems()
-		@setState
-			query_item: query_item
+		@setQueryItem(query_item,run_query_once)
+	
 
 
 	updateQueryItemAndSet: (schema,query_item)=>
 		@updateQueryItem(schema,query_item)
 		@mapQueryItems()
-		@setState
-			query_item: query_item
-
-	# createOrUpdateQueryItem: (schema,query_item)=>
-
-
-
+		@setQueryItem(query_item)
+		
 
 	cloneQueryItem: (schema,query_item)=>
 		query_item = @createQueryItem(query_item)
@@ -197,7 +204,6 @@ class ModelGrid extends Component
 		Object.assign query_item,schema
 
 
-		# decide type
 		@decideQueryItemType(query_item)
 		
 		# # find bookmark
@@ -218,7 +224,6 @@ class ModelGrid extends Component
 			@setQueryItemLabel(query_item,schema.label)
 			@mapQueryItems()
 		else if query_item.label && schema.label == false
-			log 'RESET'
 			@resetQueryItemLabel(query_item)
 			@mapQueryItems()
 
@@ -240,49 +245,114 @@ class ModelGrid extends Component
 		# if schema.label = false
 		# 	@mapQueryItems()
 
-
 		return query_item
 
-
-	
+	cleanQuery: =>
+		if @state.query_item.type == 'key'
+			if !@state.query_item.input_value
+				@state.query_item.type = 'json'
+				@state.query_item.value = {}
+				@state.query_item.input_value = '{}'
 
 	runQuery: =>
+		@cleanQuery()
+
+
 		@state.query_item.called_at = Date.now()
+		@state.query_item.completed_at = null
 		@state.query_item.call_count = @state.query_item.call_count || 0
 		@state.query_item.call_count += 1
 
+
 		h_i = @state.queries.indexOf(@state.query_item)
-		# b_i = @state.bookmarks.indexOf(@state.query_item)
-
-		if h_i >= 0
+		if h_i > 0
 			@state.queries.splice(h_i,1)
-					
-		@state.queries.unshift @state.query_item
-		@state.query_map[@state.query_item_id] = @state.query_item
+			@state.queries.unshift @state.query_item
+			@state.queries_updated_at = Date.now()
+		else if h_i < 0
+			@state.queries.unshift @state.query_item
+			@state.queries_updated_at = Date.now()
 
-		q_i = Object.assign {},@state.query_item
+
+		q_i = @state.query_item
 		@props.runQuery(q_i).then (data)=>
 			@state.data[q_i._id] = data
 			q_i.completed_at = Date.now()
-			log 'runQuery completed',q_i.completed_at - q_i.called_at,data.length
-			# @mapDataItems()
+			log 'runQuery completed',q_i._id,(q_i.completed_at - q_i.called_at)+'ms','#'+data.length
 			@forceUpdate()
+		.catch (error)=>
+			q_i.error = error.message
+			q_i.completed_at = Date.now()
 
 
 
 		@setState
 			run_query_once: false
-			queries: @state.queries
 
 
 
+	runDataItemMethod: (data_item,method)->
+		log 'run data_item method',data_item,method
+
+
+	deleteDataItem: =>
+		log 'delete data item'
+		@setState
+			data_item_query:
+				data_item_id: @state.data_item._id
+				action: 'delete'
+				called_at: Date.now()
+
+		# data_item = @state.data_item
+		@props.deleteDataItem(@state.data_item._id).then (deleted_doc_id)=>
+			log 'deleted data_item',deleted_doc_id
+			@state.data_item_query.completed_at = Date.now()
+			if @state.data_item._id == deleted_doc_id
+				@setState
+					data_item: null
+			@runQuery()
+		# .catch @onUpdateDataItemError
 
 	updateDataItem: (update)=>
+	
+		if !@state.data_item_query.completed_at && @state.data_item_query.called_at
+			return
+
+		@setState
+			data_item_query:
+				data_item_id: @state.data_item._id
+				body: update
+				action: 'update'
+				called_at: Date.now()
+
 		@props.updateDataItem(@state.data_item._id,update).then (doc)=>
 			log 'updated data_item',doc
-			@setState
-				data_item: doc
+			@state.data_item_query.completed_at = Date.now()
+			if @state.data_item._id == doc._id
+				@setState
+					data_item: doc
 			@runQuery()
+		# .catch @onUpdateDataItemError
+
+	getDataItem: ()=>
+		
+		if !@state.data_item_query.completed_at && @state.data_item_query.called_at
+			return
+		
+		@setState
+			data_item_query:
+				body: {}
+				data_item_id: @state.data_item._id
+				called_at: Date.now()
+				action: 'get'
+		
+		@props.getDataItem(@state.data_item._id).then (doc)=>
+			log 'got data_item',doc
+			@state.data_item_query.completed_at = Date.now()
+			if @state.data_item._id == doc._id
+				@setState
+					data_item: doc
+			# @runQuery()
 		.catch @onUpdateDataItemError
 
 
@@ -291,6 +361,9 @@ class ModelGrid extends Component
 		Object.assign @state,@props.schema_state
 		@state.schema_state_id = @props.schema_state_id
 		@mapQueryItems()
+		for q in @state.queries
+			if q.called_at && !q.completed_at
+				q.called_at = q.completed_at = 0
 		log 'mount and run query'
 		@runQuery()
 		
@@ -304,10 +377,12 @@ class ModelGrid extends Component
 			new_doc: @state.new_doc
 		
 		if @state.run_query_once
-			log 'new query item, run query'
 			@runQuery()
 
 		@props.onSchemaStateUpdated?(@props.schema,save_state)
+
+		if @state.data_item && @state.show_json_view && @state.data_item_query.data_item_id != @state.data_item._id
+			@getDataItem()
 
 		
 
@@ -317,17 +392,30 @@ class ModelGrid extends Component
 			state.schema_state_id = props.schema_state_id
 			Object.assign state,props.schema_state
 
-		if state.queries.length != @_queries_ln
-			@_queries_ln = state.queries.length
+		if state.queries_updated_at != @state.queries_updated_at
 			@mapQueryItems(props,state)
 
-		
-
+		if state.query_item != @state.query_item
+			state.show_json_view = false
+		# log state.data_item,state.show_json_view && state.data_item_query.data_item_id != state.data_item._id
+	
 
 	showJSONView: ()=>
-		@setState show_json_view: yes	
+		@setState 
+			show_json_view: yes	
+		# 
+	
 	closeJSONView: =>
 		@setState show_json_view: no
+
+	onJSONViewEdit: (opts)=>
+		upd_obj = {}
+		if opts.namespace.length
+			upd_key = opts.namespace.join('.')+'.'+opts.name
+		else
+			upd_key = opts.name
+		upd_obj[upd_key] = opts.new_value
+		@updateDataItem upd_obj
 
 
 	render: (props,state)->
@@ -341,26 +429,49 @@ class ModelGrid extends Component
 		@g_props.query_item = state.query_item
 		@g_props.data_item = state.data_item
 		@g_props.new_doc = state.new_doc
+		@g_props.data_item_query = state.data_item_query
 		@g_props.schema = props.schema
-
+		@g_props.show_json_view = state.show_json_view
+		@g_props.queries_updated_at = state.queries_updated_at
+		
+		overlay = h Overlay,
+			initial_visible: no
+			visible: !state.data_item_query.completed_at && state.data_item_query.called_at
+			z_index: 99999
+			style:
+				display: 'flex'
+				alignItems: 'center'
+				justifyContent: 'center'
+			h Input,
+				type: 'button'
+				label: [
+					
+					h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},state.data_item_query.action
+					h 'span',{className: css['model-grid-slash']},'/'
+					state.data_item?._id
+				]
+		
 
 		h Slide,
 			slide:yes
 			pos: !@state.show_json_view && 1 || 0
+			outerStyle:
+				transform: 'translate(0px)'
+			outerChildren: overlay
 			h Slide,
 				beta: 50
 				className: css['react-json-wrap']
-				@state.data_item && h ReactJson,
+				@state.show_json_view && @state.data_item && h ReactJson,
 					iconStyle: 'circle'
 					displayDataTypes: false
 					enableClipboard: yes
 					name: false
 					collapseStringsAfterLength: 100
-					onEdit:@onEdit
+					onEdit:@onJSONViewEdit
 					onAdd:@onAdd
 					shouldCollapse:@shouldCollapse
 					theme: 'eighties'
-					src: @state.data_item
+					src: state.data_item
 				h Input,
 					type: 'button'
 					i : 'close'
@@ -374,6 +485,8 @@ class ModelGrid extends Component
 				className: css['model-grid']
 				h MenuView,@g_props
 				h GridView,@g_props
+			
+
 			
 
 

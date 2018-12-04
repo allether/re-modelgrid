@@ -4,12 +4,15 @@
 cn = require 'classnames'
 {render,h,Component} = require 'preact'
 Slide = require 'preact-slide'
-{Input,MenuTab,Menu,Bar} = require 'lerp-ui'
+{Input,MenuTab,Menu,Bar,Overlay} = require 'lerp-ui'
 
 css = require './ModelGrid.less'
+MethodsView = require './MethodsView.coffee'
+ 
 
 CHAR_W = 7.8
 CELL_PAD = 10
+MAX_CHAR = 32
 
 class InputCell extends Component
 	constructor: (props)->
@@ -24,7 +27,8 @@ class InputCell extends Component
 		@setState
 			focus: yes
 	onBlur: ()=>
-		@props.onSave(@state.value)
+		if @props.value != @state.value
+			@props.onSave(@state.value)
 		@setState
 			focus: no
 	onHoverOn: =>
@@ -58,12 +62,114 @@ class InputCell extends Component
 			style:
 				border: @state.focus && '1px dashed' || 'none'
 				padding: @state.focus && '0px 9px' || '0px 10px'
-				paddingTop: '1px'
+				paddingBottom: '1px'
 				# caretColor: @context.__theme.secondary.true
-				color: (@state.focus || @state.hover) && @context.__theme.secondary.inv[0] || @context.__theme.secondary.inv[2]
+				color: (@state.focus || @state.hover) && @context.__theme.secondary.inv[0] || @context.__theme.secondary.inv[1]
 				borderColor: @context.__theme.secondary.inv[0]
-				background: (@state.focus || @state.hover) && @context.__theme.secondary.color[1] || @context.__theme.secondary.color[0]
+				background: (@state.focus || @state.hover) && @context.__theme.secondary.color[0] || @context.__theme.secondary.color[1]
 			btn_type: 'primary'
+
+
+
+class DocumentMethodMenu extends Component
+	
+	runDataItemMethod: (method)=>
+		@props.runDataItemMethod(@props.data_item,method)
+	
+
+	mapMenuMethodsButtons: (method,i)=>
+		if method.render
+			method_content = h MenuTab,
+				content: method.render(@props.data_item)
+
+		h MenuTab,
+			key: i
+			vert: yes
+			content: h Input,
+				onClick: @props.runDataItemMethod.bind(method)
+				type: 'button'
+				i: method.render && 'subject' || 'play_arrow'
+				label: [
+					method.label
+					h 'span',{className: css['model-grid-opaque']},String(method.name).padStart(MAX_CHAR)
+				]
+			method_content
+	
+	showMenu: =>
+		@setState show_menu: yes
+		# @props.onShowMenu(@props.data_item)
+	
+	hideMenu: =>
+		@setState show_menu: no
+
+	confirmDelete: =>
+		@setState
+			confirm_delete: yes
+
+	hideConfirmDelete: =>
+		@setState
+			confirm_delete: no
+
+	render: (props)->
+
+		# log bb
+		h Menu,
+			vert: no
+			force_split_x: 1
+			force_split_y: 1
+			big: no
+			hover_reveal_enabled: no
+			backdrop_color: @context.__theme.primary.inv[3]
+			enable_backdrop: yes
+			className: css['data-item-method-menu']
+			h MenuTab,
+				vert: yes
+				show_backdrop: yes
+				reveal: yes
+				onClickBackdrop: props.onHide
+				# s
+				bar_style:
+					width: '100%'
+				content: h Input,
+					type: 'button'
+					i: 'code'
+					btn_type: 'primary'
+					onClick: @props.showJSONView
+					
+					label: [
+						props.schema.name
+						h 'span',{className: css['model-grid-slash']},'/'
+						h 'span',{style:{fontWeight:600,color:@context.__theme.secondary.inv[0]}},props.data_item._id
+					]
+				h MenuTab,
+					key: 'del'
+					vert: yes
+					reveal: @state.confirm_delete
+					show_backdrop: @state.confirm_delete
+					onClick: @confirmDelete
+					onClickBackdrop: @hideConfirmDelete
+					content: h Input,
+						type: 'button'
+						i: 'delete'
+						label: [
+							props.data_item._id
+							h 'span',{className: css['model-grid-slash']},'/'
+							h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},'delete'
+						]
+					h MenuTab,
+						content: h Input,
+							i: 'delete'
+							type: 'button'
+							style:
+								background: @context.__theme.primary.warn
+								color: 'white'
+							label: 'confirm'
+							onClick: props.deleteDataItem
+				h MethodsView,
+					methods: props.schema.methods
+					data_item: props.data_item
+
+
 
 
 class GridView extends Component
@@ -96,11 +202,11 @@ class GridView extends Component
 			keys[key] = 1
 		else 
 			keys[key] = undefined
-		log keys
+		# log keys
 		if @props.query_item.called_at
 			@props.cloneQueryItemAndSet
 				sort_keys: keys
-			,@props.query_item
+			,@props.query_item,true
 		else
 			@props.updateQueryItem
 				sort_keys: keys
@@ -112,100 +218,74 @@ class GridView extends Component
 	onSelectDocumentById: (doc_id)=>
 		@props.onSelectDocumentById(doc_id)
 
-	mapMenuMethodsButtons: (doc_method,i)=>
-		h MenuTab,
-			key: i
-			vert: yes
-			# className: css['model-grid-menu-tab-option']
-			content: h Input,
-				onClick: doc_method.fn?.bind(undefined,doc_method)
-				type: 'button'
-				btn_type: 'primary'
-				label: doc_method.method_label
+	showMethodMenu: (g_opts)=>
+		@setState
+			show_method_menu: yes
+			data_item_g_opts: g_opts
+		@props.selectDataItem(@props.data[g_opts.rowIndex-1])
+	hideMethodMenu: =>
+		@setState
+			show_method_menu: no
+			data_item_g_opts: null
 
-	columnWidth: (g_schema)=>
-		if g_schema.index == 0
+	columnWidth: (g_opts)=>
+		if g_opts.index == 0
 			return 30
 		
-		key_name = @props.query_item.layout_keys[g_schema.index-1]
+		key_name = @props.query_item.layout_keys[g_opts.index-1]
 		key = @props.schema.keys[key_name]
 
 		return key.col_width
 
 
-	renderDocumentMethodMenu: (g_schema)->
-		schema = @props.schema
-		data = @props.data
-
-
-		h Menu,
-			vert: no
-			bounding_box: @base.getBoundingClientRect()
-			big: no
-			enable_backdrop: yes
-			h MenuTab,
-				vert: yes
-				reveal: yes
-				content: h Input,
-					type: 'button'
-					btn_type: 'primary'
-					i: 'menu'
-				h MenuTab,
-					content: h Input,
-						type: 'button'
-						btn_type: 'primary'
-						i: 'delete'
-				h MenuTab,
-					content: h Input,
-						type: 'button'
-						btn_type: 'primary'
-						onClick: @props.showJSONView
-						i: 'code'
-
 
 	# {index, isScrolling, key, parent, style}
-	renderCell: (g_schema)=>
+	renderCell: (g_opts)=>
 		schema = @props.schema
 		data = @props.data
-		is_key = g_schema.rowIndex == 0
+		is_key = g_opts.rowIndex == 0
+
+		
+		
 		if !is_key && @props.data_item
-			is_selected = @props.data_item._id == data[g_schema.rowIndex-1]._id
-		g_schema.style.whiteSpace = 'nowrap'
-		if g_schema.rowIndex % 2 == 0
+			is_selected = @props.data_item._id == data[g_opts.rowIndex-1]._id
+	
+		if g_opts.rowIndex % 2 == 0
 			alt_cell = true
 		if alt_cell
-			g_schema.style.background = @context.__theme.primary.inv[1]
+			g_opts.style.background = @context.__theme.primary.inv[1]
 
-		if g_schema.rowIndex != 0 && is_selected
-			g_schema.style.background = @context.__theme.secondary.color[0]
-			g_schema.style.color = @context.__theme.secondary.inv[0]
-			render_method_menu = true
+		if g_opts.rowIndex != 0 && is_selected
+			g_opts.style.background = @context.__theme.secondary.color[1]
+			g_opts.style.color = @context.__theme.secondary.inv[0]
+
+		
 		# render document method menu
-		if g_schema.columnIndex == 0
+		if g_opts.columnIndex == 0
+			
+			if is_key
+				return null
 			return h 'div',
-				# className: css['']
-				style: g_schema.style
-				key: g_schema.key
-				render_method_menu && @renderDocumentMethodMenu(g_schema) || null
+				style: g_opts.style
+				key: g_opts.key
+				h 'div',
+					className: cn css['model-grid-cell'],'material-icons',css['model-grid-cell-method-button']
+					onClick: @showMethodMenu.bind(@,g_opts)
+					'more_horiz'
+				
 
 
 
-		key_name = @props.query_item.layout_keys[g_schema.columnIndex-1]
+		key_name = @props.query_item.layout_keys[g_opts.columnIndex-1]
 		key = schema.keys[key_name]
-		# log key_name
 		edit_key = !is_key && @state.edit_key == key_name && is_selected
 		
-		g_schema.style.width = key.col_width
-		g_schema.style.overflow = 'hidden'
-		if key.center
-			g_schema.style.textAlign = 'center'
-
-
+		
 		if !is_key
-			value = data[g_schema.rowIndex-1][key_name]
+			value = data[g_opts.rowIndex-1][key_name]
+		
 		# log 'render cell'
 		if is_selected && key.can_edit
-			g_schema.style.padding = 0
 			value = h InputCell,
 				value: value
 				onSave: @saveCellInput.bind(@,key_name)
@@ -218,6 +298,7 @@ class GridView extends Component
 
 		# log is_key
 		if is_key
+			# log 'is key'
 			if !@props.query_item.sort_keys[key_name]
 				arrow_color = @context.__theme.primary.color[2]
 				rotate_arrow = 'keyboard_arrow_left'
@@ -228,23 +309,31 @@ class GridView extends Component
 			else if @props.query_item.sort_keys[key_name] == -1
 				rotate_arrow = 'keyboard_arrow_down'
 				arrow_color = @context.__theme.secondary.true
-			g_schema.style.color = arrow_color
+			g_opts.style.color = arrow_color
 			return h 'div',
 				className: (css['model-grid-cell']+' '+css['model-grid-key'])
-				style: g_schema.style
-				key: g_schema.key
+				style: g_opts.style
+				key: g_opts.key
 				onClick: key.indexed && @toggleSortKey.bind(null,key_name)
 				h 'div',className:css['model-grid-label'],key.label
 				key.indexed && h 'i',
 					className: 'material-icons '+css['model-grid-key-toggle']
 					rotate_arrow
-	
+
 		return h 'div',
-			className: cn(css['model-grid-cell'],css['lui-bar'])
-			onClick: !is_selected && @props.selectDataItem.bind(null,data[g_schema.rowIndex-1])
-			style: g_schema.style
-			key: g_schema.key
-			value
+			style: g_opts.style
+			key: g_opts.key
+			h 'div',
+				onMouseDown: !is_selected && @props.selectDataItem.bind(null,data[g_opts.rowIndex-1])
+				className: css['model-grid-cell']
+				value
+
+		# return h 'div',
+		# 	className: css['model-grid-cell']
+		# 	onClick: !is_selected && @props.selectDataItem.bind(null,data[g_opts.rowIndex-1])
+		# 	style: g_opts.style
+		# 	key: g_opts.key
+		# 	value
 	
 
 	columnCount: ->
@@ -253,15 +342,18 @@ class GridView extends Component
 
 	getGridKey: (props)->
 		model_name = props.schema.name
-		model_name+'-'+props.query_item._id+'-'+props.query_item.completed_at
+		model_name+'-'+props.query_item._id+'-'+props.query_item.completed_at+'-'+props.query_item.layout_keys
 
 
 	componentWillUpdate: (props,state)->
+		if !props.data_item
+			@state.show_method_menu = false
 		if props.data_item && props.data_item != @state.data_item
 			state.force_update_grid = true
 			state.data_item = props.data_item
 			state.edit_key = null
 		g_k = @getGridKey(props)
+		log g_k
 		if g_k != state.grid_key
 			state.grid_key = g_k
 			state.force_update_grid = true
@@ -271,7 +363,7 @@ class GridView extends Component
 		# log 'did update'
 		if (@state.force_update_grid) && @_grid
 			@state.force_update_grid = false
-			log 'recompute'
+			log 'recomputing GridView _grid'
 			@_grid?.recomputeGridSize()
 
 
@@ -279,26 +371,42 @@ class GridView extends Component
 		@state.grid_key = @getGridKey(@props)
 		@forceUpdate()
 
+	onShowMenu: =>
+		@setState
+			scroll_to_data_item: true
 
-	render: (props)->
+	render: (props,state)->
 		schema = props.schema
 		data = props.data
-
 		query_item = props.query_item
-		
 
 
+	
+
+
+		if @state.show_method_menu
+			method_menu = h DocumentMethodMenu,
+				g_opts: state.data_item_g_opts
+				onHide: @hideMethodMenu
+				showJSONView: props.showJSONView
+				deleteDataItem: props.deleteDataItem
+				runDataItemMethod: props.runDataItemMethod
+				data_item: props.data_item
+				schema: props.schema
+	
+			
 		if @_grid_slide
 			grid = h MultiGrid,
 				styleTopRightGrid:
 					background:  @context.__theme.primary.inv[1]
 				className: css['model-grid-list']
-				hideTopRightGridScrollbar: yes
+				# hideTopRightGridScrollbar: yes
 				ref: @gridRef
-				key: props.schema.name
-				onScroll: @onGridScroll
+				# key: props.schema.name
+				# onScroll: @onGridScroll
 				cellRenderer: @renderCell
 				columnWidth: @columnWidth
+				# scrollToRow: scroll_to_index
 				columnCount: query_item.layout_keys.length + 1 || 0
 				fixedColumnCount:0
 				fixedRowCount:1
@@ -311,6 +419,8 @@ class GridView extends Component
 			beta: 100
 			ref: @slideRef
 			grid || null
+			method_menu || null
+			
 
 
 module.exports = GridView

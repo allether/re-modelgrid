@@ -41,7 +41,7 @@ class Demo extends Component
 					style:
 						background: @state.background
 						color: @state.color
-					# h ModelGridExample
+					h ModelGridExample
 				h Slide,
 					beta: 50
 					style:
@@ -54,10 +54,11 @@ class Demo extends Component
 						h ModelGridExample					
 
 
+
 getStateConfig = (model)->
 	model_cfg = localStorage.getItem(model.name)
 	if model_cfg
-		log 'load config for',model.name,localStorage.getItem(model.name+'-sum')
+		# log 'load config for',model.name,localStorage.getItem(model.name+'-sum')
 		return JSON.parse(model_cfg)
 
 	
@@ -67,10 +68,10 @@ setStateConfig = (model,cfg)->
 	cfg_sum = (adler.str(cfg,"overkill") >>> 0).toString(32)
 	prev_sum = localStorage.getItem(model.name+'-sum')
 	if prev_sum != cfg_sum
-		log 'save config for',model.name,cfg_sum
+		# log 'save config for',model.name,cfg_sum
 		localStorage.setItem(model.name+'-sum',cfg_sum)
 		localStorage.setItem(model.name,cfg)
-	
+
 
 
 class ModelGridExample extends Component
@@ -125,7 +126,7 @@ class ModelGridExample extends Component
 								btn_type: 'primary'
 								type: 'button'
 							demo_models.models.map @mapMenuModels
-			
+
 			h Slide,
 				beta: 100
 				h ModelGrid,
@@ -135,24 +136,42 @@ class ModelGridExample extends Component
 					onSchemaStateUpdated: setStateConfig
 					updateDataItem: (doc_id,updates)=>
 						log 'update data item',doc_id,updates
+
 						return new Promise (resolve,rejecet)=>
-							for d,i in demo_models.data[@state.selected_model_index]
-								if d._id == doc_id
-									Object.assign d,updates
-									return resolve(d)
-							reject(new Error 'not found')
-					
-					getDocumentById: (doc_id)=>
+							setTimeout ()=>
+								for d,i in demo_models.data[@state.selected_model_index]
+									if d._id == doc_id
+										Object.assign d,updates
+										return resolve(d)
+								reject(new Error 'not found')
+							,500
+					deleteDataItem: (doc_id)=>
 						return new Promise (resolve,rejecet)=>
-							for d,i in demo_models.data[@state.selected_model_index]
-								if d._id == doc_id
-									return resolve(d)
-							reject(new Error 'not found')
+							setTimeout ()=>
+								for d,i in demo_models.data[@state.selected_model_index]
+									if d._id == doc_id
+										demo_models.data[@state.selected_model_index].splice(i,1)
+										return resolve(doc_id)
+								reject(new Error 'not found')
+							,500
+
+					getDataItem: (doc_id)=>
+						return new Promise (resolve,rejecet)=>
+							setTimeout ()=>
+								for d,i in demo_models.data[@state.selected_model_index]
+									if d._id == doc_id
+										gd = Object.assign {},d
+										gd.test_1234 = {abc:{gg:"12345123"}}
+										return resolve(gd)
+								reject(new Error 'not found')
+							,500
 
 					runQuery: (query)=>
 						log 'runQuery',query
 						new Promise (resolve,reject)=>
-							resolve(demo_models.data[@state.selected_model_index])
+							setTimeout ()=>
+								resolve(demo_models.data[@state.selected_model_index])
+							,1000
 
 
 

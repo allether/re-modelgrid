@@ -1,4 +1,5 @@
-
+{render,h,Component} = require 'preact'
+{Input,MenuTab,Menu,Bar,Overlay} = require 'lerp-ui'
 onStaticFn = (opts)->
 	console.log opts
 onMethodFn = (opts)->
@@ -115,31 +116,87 @@ user_model =
 	
 	statics: [
 		{
-			method_label: 'update all users'
-			method_name: 'update-all-users'
+			label: 'Update All Users'
+			name: 'update-all-users'
 			fn: onStaticFn
 		},
 		{
-			method_label: 'alert all users'
-			method_name: 'update-all-users'
+			label: 'Alert All Users'
+			name: 'update-all-users'
 			fn: onStaticFn
+			render: ->
+				[
+					h MenuTab,
+						content: h Input,
+							type: 'number'
+							label: 'render'
+							placeholder: 'test'
+					h MenuTab,
+						content: h Input,
+							btn_type: 'primary'
+							type: 'button'
+							label: 'submit'
+				]
 		}
 	]
 
 	methods: [
 		{
-			method_label: 'Delete User'
-			method_name: 'delete'
+			label: 'Some User Method'
+			name: 'user-method'
 			fn: onMethodFn
 		},
 		{
-			method_label: 'View User'
-			method_name: 'view'
+			label: 'Some User Method'
+			name: 'user-method'
 			fn: onMethodFn
 		},
 		{
-			method_label: 'Rank User'
-			method_name: 'set-rank'
+			label: 'Some User Method'
+			name: 'user-method'
+			fn: onMethodFn
+		},
+		{
+			label: 'Some User Method'
+			name: 'user-method'
+			fn: onMethodFn
+		},
+		{
+			label: 'Some User Method'
+			name: 'user-method'
+			fn: onMethodFn
+		},
+		{
+			label: 'Some User Method'
+			name: 'user-method'
+			fn: onMethodFn
+		},
+		{
+			label: 'Some User Method'
+			name: 'user-method'
+			fn: onMethodFn
+		},
+		{
+			label: 'Some User Method'
+			name: 'user-method'
+			fn: onMethodFn
+		},
+		{
+			label: 'Rank User'
+			name: 'set-rank'
+			render: ->
+				[
+					h MenuTab,
+						content: h Input,
+							type: 'number'
+							label: 'rank'
+							placeholder: '[0-10]'
+					h MenuTab,
+						content: h Input,
+							btn_type: 'primary'
+							type: 'button'
+							label: 'submit'
+				]		
 		}
 	]
 
@@ -177,31 +234,31 @@ event_model =
 
 	statics: [
 		{
-			method_label: 'update all users'
-			method_name: 'update-all-users'
+			label: 'update all users'
+			name: 'update-all-users'
 			fn: onStaticFn
 		},
 		{
-			method_label: 'alert all users'
-			method_name: 'update-all-users'
+			label: 'alert all users'
+			name: 'update-all-users'
 			fn: onStaticFn
 		}
 	]
 
 	methods: [
 		{
-			method_label: 'Delete User'
-			method_name: 'delete'
+			label: 'Delete User'
+			name: 'delete'
 			fn: onMethodFn
 		},
 		{
-			method_label: 'View User'
-			method_name: 'view'
+			label: 'View User'
+			name: 'view'
 			fn: onMethodFn
 		},
 		{
-			method_label: 'Rank User'
-			method_name: 'set-rank'
+			label: 'Rank User'
+			name: 'set-rank'
 		}
 	]
 
@@ -230,31 +287,31 @@ room_model =
 
 	statics: [
 		{
-			method_label: 'update all users'
-			method_name: 'update-all-users'
+			label: 'update all users'
+			name: 'update-all-users'
 			fn: onStaticFn
 		},
 		{
-			method_label: 'alert all users'
-			method_name: 'update-all-users'
+			label: 'alert all users'
+			name: 'update-all-users'
 			fn: onStaticFn
 		}
 	]
 
 	methods: [
 		{
-			method_label: 'Delete User'
-			method_name: 'delete'
+			label: 'Delete User'
+			name: 'delete'
 			fn: onMethodFn
 		},
 		{
-			method_label: 'View User'
-			method_name: 'view'
+			label: 'View User'
+			name: 'view'
 			fn: onMethodFn
 		},
 		{
-			method_label: 'Rank User'
-			method_name: 'set-rank'
+			label: 'Rank User'
+			name: 'set-rank'
 		}
 	]
 
