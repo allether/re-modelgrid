@@ -347,8 +347,7 @@ class SearchView extends Component
 			# 		placeholder: @props.query_item.value
 
 			# 		onInput: @setQueryItemValue
-				
-					
+
 			# h MenuTab,
 			# 	content: h Bar,
 			# 		big: no
@@ -419,13 +418,15 @@ class SearchView extends Component
 	hideInfoOptions: =>
 		@setState show_info_options:no
 
-
-
+	onKeyDown: (e)=>
+		if e.code == 'Escape'
+			@_search.blur()
+			@props.onHide(e)
+	searchRef: (el)=>
+		@_search = el._input
 	render: (props,state)->
 		qi = props.query_item
 		pad_label = 15
-
-
 
 
 		query_item_is_loading = qi.called_at && !qi.completed_at
@@ -507,6 +508,7 @@ class SearchView extends Component
 
 		search_input = h Input,
 			onFocus: @onFocus
+			ref: @searchRef
 			type: search_input_label && 'button' || 'input'
 			btn_type: 'flat'
 			style: 
@@ -614,6 +616,7 @@ class SearchView extends Component
 			reveal: props.reveal
 			show_backdrop: props.reveal
 			onClickBackdrop: props.onHide
+			onKeyDown: @onKeyDown
 			content: h Bar,
 				big: yes
 				style:

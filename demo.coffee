@@ -84,6 +84,7 @@ class ModelGridExample extends Component
 	selectModelIndex: (i)=>
 		@setState
 			selected_model_index: i
+			schema_state_id: Date.now()
 
 
 	mapMenuModels: (model,i)=>

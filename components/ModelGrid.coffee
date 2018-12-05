@@ -32,9 +32,8 @@ class ModelGrid extends Component
 			runQuery: @runQuery
 			runDataItemMethod: @runDataItemMethod
 			updateSelectedDocument: @updateSelectedDocument
-			
-			
-				
+
+
 
 	getDefaultConfig: (props)=>
 		
@@ -75,20 +74,6 @@ class ModelGrid extends Component
 				state.query_item = q
 		state.bookmarks_updated_at = Date.now() 
 
-	# mapDataItems: (props,state)=>
-	# 	state = state || @state
-	# 	props = props || @props
-	# 	if state.data_item && state.data[state.query_item._id]
-	# 		for item,i in state.data[state.query_item._id]
-	# 			# state.
-	# 			if item._id == state.data_item._id
-	# 				log 'mapDataItems: found & updated data_item'
-
-	# 				state.data_item = Object.assign {},item
-	# 				# state.data_item._index = i
-	# 				return
-	# 		state.data_item = null
-
 
 	setQueryItem: (query_item,run_query_once)=>
 		@setState
@@ -100,7 +85,16 @@ class ModelGrid extends Component
 		# log 'reset label'
 		keys = Object.keys(query_item.value)
 		query_item.label = undefined
-		if keys.length == 1 && keys[0] == query_item.key
+		filter_keys = Object.keys(@state.schema.filter(query_item.value))
+		is_key = true
+		for key in keys
+			if filter_keys.indexOf(key) == -1
+				is_key = false
+				break
+		if keys.indexOf query_item.key == -1
+			is_key = false
+		
+		if is_key	
 			query_item.type = 'key'
 			query_item.input_value = query_item.value[query_item.key]
 		else
@@ -123,7 +117,7 @@ class ModelGrid extends Component
 
 	createQueryItem: (query_item)->
 		sort_keys: query_item?.sort_keys || {}
-		layout_keys: query_item?.layout_keys || []
+		layout_keys: query_item?.layout_keys || ['_id']
 		key: query_item?.key || props.schema.keys_array[0]
 		label: query_item?.label
 		type: query_item?.type
@@ -253,6 +247,8 @@ class ModelGrid extends Component
 				@state.query_item.type = 'json'
 				@state.query_item.value = {}
 				@state.query_item.input_value = '{}'
+		if @state.query_item.layout_keys.length == 0
+			@state.query_item.layout_keys[0] = '_id'
 
 	runQuery: =>
 		@cleanQuery()
@@ -275,6 +271,10 @@ class ModelGrid extends Component
 
 
 		q_i = @state.query_item
+		
+		if @props.schema.filter
+			Object.assign q_i.value, @props.schema.filter.query(q_i.value)
+
 		@props.runQuery(q_i).then (data)=>
 			@state.data[q_i._id] = data
 			q_i.completed_at = Date.now()
@@ -390,7 +390,9 @@ class ModelGrid extends Component
 		
 		if props.schema_state_id != state.schema_state_id
 			state.schema_state_id = props.schema_state_id
+			Object.assign state,@getDefaultConfig(props)
 			Object.assign state,props.schema_state
+			state.run_query_once = true
 
 		if state.queries_updated_at != @state.queries_updated_at
 			@mapQueryItems(props,state)

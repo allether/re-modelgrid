@@ -244,8 +244,26 @@ class GridView extends Component
 		schema = @props.schema
 		data = @props.data
 		is_key = g_opts.rowIndex == 0
-
 		
+		if g_opts.columnIndex == 0
+			if is_key
+				return null
+			return h 'div',
+				style: g_opts.style
+				key: g_opts.key
+				h 'div',
+					className: cn css['model-grid-cell'],'material-icons',css['model-grid-cell-method-button']
+					onClick: @showMethodMenu.bind(@,g_opts)
+					'more_horiz'
+		else
+			key_name = @props.query_item.layout_keys[g_opts.columnIndex-1]
+			key = schema.keys[key_name]
+			edit_key = !is_key && @state.edit_key == key_name && is_selected
+			if !key
+				throw new Error 'invalid key '+key_name
+
+
+
 		
 		if !is_key && @props.data_item
 			is_selected = @props.data_item._id == data[g_opts.rowIndex-1]._id
@@ -261,24 +279,12 @@ class GridView extends Component
 
 		
 		# render document method menu
-		if g_opts.columnIndex == 0
-			
-			if is_key
-				return null
-			return h 'div',
-				style: g_opts.style
-				key: g_opts.key
-				h 'div',
-					className: cn css['model-grid-cell'],'material-icons',css['model-grid-cell-method-button']
-					onClick: @showMethodMenu.bind(@,g_opts)
-					'more_horiz'
+	
 				
 
 
 
-		key_name = @props.query_item.layout_keys[g_opts.columnIndex-1]
-		key = schema.keys[key_name]
-		edit_key = !is_key && @state.edit_key == key_name && is_selected
+		
 		
 		
 		if !is_key
@@ -353,7 +359,7 @@ class GridView extends Component
 			state.data_item = props.data_item
 			state.edit_key = null
 		g_k = @getGridKey(props)
-		log g_k
+		# log g_k
 		if g_k != state.grid_key
 			state.grid_key = g_k
 			state.force_update_grid = true

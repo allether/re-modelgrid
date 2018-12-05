@@ -64,8 +64,8 @@ user_model =
 	label: 'Users'
 	filter:
 		label: 'My Project'
-		fn: (query)->
-			query.project = 'My Project'
+		query: ->
+			project: 'My Project'
 	
 	keys_array: ['project','_name','_id','_age']
 	
