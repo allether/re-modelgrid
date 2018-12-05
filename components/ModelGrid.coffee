@@ -5,7 +5,6 @@ Slide = require 'preact-slide'
 require 'normalize.css'
 css = require './ModelGrid.less'
 {Input,MenuTab,Menu,Bar,Overlay,AlertOverlay} = require 'lerp-ui'
-adler = require 'adler-32'
 
 ReactJson = require 'react-json-view'
 ReactJson = ReactJson.default

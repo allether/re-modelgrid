@@ -24,7 +24,7 @@ var cfg = {
 	    	'react-dom': 'preact-compat'
 	  	}
 	},
-	externals: ["preact","preact-slide","classnames","color"],
+	externals: ["preact","preact-slide","classnames","color","lerp-ui","react-virtualized","react","react-dom"],
 	output: {
 		path: path.join(__dirname,'..','/dist'),
 		publicPath: '/',
