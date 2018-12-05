@@ -1,10 +1,10 @@
-Color = require 'color'
+# Color = require 'color'
 {render,h,Component} = require 'preact'
 Slide = require 'preact-slide'
 
 require 'normalize.css'
 css = require './ModelGrid.less'
-{Input,MenuTab,Menu,Bar,Overlay} = require 'lerp-ui'
+{Input,MenuTab,Menu,Bar,Overlay,AlertOverlay} = require 'lerp-ui'
 adler = require 'adler-32'
 
 ReactJson = require 'react-json-view'
@@ -23,6 +23,7 @@ class ModelGrid extends Component
 			selectDataItem: @selectDataItem
 			updateDataItem: @updateDataItem
 			deleteDataItem: @deleteDataItem
+			createDataItem: @createDataItem
 			showJSONView: @showJSONView
 			setQueryItem: @setQueryItem
 			updateQueryItemAndSet: @updateQueryItemAndSet
@@ -43,7 +44,7 @@ class ModelGrid extends Component
 		bookmarks: [] 	# array <query_item_id>
 		data: {} # <query._id> : [<data_item>]
 		query_item: @createQueryItem
-			key: props.schema.keys_array[0]
+			key: '_id'
 			type: 'key'
 		data_item_query:
 			data_item_id: null
@@ -85,15 +86,17 @@ class ModelGrid extends Component
 		# log 'reset label'
 		keys = Object.keys(query_item.value)
 		query_item.label = undefined
-		filter_keys = Object.keys(@state.schema.filter(query_item.value))
+		if @props.schema.filter
+			filter_keys = Object.keys(@props.schema.filter.query_value)
+		else
+			filter_keys = []
 		is_key = true
 		for key in keys
-			if filter_keys.indexOf(key) == -1
+			if key != query_item.key && filter_keys.indexOf(key) == -1
 				is_key = false
 				break
-		if keys.indexOf query_item.key == -1
-			is_key = false
 		
+
 		if is_key	
 			query_item.type = 'key'
 			query_item.input_value = query_item.value[query_item.key]
@@ -141,6 +144,8 @@ class ModelGrid extends Component
 			q_value = {}
 			q_value[query_item.key || query_item.key] = query_item.input_value
 			query_item.value = q_value
+			if @props.schema.filter
+				Object.assign q_value,@props.schema.filter.query_value
 		else if query_item.type == 'json'
 			try
 				query_item.value = JSON.parse(query_item.input_value)
@@ -250,6 +255,19 @@ class ModelGrid extends Component
 		if @state.query_item.layout_keys.length == 0
 			@state.query_item.layout_keys[0] = '_id'
 
+
+	clearQueryItemRunError: =>
+		@setState
+			query_item_run_error: null
+	
+	setQueryItemRunError: (query_item,error)=>
+		query_item.error = error.message
+		query_item.completed_at = Date.now()
+		@setState
+			query_item_run_error:
+				error: error
+				query_item: query_item
+
 	runQuery: =>
 		@cleanQuery()
 
@@ -273,17 +291,17 @@ class ModelGrid extends Component
 		q_i = @state.query_item
 		
 		if @props.schema.filter
-			Object.assign q_i.value, @props.schema.filter.query(q_i.value)
+			Object.assign q_i.value, @props.schema.filter.query_value
+
+		# log q_i.value
 
 		@props.runQuery(q_i).then (data)=>
 			@state.data[q_i._id] = data
 			q_i.completed_at = Date.now()
 			log 'runQuery completed',q_i._id,(q_i.completed_at - q_i.called_at)+'ms','#'+data.length
 			@forceUpdate()
-		.catch (error)=>
-			q_i.error = error.message
-			q_i.completed_at = Date.now()
-
+		.catch @setQueryItemRunError.bind(@,q_i)
+	
 
 
 		@setState
@@ -294,6 +312,31 @@ class ModelGrid extends Component
 	runDataItemMethod: (data_item,method)->
 		log 'run data_item method',data_item,method
 
+	setDataItemActionError: (data_item,error)=>
+		@setState
+			data_item_action_error:
+				data_item: data_item
+				error: error
+
+	clearDataItemActionError: =>
+		@setState
+			data_item_query: {}
+			data_item_action_error: null
+
+
+	createDataItem: =>
+		log 'create data item'
+		@setState
+			data_item_query:
+				data_item_id: JSON.stringify(@state.new_doc)
+				action: 'create'
+				called_at: Date.now()
+		@props.createDataItem(@state.new_doc).then (created_doc)=>
+			log 'created data_item',created_doc
+			@state.data_item_query.completed_at = Date.now()
+			@state.data_item = Object.assign {},created_doc
+			@runQuery()
+		.catch @setDataItemActionError.bind(@,@state.new_doc)
 
 	deleteDataItem: =>
 		log 'delete data item'
@@ -311,7 +354,7 @@ class ModelGrid extends Component
 				@setState
 					data_item: null
 			@runQuery()
-		# .catch @onUpdateDataItemError
+		.catch @setDataItemActionError.bind(@,@state.new_doc)
 
 	updateDataItem: (update)=>
 	
@@ -332,7 +375,7 @@ class ModelGrid extends Component
 				@setState
 					data_item: doc
 			@runQuery()
-		# .catch @onUpdateDataItemError
+		.catch @setDataItemActionError.bind(@,@state.new_doc)
 
 	getDataItem: ()=>
 		
@@ -353,7 +396,7 @@ class ModelGrid extends Component
 				@setState
 					data_item: doc
 			# @runQuery()
-		.catch @onUpdateDataItemError
+		.catch @setDataItemActionError.bind(@,@state.new_doc)
 
 
 
@@ -436,24 +479,64 @@ class ModelGrid extends Component
 		@g_props.show_json_view = state.show_json_view
 		@g_props.queries_updated_at = state.queries_updated_at
 		
-		overlay = h Overlay,
-			initial_visible: no
-			visible: !state.data_item_query.completed_at && state.data_item_query.called_at
-			z_index: 99999
-			style:
-				display: 'flex'
-				alignItems: 'center'
-				justifyContent: 'center'
-			h Input,
-				type: 'button'
-				label: [
-					
-					h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},state.data_item_query.action
-					h 'span',{className: css['model-grid-slash']},'/'
-					state.data_item?._id
-				]
-		
 
+		if state.query_item_run_error
+			overlay = h AlertOverlay,
+				initial_visible: no
+				alert_type: 'error'
+				visible: yes
+				backdrop_color: @context.__theme.primary.inv[2]
+				message: state.query_item_run_error.error.message
+				onClick: @clearQueryItemRunError
+				style:
+					display: 'flex'
+					alignItems: 'center'
+					justifyContent: 'center'
+				h Input,
+					label: 'errored query value'
+					type: 'textarea'
+					btn_type: 'flat'
+					select: no
+					hover: no
+					# disabled: yes
+					bar: yes
+					is_valid: no
+					value: JSON.stringify(state.query_item_run_error.query_item.value,4,4)
+		else
+			overlay = h AlertOverlay,
+				initial_visible: no
+				backdrop_color: @context.__theme.primary.inv[2]
+				alert_type: 'error'
+				visible: state.data_item_action_error? || !state.data_item_query.completed_at && state.data_item_query.called_at
+				message: state.data_item_action_error?.error.message
+				onClick: state.data_item_action_error && @clearDataItemActionError 
+				# z_index: 9999
+				style:
+					display: 'flex'
+					alignItems: 'center'
+					justifyContent: 'center'
+				h Input,
+					type: 'label'
+					label: [
+						
+						h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},state.data_item_query.action
+						h 'span',{className: css['model-grid-slash']},'/'
+						state.data_item_query.data_item_id
+					]
+		
+		# if state.data_item_action_error
+		# error_overlay = h AlertOverlay,
+		# 	alert_type: 'error'
+		# 	visible: state.data_item_action_error?
+		# 	message: state.data_item_action_error?.error.message
+		# 	# h Input,
+		# 	# 	type: 'label'
+		# 	# 	label: [
+		# 	# 		h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},state.data_item_action_error.action_type
+		# 	# 		h 'span',{className: css['model-grid-slash']},'/'
+		# 	# 		state.data_item_query.data_item_id
+		# 	# 	]
+		
 		h Slide,
 			slide:yes
 			pos: !@state.show_json_view && 1 || 0
@@ -476,6 +559,7 @@ class ModelGrid extends Component
 					src: state.data_item
 				h Input,
 					type: 'button'
+					btn_type: 'primary'
 					i : 'close'
 					onClick: @closeJSONView
 					className: css['json-close']

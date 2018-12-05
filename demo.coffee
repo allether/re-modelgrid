@@ -14,9 +14,9 @@ class Demo extends Component
 		super(props)
 		@state =
 			primary:'#1B1C1D'
-			secondary:'#4D6977'
+			secondary:'#386277'
 			primary2:'#fff'
-			secondary2:'#4D6977'
+			secondary2:'#386277'
 
 	onSetStyle: (primary,secondary)=>
 		# log 'on set styl'
@@ -135,10 +135,17 @@ class ModelGridExample extends Component
 					schema_state: schema_state
 					schema_state_id: @state.schema_state_id
 					onSchemaStateUpdated: setStateConfig
+					
+					createDataItem: (doc)=>
+						return new Promise (resolve,reject)=>
+							setTimeout ()=>
+								reject(new Error 'test error - failed to create doc')
+							,1000
+
 					updateDataItem: (doc_id,updates)=>
 						log 'update data item',doc_id,updates
 
-						return new Promise (resolve,rejecet)=>
+						return new Promise (resolve,reject)=>
 							setTimeout ()=>
 								for d,i in demo_models.data[@state.selected_model_index]
 									if d._id == doc_id
@@ -147,7 +154,7 @@ class ModelGridExample extends Component
 								reject(new Error 'not found')
 							,500
 					deleteDataItem: (doc_id)=>
-						return new Promise (resolve,rejecet)=>
+						return new Promise (resolve,reject)=>
 							setTimeout ()=>
 								for d,i in demo_models.data[@state.selected_model_index]
 									if d._id == doc_id
@@ -157,7 +164,7 @@ class ModelGridExample extends Component
 							,500
 
 					getDataItem: (doc_id)=>
-						return new Promise (resolve,rejecet)=>
+						return new Promise (resolve,reject)=>
 							setTimeout ()=>
 								for d,i in demo_models.data[@state.selected_model_index]
 									if d._id == doc_id
@@ -171,7 +178,11 @@ class ModelGridExample extends Component
 						log 'runQuery',query
 						new Promise (resolve,reject)=>
 							setTimeout ()=>
-								resolve(demo_models.data[@state.selected_model_index])
+								if query.input_value == '{}'
+									reject new Error 'test error for input_value == {} (type something in the search field)'
+								else
+									resolve(demo_models.data[@state.selected_model_index])
+								
 							,1000
 
 

@@ -32,8 +32,8 @@ class SearchView extends Component
 		if !@props.query_item.called_at && @props.query_item.type == 'bookmark'
 			if @props.query_item.match_label
 				@setSearchValue(target:value:'#'+@props.query_item.match_label)
-		@state.force_update_grid = true
-		@state.force_render_grid = true
+		# @state.force_update_grid = true
+		# @state.force_render_grid = true
 		@_cell_cache.clearAll()
 		@props.runQuery()
 
@@ -57,6 +57,8 @@ class SearchView extends Component
 		@setState
 			show_info_options: no
 			query_item_label: null
+			force_render_grid: yes
+	
 		
 		
 	
@@ -68,6 +70,7 @@ class SearchView extends Component
 		@setState
 			show_info_options: no
 			query_item_label: null
+			force_render_grid: yes
 		
 	
 	onClickIcon: (e)=>
@@ -115,29 +118,17 @@ class SearchView extends Component
 		if props.query_item._id != @props.query_item._id || props.reveal != @props.reveal || props.queries_updated_at != @props.queries_updated_at || props.bookmarks_updated_at != @props.bookmarks_updated_at
 			if props.queries_updated_at != @props.queries_updated_at
 				@_cell_cache?.clearAll()
-			log props.queries.indexOf(props.query_item)
+			# log props.queries.indexOf(props.query_item)
 			state.scroll_queries_index = props.queries.indexOf(props.query_item)
 			# state.force_update_grid = true
 			# state.force_render_grid = true
-
+			
 
 
 
 	componentDidUpdate: (props,state)->
-		# if state.g_id != @state.g_id
-		# 	force_update_grid = true
-		# log @state.force_update_grid,@state.force_render_grid
-		# log @state.force_update_grid,@state.force_render_grid
-		# if (@state.force_update_grid || @state.force_render_grid) && @_list
-		# 	@state.force_update_grid = false
-		# 	if @state.force_render_grid
-		# 		@state.force_render_grid = false
-		# 		@_cell_cache?.clearAll()
-		# 	@_list.forceUpdateGrid()
-
-		# 	log 'force update grid',@props.queries.indexOf(@props.query_item)
-		# 	@setState
-		# 		scroll_queries_index: @props.queries.indexOf(@props.query_item)
+		if @state.force_render_grid
+			@_list?.forceUpdateGrid()
 
 
 	listRef: (el)=>
@@ -244,8 +235,6 @@ class SearchView extends Component
 
 
 	renderBookmarksList: ()->
-		log 'render bookmarks'
-		log @props.bookmarks.length
 		h List,
 			height: 260
 			width: 300
@@ -255,7 +244,7 @@ class SearchView extends Component
 			rowRenderer: @renderBookmarkItem
 	
 	renderQueryList: ->
-		log 'render queries'
+		
 		
 		scroll_queries_index = @state.scroll_queries_index
 		@state.scroll_queries_index = undefined
@@ -384,6 +373,10 @@ class SearchView extends Component
 
 	mapMenuSearchKeys: (key_name,i)=>
 		key = @props.keys[key_name]
+		
+		if @props.schema.filter.query_value[key_name]
+			return null
+
 		if !key.indexed
 			return null
 		h MenuTab,
@@ -452,7 +445,6 @@ class SearchView extends Component
 			info_i = 'notifications'
 			info_type = 'label'
 		else if qi.type == 'key'
-			
 			search_placeholder =  'search by '+props.keys[qi.key].label
 			info_label = ['search by ',h 'span',style:color:@context.__theme.primary.true,qi.key]
 			info_i = 'menu'

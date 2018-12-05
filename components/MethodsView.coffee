@@ -18,7 +18,7 @@ class MethodsView extends Component
 			render_method: null
 
 	mapMethods: (method,i)=>
-		# log  @state.render_method == method
+		
 		if @state.render_method?
 			if @state.render_method != method
 				return null
@@ -40,7 +40,6 @@ class MethodsView extends Component
 		method_tabs = props.methods.map @mapMethods
 		if state.render_method
 			method_rendered = state.render_method.render(state.render_method)
-			log method_rendered
 		tab_props = 
 			tab_style:
 				background: @context.__theme.primary.inv[0]

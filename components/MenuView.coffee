@@ -138,11 +138,12 @@ class MenuView extends Component
 		new_doc_tab = h CreateDocView,
 			reveal: @getPinMenuBoolean('add-doc',true)
 			keys: schema.keys
+			schema: schema
 			new_doc: props.new_doc
 			keys_array: schema.keys_array
 			onClick: @togglePinMenu.bind(@,'add-doc',true)
 			onHide: @togglePinMenu.bind(@,null,false)
-			onCreateDocument: props.onCreateDocument
+			createDataItem: props.createDataItem
 
 
 		# SEARCH TAB / VIEW
@@ -159,6 +160,7 @@ class MenuView extends Component
 			runQuery: props.runQuery
 			setQueryItem: props.setQueryItem
 			
+			schema: props.schema
 			queries: props.queries
 			queries_updated_at: props.queries_updated_at
 			bookmarks: props.bookmarks

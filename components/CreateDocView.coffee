@@ -7,6 +7,7 @@ class CreateDocView extends Component
 	onNewDocFormInput: (key_name,e)=>
 		@props.new_doc[key_name] = e.target.value
 		@setState()
+	
 	renderNewDocForm: (props,state)->
 		lc = props.keys_array.reduce (pre,key_name)->
 			if key_name.length > pre
@@ -14,7 +15,12 @@ class CreateDocView extends Component
 			return pre
 		,0
 
-		# log props.cfg.new_doc
+		
+		if props.schema.filter
+			filter_q = props.schema.filter.query_value
+
+
+		
 
 		h 'form',
 			className: css['model-grid-add-doc-form']
@@ -29,22 +35,28 @@ class CreateDocView extends Component
 					if !props.keys[key_name].form_render
 						return null
 					# log key_name
+					override = null
+					if filter_q && filter_q[key_name]
+						override = filter_q[key_name]
+
 					key = props.keys[key_name]
-					key_val = props.new_doc[key_name] || key.form_autofill
+					key_val = override || props.new_doc[key_name]
 					h Input,
 						key: i
 						label: key.label.padStart(lc+4," ")
 						bar: yes
-						disabled: key.form_autofill && yes
+						disabled: override && yes
 						required: key.form_required && yes
 						is_valid: key.form_validate?(key_val) || undefined
-						value: key_val
+						value: override || key_val
 						onInput: @onNewDocFormInput.bind(null,key_name)
 						placeholder: key.form_placeholder || key_name
 				h Input,
 					big: yes
-					type: 'submit'
-					onClick: @onCreateDocument
+					type: 'button'
+					label: 'create'
+					center: yes
+					onClick: props.createDataItem
 					btn_type: 'primary'
 
 
