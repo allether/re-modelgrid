@@ -380,7 +380,10 @@ class GridView extends Component
 	onShowMenu: =>
 		@setState
 			scroll_to_data_item: true
-
+	
+	rowHeight: (r_opts)=>
+		return 30
+	
 	render: (props,state)->
 		schema = props.schema
 		data = props.data
@@ -417,7 +420,7 @@ class GridView extends Component
 				fixedColumnCount:0
 				fixedRowCount:1
 				height:@_grid_slide._outer.clientHeight
-				rowHeight:30
+				rowHeight:@rowHeight
 				rowCount:data.length+1
 				width:@_grid_slide._outer.clientWidth
 		
