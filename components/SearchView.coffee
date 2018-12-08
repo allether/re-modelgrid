@@ -416,6 +416,8 @@ class SearchView extends Component
 			@_search.blur()
 			@props.onHide(e)
 	searchRef: (el)=>
+		if !el
+			return
 		@_search = el._input
 	render: (props,state)->
 		qi = props.query_item

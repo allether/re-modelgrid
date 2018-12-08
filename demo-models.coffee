@@ -63,7 +63,6 @@ user_model =
 	name: 'user'
 	label: 'Users'
 	filter:
-		label: 'My Project'
 		query_value:
 			project: 'My Project'
 	

@@ -37,6 +37,12 @@ class Demo extends Component
 				vert:yes
 				beta: 100
 				h Slide,
+					beta: 20
+					style:
+						background: @state.background
+						color: @state.color
+					h ModelGridExample
+				h Slide,
 					beta: 50
 					style:
 						background: @state.background
