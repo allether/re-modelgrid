@@ -252,7 +252,7 @@ class GridView extends Component
 				style: g_opts.style
 				key: g_opts.key
 				h 'div',
-					className: cn css['model-grid-cell'],'material-icons',css['model-grid-cell-method-button']
+					className: cn css['model-grid-cell'],css['model-grid-cell-method-button'],'material-icons'
 					onClick: @showMethodMenu.bind(@,g_opts)
 					'more_horiz'
 		else

@@ -1,10 +1,9 @@
 # Color = require 'color'
 {render,h,Component} = require 'preact'
 Slide = require 'preact-slide'
-
-require 'normalize.css'
-{Input,MenuTab,Menu,Bar,Overlay,AlertOverlay} = require 'lerp-ui'
 css = require './ModelGrid.less'
+{Input,MenuTab,Menu,Bar,Overlay,AlertOverlay} = require 'lerp-ui'
+
 
 ReactJson = require 'react-json-view'
 ReactJson = ReactJson.default
