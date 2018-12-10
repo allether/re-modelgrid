@@ -58,6 +58,7 @@ class ModelGrid extends Component
 		log 'select data item'
 		@setState
 			data_item: Object.assign {},item
+		@props.onSelectDataItem?(@state.data_item)
 
 
 	mapQueryItems: (props,state)=>
