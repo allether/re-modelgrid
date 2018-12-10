@@ -421,7 +421,7 @@ class ModelGrid extends Component
 		if @state.run_query_once
 			@runQuery()
 
-		@props.onSchemaStateUpdated?(@props.schema,save_state)
+		@props.onSchemaStateUpdated?(save_state)
 
 		if @state.data_item && @state.show_json_view && @state.data_item_query.data_item_id != @state.data_item._id
 			@getDataItem()
@@ -522,19 +522,7 @@ class ModelGrid extends Component
 						h 'span',{className: css['model-grid-slash']},'/'
 						state.data_item_query.data_item_id
 					]
-		
-		# if state.data_item_action_error
-		# error_overlay = h AlertOverlay,
-		# 	alert_type: 'error'
-		# 	visible: state.data_item_action_error?
-		# 	message: state.data_item_action_error?.error.message
-		# 	# h Input,
-		# 	# 	type: 'label'
-		# 	# 	label: [
-		# 	# 		h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},state.data_item_action_error.action_type
-		# 	# 		h 'span',{className: css['model-grid-slash']},'/'
-		# 	# 		state.data_item_query.data_item_id
-		# 	# 	]
+
 		
 		h Slide,
 			slide:yes

@@ -140,7 +140,7 @@ class ModelGridExample extends Component
 					schema: demo_models.models[@state.selected_model_index]
 					schema_state: schema_state
 					schema_state_id: @state.schema_state_id
-					onSchemaStateUpdated: setStateConfig
+					onSchemaStateUpdated: setStateConfig.bind(null,demo_models.models[@state.selected_model_index])
 					
 					createDataItem: (doc)=>
 						return new Promise (resolve,reject)=>
