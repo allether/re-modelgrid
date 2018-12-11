@@ -245,6 +245,12 @@ class GridView extends Component
 		data = @props.data
 		is_key = g_opts.rowIndex == 0
 		
+		if g_opts.rowIndex % 2 == 0
+			alt_cell = true
+		
+		if alt_cell
+			g_opts.style.background = @context.__theme.primary.inv[1]
+
 		if !is_key && @props.data_item
 			is_selected = @props.data_item._id == data[g_opts.rowIndex-1]._id
 		
@@ -269,27 +275,6 @@ class GridView extends Component
 			edit_key = !is_key && @state.edit_key == key_name && is_selected
 			if !key
 				throw new Error 'invalid key '+key_name
-
-
-
-		
-		
-	
-		if g_opts.rowIndex % 2 == 0
-			alt_cell = true
-		if alt_cell
-			g_opts.style.background = @context.__theme.primary.inv[1]
-
-		
-
-		
-		# render document method menu
-	
-				
-
-
-
-		
 		
 		
 		if !is_key
