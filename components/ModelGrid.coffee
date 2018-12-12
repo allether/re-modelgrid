@@ -423,7 +423,7 @@ class ModelGrid extends Component
 
 		@props.onSchemaStateUpdated?(save_state)
 
-		if @state.data_item && @state.show_json_view && @state.data_item_query.data_item_id != @state.data_item._id
+		if @state.data_item && @state.show_json_view && ((@state.show_json_view != state.show_json_view) || @state.data_item_query.data_item_id != @state.data_item._id)
 			@getDataItem()
 
 		
@@ -544,12 +544,18 @@ class ModelGrid extends Component
 					shouldCollapse:@shouldCollapse
 					theme: 'eighties'
 					src: state.data_item
-				h Input,
-					type: 'button'
-					btn_type: 'primary'
-					i : 'close'
-					onClick: @closeJSONView
+				h 'div',
 					className: css['json-close']
+					h Input,
+						type: 'button'
+						btn_type: 'flat'
+						i : 'refresh'
+						onClick: @getDataItem
+					h Input,
+						type: 'button'
+						btn_type: 'flat'
+						i : 'close'
+						onClick: @closeJSONView
 			h Slide,
 				vert: yes
 				style:
