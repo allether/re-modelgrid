@@ -406,7 +406,7 @@ class ModelGrid extends Component
 		for q in @state.queries
 			if q.called_at && !q.completed_at
 				q.called_at = q.completed_at = 0
-		log 'mount and run query'
+		# log 'mount and run query'
 		@runQuery()
 		
 
