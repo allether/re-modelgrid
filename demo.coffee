@@ -36,6 +36,7 @@ class Demo extends Component
 			h Slide,
 				vert:yes
 				beta: 100
+				Slide: no
 				# h Slide,
 				# 	beta: 20
 				# 	style:
@@ -43,13 +44,13 @@ class Demo extends Component
 				# 		color: @state.color
 				# 	h ModelGridExample
 				h Slide,
-					beta: 50
+					beta: 30
 					style:
 						background: @state.background
 						color: @state.color
 					h ModelGridExample
 				h Slide,
-					beta: 50
+					beta: 70
 					style:
 						background: @state.background2
 						color: @state.color2

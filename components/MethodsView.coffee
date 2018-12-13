@@ -2,7 +2,7 @@
 {render,h,Component} = require 'preact'
 {Input,MenuTab,Menu,Bar} = require 'lerp-ui'
 css = require './ModelGrid.less'
-MAX_CHAR = 32
+MAX_CHAR = 31
 
 class MethodsView extends Component
 	onMethodClick: (method)=>
@@ -43,6 +43,7 @@ class MethodsView extends Component
 		tab_props = 
 			tab_style:
 				background: @context.__theme.primary.inv[0]
+				width: '300px'
 			content: h 'div',
 				className: css['methods-list-container']
 				method_tabs

@@ -128,8 +128,8 @@ class DocumentMethodMenu extends Component
 				show_backdrop: yes
 				reveal: yes
 				onClickBackdrop: props.onHide
-				# tab_style:
-				# 	width: '100%'
+				tab_style:
+					width: '300px'
 
 				
 				content: h Input,
@@ -279,6 +279,7 @@ class GridView extends Component
 			return h 'div',
 				style: g_opts.style
 				key: g_opts.key
+				onClick: !is_selected && @props.selectDataItem.bind(null,data[g_opts.rowIndex-1])
 				h 'div',
 					className: cn css['model-grid-cell'],css['model-grid-cell-method-button'],'material-icons'
 					onClick: @showMethodMenu.bind(@,g_opts)
