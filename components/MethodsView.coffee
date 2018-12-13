@@ -32,7 +32,7 @@ class MethodsView extends Component
 				type: @state.render_method == method && 'label' || 'button'
 				select:  @state.render_method == method
 				btn_type: 'flat'
-				i: method.render && 'subject' || 'play_arrow'
+				i: method.icon || (method.render && 'subject' || 'play_arrow')
 				label: method.label.padEnd(MAX_CHAR)
 			
 
