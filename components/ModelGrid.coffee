@@ -524,7 +524,7 @@ class ModelGrid extends Component
 						state.data_item_query.data_item_id
 					]
 
-		log @base?.clientHeight,@base?.clientWidth
+		
 		h Slide,
 			slide:yes
 			pos: !@state.show_json_view && 1 || 0
