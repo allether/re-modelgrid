@@ -173,7 +173,7 @@ class DocumentMethodMenu extends Component
 							label: 'confirm'
 							onClick: props.deleteDataItem
 				h MethodsView,
-					methods: props.schema.methods
+					methods: props.methods || props.schema.methods || []
 					data_item: props.data_item
 
 
@@ -252,23 +252,30 @@ class GridView extends Component
 		data = @props.data
 		is_key = g_opts.rowIndex == 0
 		
-		if g_opts.rowIndex % 2 == 0
-			alt_cell = true
 		
-		if alt_cell
-			g_opts.style.background = @context.__theme.primary.inv[1]
-
 		if !is_key && @props.data_item
 			is_selected = @props.data_item._id == data[g_opts.rowIndex-1]._id
 		
+		if g_opts.rowIndex % 2 == 0
+			alt_cell = true
+		
 		if g_opts.rowIndex != 0 && is_selected
-			g_opts.style.background = @context.__theme.secondary.color[1]
 			g_opts.style.color = @context.__theme.secondary.inv[0]
-		
-		
+
+
 		if g_opts.columnIndex == 0
 			if is_key
 				return null
+			
+			
+			
+			if alt_cell
+				g_opts.style.background = @context.__theme.primary.inv[1]
+
+			if g_opts.rowIndex != 0 && is_selected
+				g_opts.style.background = @context.__theme.secondary.color[1]
+				
+			g_opts.style.width = '100%'
 			return h 'div',
 				style: g_opts.style
 				key: g_opts.key

@@ -477,6 +477,7 @@ class ModelGrid extends Component
 		@g_props.schema = props.schema
 		@g_props.show_json_view = state.show_json_view
 		@g_props.queries_updated_at = state.queries_updated_at
+		@g_props.methods = props.methods
 		
 
 		if state.query_item_run_error
