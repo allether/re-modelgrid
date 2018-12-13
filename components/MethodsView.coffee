@@ -33,7 +33,7 @@ class MethodsView extends Component
 				select:  @state.render_method == method
 				btn_type: 'flat'
 				i: method.icon || (method.render && 'subject' || 'play_arrow')
-				label: method.label.padEnd(MAX_CHAR)
+				label: method.label
 			
 
 	render: (props,state)->
