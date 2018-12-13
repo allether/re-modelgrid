@@ -401,6 +401,7 @@ class GridView extends Component
 		if @state.show_method_menu
 			method_menu = h DocumentMethodMenu,
 				g_opts: state.data_item_g_opts
+				methods: props.methods
 				onHide: @hideMethodMenu
 				showJSONView: props.showJSONView
 				deleteDataItem: props.deleteDataItem
