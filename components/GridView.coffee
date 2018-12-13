@@ -118,6 +118,7 @@ class DocumentMethodMenu extends Component
 			force_split_x: 1
 			force_split_y: 1
 			big: no
+			
 			hover_reveal_enabled: no
 			backdrop_color: @context.__theme.primary.inv[3]
 			enable_backdrop: yes
@@ -127,20 +128,27 @@ class DocumentMethodMenu extends Component
 				show_backdrop: yes
 				reveal: yes
 				onClickBackdrop: props.onHide
-				# s
-				bar_style:
-					width: '100%'
+				# tab_style:
+				# 	width: '100%'
+
+				
 				content: h Input,
-					type: 'button'
-					i: 'code'
-					btn_type: 'primary'
-					onClick: @props.showJSONView
-					
+					type: 'label'
+										# i: 'code'
+					# btn_type: 'primary'
+					# onClick: @props.showJSONView
 					label: [
 						props.schema.name
 						h 'span',{className: css['model-grid-slash']},'/'
-						h 'span',{style:{fontWeight:600,color:@context.__theme.secondary.inv[0]}},props.data_item._id
+						h 'span',{style:{fontWeight:600,color:@context.__theme.secondary.inv[0]}},props.data_item._label || props.data_item._id
 					]
+				h MenuTab,
+					content: h Input,
+						type: 'button'
+						i: 'code'
+						btn_type: 'primary'
+						onClick: @props.showJSONView
+						label: 'edit JSON'
 				h MenuTab,
 					key: 'del'
 					vert: yes
@@ -151,11 +159,10 @@ class DocumentMethodMenu extends Component
 					content: h Input,
 						type: 'button'
 						i: 'delete'
-						label: [
-							props.data_item._id
-							h 'span',{className: css['model-grid-slash']},'/'
-							h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},'delete'
-						]
+						label: 'delete'
+							# props.data_item._id
+							# h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},
+						# ]
 					h MenuTab,
 						content: h Input,
 							i: 'delete'
