@@ -261,7 +261,13 @@ class GridView extends Component
 		
 		if g_opts.rowIndex != 0 && is_selected
 			g_opts.style.color = @context.__theme.secondary.inv[0]
+		
+		if alt_cell
+			g_opts.style.background = @context.__theme.primary.inv[1]
 
+		if g_opts.rowIndex != 0 && is_selected
+			g_opts.style.background = @context.__theme.secondary.color[1]
+			
 
 		if g_opts.columnIndex == 0
 			if is_key
@@ -269,12 +275,7 @@ class GridView extends Component
 			
 			
 			
-			if alt_cell
-				g_opts.style.background = @context.__theme.primary.inv[1]
-
-			if g_opts.rowIndex != 0 && is_selected
-				g_opts.style.background = @context.__theme.secondary.color[1]
-				
+			
 			g_opts.style.width = '100%'
 			return h 'div',
 				style: g_opts.style
