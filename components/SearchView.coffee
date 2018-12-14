@@ -374,7 +374,7 @@ class SearchView extends Component
 	mapMenuSearchKeys: (key_name,i)=>
 		key = @props.keys[key_name]
 		
-		if @props.schema.filter?.query_value[key_name]
+		if @props.filter?.query_value[key_name]
 			return null
 
 		if !key.indexed

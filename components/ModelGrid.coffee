@@ -85,8 +85,8 @@ class ModelGrid extends Component
 		# log 'reset label'
 		keys = Object.keys(query_item.value)
 		query_item.label = undefined
-		if @props.schema.filter
-			filter_keys = Object.keys(@props.schema.filter.query_value)
+		if @props.filter
+			filter_keys = Object.keys(@props.filter.query_value)
 		else
 			filter_keys = []
 		is_key = true
@@ -143,8 +143,8 @@ class ModelGrid extends Component
 			q_value = {}
 			q_value[query_item.key || query_item.key] = query_item.input_value
 			query_item.value = q_value
-			if @props.schema.filter
-				Object.assign q_value,@props.schema.filter.query_value
+			if @props.filter
+				Object.assign q_value,@props.filter.query_value
 		else if query_item.type == 'json'
 			try
 				query_item.value = JSON.parse(query_item.input_value)
@@ -289,8 +289,8 @@ class ModelGrid extends Component
 
 		q_i = @state.query_item
 		
-		if @props.schema.filter
-			Object.assign q_i.value, @props.schema.filter.query_value
+		if @props.filter
+			Object.assign q_i.value, @props.filter.query_value
 
 		# log q_i.value
 
@@ -478,6 +478,7 @@ class ModelGrid extends Component
 		@g_props.show_json_view = state.show_json_view
 		@g_props.queries_updated_at = state.queries_updated_at
 		@g_props.methods = props.methods
+		@g_props.filter = props.filter
 		
 
 		if state.query_item_run_error

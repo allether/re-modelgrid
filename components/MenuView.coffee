@@ -17,8 +17,8 @@ class MenuView extends Component
 	
 	getDefaultState: ->
 		menu_backdrop: false
-		selected_layout_index: 0
-		selected_filter_index: 0
+		# selected_layout_index: 0
+		# selected_filter_index: 0
 		show_search_query_helper: no
 		show_new_layout_form: false
 		pin_menu_name: null
@@ -36,14 +36,14 @@ class MenuView extends Component
 			# log @state
 			
 
-	mapMenuFilterButtons: (filter,i)=>
-		h MenuTab,
-			key: i
-			content: h Input,
-				# onClick: @togglePinMenu.bind(@,'layout')
-				onClick: @props.onSelectFilter.bind(null,filter)
-				type: 'button'
-				label: filter.label
+	# mapMenuFilterButtons: (filter,i)=>
+	# 	h MenuTab,
+	# 		key: i
+	# 		content: h Input,
+	# 			# onClick: @togglePinMenu.bind(@,'layout')
+	# 			onClick: @props.onSelectFilter.bind(null,filter)
+	# 			type: 'button'
+	# 			label: filter.label
 
 	
 
@@ -108,8 +108,8 @@ class MenuView extends Component
 				name: 'document'
 				btn_type: 'flat'
 				label: [
-					schema.filter && h 'span',{},schema.filter.label
-					schema.filter && h 'span',{className: css['model-grid-slash']},'/'
+					props.filter && h 'span',{},props.filter.label
+					props.filter && h 'span',{className: css['model-grid-slash']},'/'
 					h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},schema.label
 				]
 
