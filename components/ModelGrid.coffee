@@ -8,9 +8,9 @@ css = require './ModelGrid.less'
 ReactJson = require 'react-json-view'
 ReactJson = ReactJson.default
 
+
 MenuView = require './MenuView.coffee'
 GridView = require './GridView.coffee'
-
 
 
 class ModelGrid extends Component
@@ -54,11 +54,13 @@ class ModelGrid extends Component
 		new_doc: {}
 
 
+
 	selectDataItem: (item)=>
 		log 'select data item'
 		@setState
 			data_item: Object.assign {},item
 		@props.onSelectDataItem?(@state.data_item)
+
 
 
 	mapQueryItems: (props,state)=>

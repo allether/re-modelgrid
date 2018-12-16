@@ -44,6 +44,10 @@ class InputCell extends Component
 	onEnter: (e)=>
 		if e.keyCode == 13
 			@_ref.blur()
+	
+	componentWillUpdate: (props)->
+		if @props.value != props.value
+			@state.value = props.value
 	render: (props)->
 		# if typeof @state.value == 'number'
 			# type = 'number'
