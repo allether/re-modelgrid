@@ -101,7 +101,6 @@ class DocumentMethodMenu extends Component
 	
 	showMenu: =>
 		@setState show_menu: yes
-		# @props.onShowMenu(@props.data_item)
 	
 	hideMenu: =>
 		@setState show_menu: no
@@ -115,8 +114,6 @@ class DocumentMethodMenu extends Component
 			confirm_delete: no
 
 	render: (props)->
-
-		# log bb
 		h Menu,
 			vert: no
 			force_split_x: 1
@@ -134,25 +131,22 @@ class DocumentMethodMenu extends Component
 				onClickBackdrop: props.onHide
 				tab_style:
 					width: '300px'
-
-				
 				content: h Input,
 					type: 'label'
-										# i: 'code'
-					# btn_type: 'primary'
-					# onClick: @props.showJSONView
 					label: [
 						props.schema.name
 						h 'span',{className: css['model-grid-slash']},'/'
 						h 'span',{style:{fontWeight:600,color:@context.__theme.secondary.inv[0]}},props.data_item._label || props.data_item._id
 					]
+				
 				h MenuTab,
 					content: h Input,
 						type: 'button'
 						i: 'code'
-						btn_type: 'primary'
+						# btn_type: 'primary'
 						onClick: @props.showJSONView
 						label: 'edit JSON'
+				
 				h MenuTab,
 					key: 'del'
 					vert: yes
@@ -164,9 +158,7 @@ class DocumentMethodMenu extends Component
 						type: 'button'
 						i: 'delete'
 						label: 'delete'
-							# props.data_item._id
-							# h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},
-						# ]
+					
 					h MenuTab,
 						content: h Input,
 							i: 'delete'
@@ -178,6 +170,7 @@ class DocumentMethodMenu extends Component
 							onClick: props.deleteDataItem
 				h MethodsView,
 					methods: props.methods || props.schema.methods || []
+					runDataItemMethod: props.runDataItemMethod
 					data_item: props.data_item
 
 
@@ -244,7 +237,12 @@ class GridView extends Component
 			return 30
 		
 		key_name = @props.query_item.layout_keys[g_opts.index-1]
+		if !key_name
+			console.warn g_opts.index-1,@props.query_item.layout_keys
+			return null
 		key = @props.schema.keys[key_name]
+		if !key
+			throw new Error 'schema key not found ,'+key_name
 
 		return key.col_width
 

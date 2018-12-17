@@ -87,17 +87,23 @@ class MenuView extends Component
 			onClickBackdrop: @togglePinMenu.bind(@,null,false)
 			hover_reveal_enabled: no
 			big: true
-		
+
+
 		# LEFT MENU OPTIONS
 		left_menu_schema = Object.assign {},common_menu_schema,
 			key: 'left-menu'
 			className: css['model-grid-list-menu-left']
-	
+			force_split_y: 1
+			force_bar_dir_y: 1
+			split_y: 1
+
+
 		# RIGHT MENU OPTIONS
 		right_menu_schema = Object.assign {},common_menu_schema,
 			key: 'right-menu'
 			className: css['model-grid-list-menu-right']
-		
+
+
 		# MODEL TITLE TAB
 		model_title_tab = h MenuTab,
 			vert: yes
@@ -112,6 +118,7 @@ class MenuView extends Component
 					props.filter && h 'span',{className: css['model-grid-slash']},'/'
 					h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},schema.label
 				]
+
 
 		# MODEL STATICS TAB
 		model_statics_tab = h MenuTab,
@@ -128,11 +135,6 @@ class MenuView extends Component
 				data_item: @props.data_item
 				methods: schema.statics
 
-			# h MenuTab,
-			# 	className: css['layout-form-keys-container']
-			# 	tab_style:
-			# 		background: @context.__theme.primary.inv[0]
-			# 	content: schema.statics.map @mapMenuStaticsButtons
 
 		# ADD NEW DOCUMENT TAB / VIEW
 		new_doc_tab = h CreateDocView,
@@ -152,14 +154,15 @@ class MenuView extends Component
 			onClick: @togglePinMenu.bind(@,'search',true)
 			onHide: @togglePinMenu.bind(@,null,false)
 
-			
+	
 			updateQueryItemAndSet: props.updateQueryItemAndSet
 			updateQueryItem: props.updateQueryItem
 			cloneQueryItemAndSet: props.cloneQueryItemAndSet
 			cloneQueryItem: props.cloneQueryItem
 			runQuery: props.runQuery
 			setQueryItem: props.setQueryItem
-			
+
+
 			schema: props.schema
 			queries: props.queries
 			queries_updated_at: props.queries_updated_at
@@ -195,9 +198,7 @@ class MenuView extends Component
 				left_menu_schema
 				model_statics_tab
 				model_title_tab
-				
 				new_doc_tab
-				# bookmarks_tab
 				search_tab
 			h Menu,
 				right_menu_schema

@@ -11,7 +11,7 @@ class MethodsView extends Component
 			@setState
 				render_method: method
 		else
-			method.fn?(method,@props.data_item)
+			@props.runDataItemMethod(method)
 
 	hideMethodRender: =>
 		@setState
@@ -39,7 +39,8 @@ class MethodsView extends Component
 	render: (props,state)->
 		method_tabs = props.methods.map @mapMethods
 		if state.render_method
-			method_rendered = state.render_method.render(state.render_method)
+			state.render_method.post_body = state.render_method.post_body || {}
+			method_rendered = state.render_method.render(state.render_method,state.render_method.post_body)
 		tab_props = 
 			tab_style:
 				background: @context.__theme.primary.inv[0]

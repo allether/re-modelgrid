@@ -94,7 +94,9 @@ class LayoutsView extends Component
 					# label: '[keys]'
 		]
 	
-
+	onClickBackdrop: (e)=>
+		@props.onHide(e)
+		@props.runQuery()
 
 			
 	
@@ -103,9 +105,11 @@ class LayoutsView extends Component
 		tab_options = 
 			vert: yes
 			big: no
-			force_split_x: 1
+			force_split_x: -1
+			force_bar_dir_x: -1
+
 			onClick: props.onClick
-			onClickBackdrop: props.onHide
+			onClickBackdrop: @onClickBackdrop
 			reveal: props.reveal
 			show_backdrop: props.reveal
 			content: h Input,

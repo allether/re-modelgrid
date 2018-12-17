@@ -8,7 +8,7 @@ css = require './ModelGrid.less'
 ReactJson = require 'react-json-view'
 ReactJson = ReactJson.default
 
-
+global.DIM = 40
 MenuView = require './MenuView.coffee'
 GridView = require './GridView.coffee'
 
@@ -56,10 +56,11 @@ class ModelGrid extends Component
 
 
 	selectDataItem: (item)=>
-		log 'select data item'
-		@setState
-			data_item: Object.assign {},item
-		@props.onSelectDataItem?(@state.data_item)
+		# log item._id,@state.data_item
+		if !@state.data_item || @state.data_item._id != item._id
+			@setState
+				data_item: Object.assign {},item
+			@props.onSelectDataItem?(@state.data_item)
 
 
 
@@ -183,6 +184,7 @@ class ModelGrid extends Component
 
 	cloneQueryItemAndSet: (schema,query_item,run_query_once)=>
 		query_item = @cloneQueryItem(schema,query_item)
+
 		@mapQueryItems()
 		@setQueryItem(query_item,run_query_once)
 	
@@ -269,6 +271,20 @@ class ModelGrid extends Component
 				error: error
 				query_item: query_item
 
+	mapDataItems: =>
+		state_data_item_found = false
+		if !@state.data_item then return
+		for item in @state.data[@state.query_item._id]
+			if item._id == @state.data_item._id
+				state_data_item_found = true
+				break
+		if state_data_item_found && @state.show_json_view
+			@state.get_data_item = true
+		else if !state_data_item_found
+			@state.data_item = null
+
+
+
 	runQuery: =>
 		@cleanQuery()
 
@@ -281,15 +297,17 @@ class ModelGrid extends Component
 
 		h_i = @state.queries.indexOf(@state.query_item)
 		if h_i > 0
+			@state.data_item = null
 			@state.queries.splice(h_i,1)
 			@state.queries.unshift @state.query_item
 			@state.queries_updated_at = Date.now()
 		else if h_i < 0
+			@state.data_item = null
 			@state.queries.unshift @state.query_item
 			@state.queries_updated_at = Date.now()
 
-
-		q_i = @state.query_item
+		s_q_i = @state.query_item
+		q_i = Object.assign {},@state.query_item
 		
 		if @props.filter
 			Object.assign q_i.value, @props.filter.query_value
@@ -297,11 +315,15 @@ class ModelGrid extends Component
 		# log q_i.value
 
 		@props.runQuery(q_i).then (data)=>
-			@state.data[q_i._id] = data
-			q_i.completed_at = Date.now()
-			log 'runQuery completed',q_i._id,(q_i.completed_at - q_i.called_at)+'ms','#'+data.length
+
+			if q_i._id != @state.query_item._id
+				return @setQueryItemRunError(q_i,new Error('previously ran query does not match current state query '+q_i._id+' != '+@state.query_item._id))
+			@state.data[@state.query_item._id] = data
+			@state.query_item.completed_at = Date.now()
+			log 'runQuery completed',@state.query_item._id,(@state.query_item.completed_at - @state.query_item.called_at)+'ms','#'+data.length
+			@mapDataItems()
 			@forceUpdate()
-		.catch @setQueryItemRunError.bind(@,q_i)
+		.catch @setQueryItemRunError.bind(@,s_q_i)
 	
 
 
@@ -310,8 +332,26 @@ class ModelGrid extends Component
 
 
 
-	runDataItemMethod: (data_item,method)->
-		log 'run data_item method',data_item,method
+	runDataItemMethod: (method)=>
+		log 'run data_item method',method
+		@setState
+			data_item_query:
+				data_item_id: @state.data_item._id
+				data_item_label: @state.data_item._label	
+				action: method.name
+				called_at: Date.now()
+		if method.fn
+			prom = method.fn(@props.schema,@state.data_item,method)
+		else
+			prom = @props.runDataItemMethod(@props.schema,@state.data_item,method)
+
+		prom.then (data_item)=>
+			log 'ran method',@state.data_item._label,'/',method.name,
+			@state.data_item_query.completed_at = Date.now()
+			@setState
+				data_item: Object.assign {},data_item
+			@runQuery()
+		.catch @setDataItemActionError.bind(@,@state.data_item)
 
 	setDataItemActionError: (data_item,error)=>
 		@setState
@@ -344,6 +384,7 @@ class ModelGrid extends Component
 		@setState
 			data_item_query:
 				data_item_id: @state.data_item._id
+				data_item_label: @state.data_item._label
 				action: 'delete'
 				called_at: Date.now()
 
@@ -355,7 +396,7 @@ class ModelGrid extends Component
 				@setState
 					data_item: null
 			@runQuery()
-		.catch @setDataItemActionError.bind(@,@state.new_doc)
+		.catch @setDataItemActionError.bind(@,@state.data_item)
 
 	updateDataItem: (update)=>
 	
@@ -365,6 +406,7 @@ class ModelGrid extends Component
 		@setState
 			data_item_query:
 				data_item_id: @state.data_item._id
+				data_item_label: @state.data_item._label
 				body: update
 				action: 'update'
 				called_at: Date.now()
@@ -376,7 +418,7 @@ class ModelGrid extends Component
 				@setState
 					data_item: doc
 			@runQuery()
-		.catch @setDataItemActionError.bind(@,@state.new_doc)
+		.catch @setDataItemActionError.bind(@,@state.data_item)
 
 	getDataItem: ()=>
 		
@@ -387,6 +429,7 @@ class ModelGrid extends Component
 			data_item_query:
 				body: {}
 				data_item_id: @state.data_item._id
+				data_item_label: @state.data_item._label
 				called_at: Date.now()
 				action: 'get'
 		
@@ -397,7 +440,7 @@ class ModelGrid extends Component
 				@setState
 					data_item: doc
 			# @runQuery()
-		.catch @setDataItemActionError.bind(@,@state.new_doc)
+		.catch @setDataItemActionError.bind(@,@state.data_item)
 
 
 
@@ -418,6 +461,7 @@ class ModelGrid extends Component
 			queries: @state.queries
 			query_item: @state.query_item
 			data_item: @state.data_item
+			show_json_view: @state.show_json_view
 			new_doc: @state.new_doc
 		
 		if @state.run_query_once
@@ -425,12 +469,16 @@ class ModelGrid extends Component
 
 		@props.onSchemaStateUpdated?(save_state)
 
-		if @state.data_item && @state.show_json_view && ((@state.show_json_view != state.show_json_view) || @state.data_item_query.data_item_id != @state.data_item._id)
+		if @state.get_data_item || (@state.data_item && @state.show_json_view && ((@state.show_json_view != state.show_json_view) || @state.data_item_query.data_item_id != @state.data_item._id))
+			@state.get_data_item = false
 			@getDataItem()
 
+	getChildContext: ->
+		gridHeight: @base?.clientHeight - (@props.show_bar && DIM || 0)
 		
 
 	componentWillUpdate: (props,state)=>
+		# log props.schema_state_id,state.schema_state_id
 		
 		if props.schema_state_id != state.schema_state_id
 			state.schema_state_id = props.schema_state_id
@@ -440,9 +488,13 @@ class ModelGrid extends Component
 
 		if state.queries_updated_at != @state.queries_updated_at
 			@mapQueryItems(props,state)
-
+		if !state.data_item
+			state.show_json_view = false
 		if state.query_item != @state.query_item
 			state.show_json_view = false
+
+
+		
 		# log state.data_item,state.show_json_view && state.data_item_query.data_item_id != state.data_item._id
 	
 
@@ -482,7 +534,7 @@ class ModelGrid extends Component
 		@g_props.methods = props.methods
 		@g_props.filter = props.filter
 		
-
+		vert_json_bar = if (@base && @base.clientHeight > @base.clientWidth) then true else false
 		if state.query_item_run_error
 			overlay = h AlertOverlay,
 				initial_visible: no
@@ -505,6 +557,7 @@ class ModelGrid extends Component
 					bar: yes
 					is_valid: no
 					value: JSON.stringify(state.query_item_run_error.query_item.value,4,4)
+		
 		else
 			overlay = h AlertOverlay,
 				initial_visible: no
@@ -524,43 +577,50 @@ class ModelGrid extends Component
 						
 						h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},state.data_item_query.action
 						h 'span',{className: css['model-grid-slash']},'/'
-						state.data_item_query.data_item_id
+						state.data_item_query.data_item_label || state.data_item_query.data_item_id
 					]
 
 		
 		h Slide,
 			slide:yes
 			pos: !@state.show_json_view && 1 || 0
-			vert: if (@base && @base.clientHeight > @base.clientWidth) then true else false
+			vert: vert_json_bar
 			outerStyle:
 				transform: 'translate(0px)'
 			outerChildren: overlay
 			h Slide,
 				beta: 50
-				className: css['react-json-wrap']
-				@state.show_json_view && @state.data_item && h ReactJson,
-					iconStyle: 'circle'
-					displayDataTypes: false
-					enableClipboard: yes
-					name: false
-					collapseStringsAfterLength: 100
-					onEdit:@onJSONViewEdit
-					onAdd:@onAdd
-					shouldCollapse:@shouldCollapse
-					theme: 'eighties'
-					src: state.data_item
-				h 'div',
-					className: css['json-close']
-					h Input,
-						type: 'button'
-						btn_type: 'flat'
-						i : 'refresh'
-						onClick: @getDataItem
-					h Input,
-						type: 'button'
-						btn_type: 'flat'
-						i : 'close'
-						onClick: @closeJSONView
+				vert: vert_json_bar
+				h Slide,
+					beta: 100
+					className: css['react-json-wrap']
+					@state.show_json_view && @state.data_item && h ReactJson,
+						iconStyle: 'circle'
+						displayDataTypes: false
+						enableClipboard: yes
+						name: false
+						collapseStringsAfterLength: 100
+						onEdit:@onJSONViewEdit
+						onAdd:@onAdd
+						shouldCollapse:@shouldCollapse
+						theme: 'eighties'
+						src: state.data_item
+				h Slide,
+					dim: DIM_S
+					vert: !vert_json_bar
+					h Bar,
+						big: no
+						vert: !vert_json_bar
+						h Input,
+							type: 'button'
+							btn_type: 'flat'
+							i : 'refresh'
+							onClick: @getDataItem
+						h Input,
+							type: 'button'
+							btn_type: 'flat'
+							i : 'close'
+							onClick: @closeJSONView
 			h Slide,
 				vert: yes
 				style:
@@ -572,7 +632,8 @@ class ModelGrid extends Component
 			
 
 			
-
+ModelGrid.defaultProps = 
+	show_bar: yes
 
 
 

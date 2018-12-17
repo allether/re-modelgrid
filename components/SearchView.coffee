@@ -142,7 +142,7 @@ class SearchView extends Component
 
 	renderQueryListItem: (r_opts)=>
 		query_item = @props.queries[r_opts.index]
-		
+
 		if !query_item
 			return false
 		
@@ -164,7 +164,16 @@ class SearchView extends Component
 		
 
 
-		query_item_is_loading = query_item.called_at && !query_item.completed_at
+		bot_right = null
+		if query_item.error
+			bot_right = h 'div',
+				className: css['search-query-error'],
+				query_item.error
+		else if query_item.called_at && !query_item.completed_at
+			bot_right = h SquareLoader,
+				background: @context.__theme.secondary.color[1]
+				is_loading: yes
+
 
 
 		h CellMeasurer,
@@ -199,13 +208,10 @@ class SearchView extends Component
 						query_item.call_count
 					
 
-					h 'div',
+					bot_right && (h 'div',
 						className: css['search-query-item-label2']
-						query_item_is_loading && ( h SquareLoader,
-							background: @context.__theme.secondary.color[1]
-							is_loading: yes
-						) || null
-						# JSON.stringify(query_item.sort_keys)
+						bot_right
+					) || null
 
 
 					
@@ -234,23 +240,23 @@ class SearchView extends Component
 
 
 
-	renderBookmarksList: ()->
+	renderBookmarksList: (height)->
 		h List,
-			height: 260
+			height: height
 			width: 300
 			key: 'bookmarks'
 			rowHeight: 30
 			rowCount: @props.bookmarks.length
 			rowRenderer: @renderBookmarkItem
 	
-	renderQueryList: ->
+	renderQueryList: (height)->
 		
 		
 		scroll_queries_index = @state.scroll_queries_index
 		@state.scroll_queries_index = undefined
 
 		h List,
-			height: 260
+			height: height
 			width: 300
 			ref: @listRef
 			key: 'queries-'+@props.queries_updated_at
@@ -373,12 +379,14 @@ class SearchView extends Component
 
 	mapMenuSearchKeys: (key_name,i)=>
 		key = @props.keys[key_name]
-		
+		if !key
+			throw new Error 'key does not exist,'+key_name
 		if @props.filter?.query_value[key_name]
 			return null
 
 		if !key.indexed
 			return null
+
 		h MenuTab,
 			key: i
 			content: h Input,
@@ -496,9 +504,14 @@ class SearchView extends Component
 				className: css['search-query-menu-search-label']
 				qi.input_value
 
+		# log qi
+		if qi.error
+			bar_style = 
+				background: @context.__theme.secondary.false
 		if query_item_is_loading
 			bar_style = 
-				background: @context.__theme.secondary.color[2]
+				background: qi.error && @context.__theme.secondary.false || @context.__theme.secondary.color[2]
+
 
 		search_input = h Input,
 			onFocus: @onFocus
@@ -533,8 +546,8 @@ class SearchView extends Component
 				beta: 100
 				center: yes
 				h SquareLoader,
-					background: @context.__theme.primary.color[0]
-					is_loading: query_item_is_loading
+					background: !qi.error && @context.__theme.primary.color[0] || @context.__theme.primary.false
+					is_loading: query_item_is_loading && !qi.error
 			h Slide,
 				vert: no
 				slide: yes
@@ -591,15 +604,19 @@ class SearchView extends Component
 			# select: info
 			label: info_label
 		
-	
+		query_tab_height = 260
+		if @context.gridHeight? && (@context.gridHeight - 30) < 260
+			query_tab_height = @context.gridHeight - 30
+		
+
 		# log qi
 		if props.reveal
 			if qi.type == 'bookmark' && !qi.called_at
-				query_list = @renderBookmarksList()
+				query_list = @renderBookmarksList(query_tab_height)
 			else
-				query_list = @renderQueryList()
+				query_list = @renderQueryList(query_tab_height)
 
-
+	
 		h MenuTab,
 			vert: yes
 			big: no
@@ -619,6 +636,8 @@ class SearchView extends Component
 				search_i
 				search_input
 			force_split_y: 1
+			force_bar_dir_y: 1
+			split_y: 1
 			
 			h MenuTab,
 				click_reveal_enabled: no
@@ -629,7 +648,7 @@ class SearchView extends Component
 				info_options
 			h MenuTab,
 				tab_style:
-					height: 260 
+					height: query_tab_height
 					background: @context.__theme.primary.inv[0]
 				content: query_list
 
