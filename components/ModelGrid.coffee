@@ -8,7 +8,8 @@ css = require './ModelGrid.less'
 ReactJson = require 'react-json-view'
 ReactJson = ReactJson.default
 
-global.DIM = 40
+DIM = 40
+DIM_S = 30
 MenuView = require './MenuView.coffee'
 GridView = require './GridView.coffee'
 

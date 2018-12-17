@@ -51,12 +51,10 @@ class Demo extends Component
 					h ModelGridExample
 				h Slide,
 					beta: 70
-					style:
-						background: @state.background2
-						color: @state.color2
 					h Style,
 						primary: state.primary2
 						secondary: state.secondary2
+						darken_factor: .88
 						onSetStyle: @onSetStyle2
 						h ModelGridExample					
 
@@ -137,6 +135,9 @@ class ModelGridExample extends Component
 
 			h Slide,
 				beta: 100
+				style:
+					background: @context.__theme.primary.inv[0]
+					color: @context.__theme.primary.color[0]
 				h ModelGrid,
 					schema: demo_models.models[@state.selected_model_index]
 					schema_state: schema_state

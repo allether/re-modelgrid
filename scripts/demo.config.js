@@ -16,7 +16,7 @@ var cfg = {
 		]
 	},
 	entry: {
-		demo: "./demo.coffee",
+		demo: "./demo.coffee"
 	},
 	resolve: {
 	    'alias': {
