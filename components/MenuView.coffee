@@ -140,6 +140,7 @@ class MenuView extends Component
 		new_doc_tab = h CreateDocView,
 			reveal: @getPinMenuBoolean('add-doc',true)
 			keys: schema.keys
+			filter: props.filter
 			schema: schema
 			new_doc: props.new_doc
 			keys_array: schema.keys_array

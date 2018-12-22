@@ -259,6 +259,20 @@ class ModelGrid extends Component
 		if @state.query_item.layout_keys.length == 0
 			@state.query_item.layout_keys[0] = '_id'
 
+		@state.query_item.populate = []
+		if @props.schema.populate
+			for key in @state.query_item.layout_keys
+				pop = @props.schema.populate.find (_pop)->
+					key.indexOf(_pop) == 0
+				if !pop then continue
+				qp = @state.query_item.populate.find (_qp)->
+					_qp.path == pop
+				if !qp
+					qp = {select:[],path:pop}
+					@state.query_item.populate.push qp
+
+				qp.select.push key.substring(pop.length+1)
+
 
 	clearQueryItemRunError: =>
 		@setState

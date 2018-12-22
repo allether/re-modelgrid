@@ -7,7 +7,8 @@ class CreateDocView extends Component
 	onNewDocFormInput: (key_name,e)=>
 		@props.new_doc[key_name] = e.target.value
 		@setState()
-	
+
+
 	renderNewDocForm: (props,state)->
 		lc = props.keys_array.reduce (pre,key_name)->
 			if key_name.length > pre
@@ -16,18 +17,15 @@ class CreateDocView extends Component
 		,0
 
 		
-		if props.schema.filter
-			filter_q = props.schema.filter.query_value
+		if props.filter
+			filter_q = props.filter.query_value
 
-
-		
 
 		h 'form',
 			className: css['model-grid-add-doc-form']
 			style:
 				background: @context.__theme.primary.inv[0]
-			# style:
-			# 	maxHeight: @_grid_slide._outer.clientHeight ||'300px'
+			
 			h Bar,
 				vert: true
 				big: false
@@ -40,7 +38,8 @@ class CreateDocView extends Component
 						override = filter_q[key_name]
 
 					key = props.keys[key_name]
-					key_val = override || props.new_doc[key_name]
+					props.new_doc[key_name] = override || props.new_doc[key_name]
+					key_val = props.new_doc[key_name]
 					h Input,
 						key: i
 						label: key.label.padStart(lc+4," ")

@@ -119,7 +119,6 @@ class DocumentMethodMenu extends Component
 			force_split_x: 1
 			force_split_y: 1
 			big: no
-			
 			hover_reveal_enabled: no
 			backdrop_color: @context.__theme.primary.inv[3]
 			enable_backdrop: yes
@@ -143,7 +142,6 @@ class DocumentMethodMenu extends Component
 					content: h Input,
 						type: 'button'
 						i: 'code'
-						# btn_type: 'primary'
 						onClick: @props.showJSONView
 						label: 'edit JSON'
 				
@@ -168,6 +166,7 @@ class DocumentMethodMenu extends Component
 								color: 'white'
 							label: 'confirm'
 							onClick: props.deleteDataItem
+				
 				h MethodsView,
 					methods: props.methods || props.schema.methods || []
 					runDataItemMethod: props.runDataItemMethod
@@ -186,7 +185,7 @@ class GridView extends Component
 	saveCellInput: (key_name,value)->
 		update = {}
 		update[key_name] = value
-		log 'saveCellInput -> updateDataItem',update
+		# log 'saveCellInput -> updateDataItem',update
 		@props.updateDataItem(update)
 
 	
@@ -340,7 +339,7 @@ class GridView extends Component
 			h 'div',
 				onMouseDown: !is_selected && @props.selectDataItem.bind(null,data[g_opts.rowIndex-1])
 				className: css['model-grid-cell']
-				value
+				key.render && key.render(schema,data[g_opts.rowIndex-1]) || value
 
 		# return h 'div',
 		# 	className: css['model-grid-cell']
@@ -377,7 +376,7 @@ class GridView extends Component
 		# log 'did update'
 		if (@state.force_update_grid) && @_grid
 			@state.force_update_grid = false
-			log 'recomputing GridView _grid'
+			# log 'recomputing GridView _grid'
 			@_grid?.recomputeGridSize()
 
 
