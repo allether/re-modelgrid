@@ -1,1 +1,2 @@
-module.exports = require './ModelGrid.coffee'
+ModelGrid = require './ModelGrid.coffee'
+module.exports = ModelGrid

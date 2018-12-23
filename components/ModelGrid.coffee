@@ -680,13 +680,14 @@ class ModelGrid extends Component
 				className: css['model-grid']
 				h MenuView,@g_props
 				h GridView,@g_props
-			
 
-			
+log StyleContext
+ModelGrid.contextType = StyleContext
+
 ModelGrid.defaultProps = 
 	show_bar: yes
 
-ModelGrid.contextType = StyleContext
+
 
 
 module.exports = ModelGrid

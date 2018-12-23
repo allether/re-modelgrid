@@ -21,7 +21,7 @@ var cfg = {
 	resolve: {
 		extensions: [ '.js', '.coffee' ]
 	},
-	externals: ["preact","preact-compat","preact-slide","classnames","color","lerp-ui","react-virtualized","react","react-dom"],
+	externals: ["re-lui","react-dom","react","classnames","color","re-slide","react-json-view","react-virtualized/dist/commonjs/MultiGrid","react-virtualized/dist/commonjs/List","react-virtualized/dist/commonjs/CellMeasurer"],
 	output: {
 		path: path.join(__dirname,'..','/dist'),
 		publicPath: '/',
