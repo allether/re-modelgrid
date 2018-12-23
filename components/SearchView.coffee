@@ -1,6 +1,5 @@
-{render,h,Component} = require 'preact'
-Slide = require 'preact-slide'
-{Input,MenuTab,Menu,Bar,SquareLoader} = require 'lerp-ui'
+Slide = require 're-slide'
+{Input,MenuTab,Menu,Bar,SquareLoader,StyleContext} = require 're-lui'
 css = require './ModelGrid.less'
 cn = require 'classnames'
 JsonView = require './JsonView.coffee'
@@ -146,7 +145,7 @@ class SearchView extends Component
 		if !query_item
 			return false
 		
-		r_opts.style.height = 'auto'
+		# r_opts.style.height = 'auto'
 		
 		is_selected = @props.query_item._id == query_item._id
 
@@ -155,12 +154,12 @@ class SearchView extends Component
 
 		# log is_selected
 		if is_selected
-			cell_bg = @context.__theme.secondary.color[0]
-			cell_color = @context.__theme.secondary.inv[1]
+			cell_bg = @context.secondary.color[0]
+			cell_color = @context.secondary.inv[1]
 			
 		else
-			cell_bg = (r_opts.index % 2) && @context.__theme.primary.inv[1] || null
-			cell_color = @context.__theme.primary.color[3]
+			cell_bg = (r_opts.index % 2) && @context.primary.inv[1] || null
+			cell_color = @context.primary.color[3]
 		
 
 
@@ -171,7 +170,7 @@ class SearchView extends Component
 				query_item.error
 		else if query_item.called_at && !query_item.completed_at
 			bot_right = h SquareLoader,
-				background: @context.__theme.secondary.color[1]
+				background: @context.secondary.color[1]
 				is_loading: yes
 
 
@@ -194,10 +193,10 @@ class SearchView extends Component
 					h JsonView,
 						json: query_item.value
 						colors:
-							key: !is_selected && @context.__theme.primary.color[0] || @context.__theme.secondary.inv[0]
+							key: !is_selected && @context.primary.color[0] || @context.secondary.inv[0]
 							number: 'orange'
-							string: @context.__theme.primary.true
-							boolean: @context.__theme.primary.false
+							string: @context.primary.true
+							boolean: @context.primary.false
 
 					h 'div',
 						className: css['search-query-item-label']
@@ -215,21 +214,13 @@ class SearchView extends Component
 
 
 					
-
-	# onNewBookmarkLabelValue: (e)=>
-	# 	@setState new_bookmark_label_value: e.target.value
-
-	# selectTab: =>
-	# 	if @props.tab_name == 'bookmark'
-	# 		@props.selectSearchQueryViewTab('history')
-	# 	else
-	# 		@props.selectSearchQueryViewTab('bookmark')
 	renderBookmarkItem: (r_opts)=>
 		log 'render bookmark'
 		query_item = @props.bookmarks[r_opts.index]
 		is_selected = @props.query_item._id == query_item._id
-		r_opts.style.background = (r_opts.index % 2) && @context.__theme.primary.inv[1] || null
+		r_opts.style.background = (r_opts.index % 2) && @context.primary.inv[1] || null
 		h 'div',
+			key: query_item.label
 			style: r_opts.style
 			onClick: @selectItem.bind(@,query_item)
 			className: cn(css['model-grid-search-bookmark-item'])
@@ -268,44 +259,10 @@ class SearchView extends Component
 			rowRenderer: @renderQueryListItem
 
 
-# style:
-	# background: @context.__theme.primary.inv[0]
-	# renderHistoryView: ->
-	# 	h MenuTab,
-	# 		className: css['model-grid-search-query-view']
-	# 		tab_style:
-	# 			background: @context.__theme.primary.inv[0]
-	# 		vert: yes
-
-	# 		content: [
-	# 			h Input,
-	# 				i: !@state.selected_item && 'label' || (@state.selected_item?.bookmark_label && 'highlight_off' || 'save')
-	# 				type: @state.selected_item?.bookmark_label && 'button' || 'text'
-	# 				btn_type: @state.selected_item?.bookmark_label && 'default' || 'flat'
-	# 				value: @state.new_bookmark_label_value
-	# 				label: @state.selected_item?.bookmark_label
-	# 				onClick: @bookmarkItem
-	# 				onEnter: @bookmarkItem
-	# 				onInput: @onNewBookmarkLabelValue
-	# 				placeholder: @state.selected_item && '[bookmark label]' || 'select query'
-					
-				
-	# 			h Bar,
-	# 				big: no
-	# 				h Input,
-	# 					i: 'bookmark'
-	# 					btn_type: @props.tab_name == 'bookmark' && 'primary' || 'flat'
-	# 					onClick: @props.tab_name != 'bookmark' && @selectTab 
-	# 					type: 'button'
-	# 				h Input,
-	# 					i: 'history'
-	# 					btn_type: @props.tab_name == 'history' && 'primary' || 'flat'
-	# 					onClick: @props.tab_name != 'history' && @selectTab
-	# 					type: 'button'
-	# 		]
 	renderBookmarkOptions: ->
 		[
 			h MenuTab,
+				key: 1
 				content: h Input,
 					type: 'button'
 					i: 'remove_circle'
@@ -314,7 +271,7 @@ class SearchView extends Component
 					# value: @state.query_item_label
 					# placeholder: 'max '+MAX_CHAR+' char'
 					style:
-						background: @context.__theme.primary.warn
+						background: @context.primary.warn
 						color: 'white'
 					label: 'forget'
 		]
@@ -323,6 +280,7 @@ class SearchView extends Component
 	renderSaveForm: ->
 		[
 			h MenuTab,
+				key: 'save'
 				content: h Input,
 					type: 'input'
 					onInput: @setQueryItemLabel
@@ -395,14 +353,14 @@ class SearchView extends Component
 				btn_type: key_name == @props.query_item.key && 'primary' || 'default'
 				type: 'button'
 				label: [
-					key.label.padEnd(10)
-					h 'span',{className: (css['model-grid-label-float-right']+' '+css['model-grid-opaque'])},String(key_name)
+					h 'span',{key:'label'},key.label.padEnd(10)
+					h 'span',{key:'key',className: (css['model-grid-label-float-right']+' '+css['model-grid-opaque'])},String(key_name)
 				]
 
 	renderKeysView: ->
 		h 'div',
 			style: 
-				background: @context.__theme.primary.inv[1]
+				background: @context.primary.inv[1]
 			className: css['search-keys-container']
 			@props.keys_array.map @mapMenuSearchKeys	
 
@@ -427,7 +385,9 @@ class SearchView extends Component
 		if !el
 			return
 		@_search = el._input
-	render: (props,state)->
+	render: ->
+		props = @props
+		state = @state
 		qi = props.query_item
 		pad_label = 15
 
@@ -440,7 +400,7 @@ class SearchView extends Component
 			# log l_q_i+l_q_l
 			suggest = [
 				qi.match_label.substring(0,l_q_i)
-				h 'span',style:color:@context.__theme.primary.true,qi.match_label_q
+				h 'span',{key:2,style:color:@context.primary.true},qi.match_label_q
 				qi.match_label.substring(l_q_i+l_q_l)
 			]
 			
@@ -456,7 +416,10 @@ class SearchView extends Component
 			info_type = 'label'
 		else if qi.type == 'key'
 			search_placeholder =  'search by '+props.keys[qi.key].label
-			info_label = ['search by ',h 'span',style:color:@context.__theme.primary.true,qi.key]
+			info_label = [
+				'search by'
+				h 'span',{key:2,style:color:@context.primary.true},qi.key
+			]
 			info_i = 'menu'
 			info_type = 'button'
 		else if qi.type == 'bookmark'
@@ -480,7 +443,9 @@ class SearchView extends Component
 				info_fn = @showInfoOptions #@unsaveQueryItem
 			else
 				info_i = 'bookmark'
-				info_label = ['save ',h 'span',style:opacity:.5,props.query_item._id]
+				info_label = h 'div',{},
+					'save'
+					h 'span',{style:opacity:.5},props.query_item._id
 				# 
 				info_type = 'button'
 				
@@ -507,10 +472,10 @@ class SearchView extends Component
 		# log qi
 		if qi.error
 			bar_style = 
-				background: @context.__theme.secondary.false
+				background: @context.secondary.false
 		if query_item_is_loading
 			bar_style = 
-				background: qi.error && @context.__theme.secondary.false || @context.__theme.secondary.color[2]
+				background: qi.error && @context.secondary.false || @context.secondary.color[2]
 
 
 		search_input = h Input,
@@ -521,7 +486,7 @@ class SearchView extends Component
 			style: 
 				paddingLeft: 0
 				background: 'none'
-				color: qi.type == 'json' && @context.__theme.secondary.color[2] || @context.__theme.primary.color[0]
+				color: qi.type == 'json' && @context.secondary.color[2] || @context.primary.color[0]
 				width: 260
 			value: qi.input_value
 			bar_style: bar_style
@@ -546,7 +511,7 @@ class SearchView extends Component
 				beta: 100
 				center: yes
 				h SquareLoader,
-					background: !qi.error && @context.__theme.primary.color[0] || @context.__theme.primary.false
+					background: !qi.error && @context.primary.color[0] || @context.primary.false
 					is_loading: query_item_is_loading && !qi.error
 			h Slide,
 				vert: no
@@ -632,7 +597,7 @@ class SearchView extends Component
 				big: yes
 				style:
 					transition: 'background 0.3s ease'
-					background: props.reveal && @context.__theme.primary.inv[1] || @context.__theme.primary.inv[0]
+					background: props.reveal && @context.primary.inv[1] || @context.primary.inv[0]
 				search_i
 				search_input
 			force_split_y: 1
@@ -649,8 +614,8 @@ class SearchView extends Component
 			h MenuTab,
 				tab_style:
 					height: query_tab_height
-					background: @context.__theme.primary.inv[0]
+					background: @context.primary.inv[0]
 				content: query_list
 
-		
+SearchView.contextType = StyleContext
 module.exports = SearchView

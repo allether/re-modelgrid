@@ -1,17 +1,15 @@
 css = require './ModelGrid.less'
-{render,h,Component} = require 'preact'
 cn = require 'classnames'
 
 
 class JsonView extends Component
-	render: (props)->
+	render: ->
 		key_map = {}
 		val_map = {}
 
-		props.colors = props.colors || {}
-
+		
 		sep = "🧝"
-		str = JSON.stringify props.json,(key,value)->
+		str = JSON.stringify @props.json,(key,value)->
 			if typeof value == 'string' || typeof value == 'number' || typeof value == 'boolean'
 				val_map[value] = true
 				return sep+value+sep
@@ -46,7 +44,8 @@ class JsonView extends Component
 			
 			if t
 				children[i] = h 'span',
-					style: color: props.colors[t]
+					key: i
+					style: color: @props.colors?[t]
 					val
 
 		h 'div',

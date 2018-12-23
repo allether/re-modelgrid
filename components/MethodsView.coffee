@@ -1,10 +1,12 @@
-
-{render,h,Component} = require 'preact'
-{Input,MenuTab,Menu,Bar} = require 'lerp-ui'
+{Input,MenuTab,Menu,Bar,StyleContext} = require 're-lui'
 css = require './ModelGrid.less'
 MAX_CHAR = 31
 
 class MethodsView extends Component
+	constructor: (props)->
+		super(props)
+		@state = 
+			render_method: null
 	onMethodClick: (method)=>
 		
 		if method.render
@@ -26,7 +28,7 @@ class MethodsView extends Component
 			key: i
 			onClickBackdrop: @hideMethodRender
 			show_backdrop: @state.render_method == method && yes || no
-			backdrop_color: @context.__theme.primary.inv[3]
+			backdrop_color: @context.primary.inv[3]
 			content: h Input,
 				onClick: @onMethodClick.bind(@,method)
 				type: @state.render_method == method && 'label' || 'button'
@@ -36,22 +38,26 @@ class MethodsView extends Component
 				label: method.label
 			
 
-	render: (props,state)->
-		method_tabs = props.methods.map @mapMethods
-		if state.render_method
-			state.render_method.post_body = state.render_method.post_body || {}
-			method_rendered = state.render_method.render(state.render_method,state.render_method.post_body)
+	render: ->
+		method_tabs = @props.methods.map @mapMethods
+		if @state.render_method
+			@state.render_method.post_body = @state.render_method.post_body || {}
+			method_rendered = @state.render_method.render(@state.render_method,@state.render_method.post_body)
 		tab_props = 
 			tab_style:
-				background: @context.__theme.primary.inv[0]
+				background: @context.primary.inv[0]
 				width: '300px'
 			content: h 'div',
 				className: css['methods-list-container']
-				method_tabs
-			reveal: state.render_method && yes || no
+				h Bar,
+					style:
+						width: '100%'
+					vert: yes
+					method_tabs
+			reveal: @state.render_method && yes || no
 			onClickBackdrop: @hideMethodRender
-			backdrop_color: @context.__theme.primary.inv[3]
-			show_backdrop: state.render_method && yes || no
+			backdrop_color: @context.primary.inv[3]
+			show_backdrop: @state.render_method && yes || no
 		# method_tabs.push h 'span',{},props.methods.length+' methods'
 		if method_rendered
 			h MenuTab,tab_props,method_rendered
@@ -60,6 +66,6 @@ class MethodsView extends Component
 			
 
 
-
+MethodsView.contextType = StyleContext
 
 module.exports = MethodsView

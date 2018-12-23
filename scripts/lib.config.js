@@ -19,10 +19,7 @@ var cfg = {
 		index: "./components/index.coffee",
 	},
 	resolve: {
-	    'alias': {
-	    	'react': 'preact-compat',
-	    	'react-dom': 'preact-compat'
-	  	}
+		extensions: [ '.js', '.coffee' ]
 	},
 	externals: ["preact","preact-compat","preact-slide","classnames","color","lerp-ui","react-virtualized","react","react-dom"],
 	output: {

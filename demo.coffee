@@ -1,9 +1,11 @@
-{render,h,Component} = require 'preact'
-
-ModelGrid = require './components/ModelGrid.coffee'
 window.log = console.log.bind(console)
-Slide = require 'preact-slide'
-{Style,Input,MenuTab,Menu,Bar} = require 'lerp-ui'
+{createElement,Component} = require 'react'
+global.Component = Component
+global.h = createElement
+{render} = require 'react-dom'
+ModelGrid = require './components/ModelGrid.coffee'
+Slide = require 're-slide'
+{Style,Input,MenuTab,Menu,Bar,StyleContext} = require 're-lui'
 adler = require 'adler-32'
 demo_models = require './demo-models.coffee'
 
@@ -27,11 +29,13 @@ class Demo extends Component
 		@setState
 			background2: primary.inv[0]
 			color2: primary.color[0]
-
-	render: (props,state)->
+	componentDidMount: =>
+		window.addEventListener 'resize',()=>
+			@forceUpdate()
+	render: ->
 		h Style,
-			primary: state.primary
-			secondary: state.secondary
+			primary: @state.primary
+			secondary: @state.secondary
 			onSetStyle: @onSetStyle
 			h Slide,
 				vert:yes
@@ -52,8 +56,8 @@ class Demo extends Component
 				h Slide,
 					beta: 70
 					h Style,
-						primary: state.primary2
-						secondary: state.secondary2
+						primary: @state.primary2
+						secondary: @state.secondary2
 						darken_factor: .88
 						onSetStyle: @onSetStyle2
 						h ModelGridExample					
@@ -103,7 +107,7 @@ class ModelGridExample extends Component
 				select: i == @state.selected_model_index
 
 
-	render: (props,state)->
+	render: ->
 
 		schema_state = getStateConfig(demo_models.models[@state.selected_model_index])
 		
@@ -136,8 +140,8 @@ class ModelGridExample extends Component
 			h Slide,
 				beta: 100
 				style:
-					background: @context.__theme.primary.inv[0]
-					color: @context.__theme.primary.color[0]
+					background: @context.primary.inv[0]
+					color: @context.primary.color[0]
 				h ModelGrid,
 					schema: demo_models.models[@state.selected_model_index]
 					schema_state: schema_state
@@ -193,6 +197,6 @@ class ModelGridExample extends Component
 								
 							,1000
 
+ModelGridExample.contextType = StyleContext
 
-
-window.demo = render(h(Demo),document.body,window.demo)
+window.demo = render(h(Demo),window.demo)

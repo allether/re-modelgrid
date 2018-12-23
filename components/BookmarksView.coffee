@@ -1,6 +1,5 @@
-{render,h,Component} = require 'preact'
-Slide = require 'preact-slide'
-{Input,MenuTab,Menu,Bar} = require 'lerp-ui'
+Slide = require 're-slide'
+{StyleContext,Input,MenuTab,Menu,Bar} = require 're-lui'
 css = require './ModelGrid.less'
 MAX_CHAR = 32
 
@@ -161,8 +160,9 @@ class BookmarksView extends Component
 			form_options
 			
 	
-	render: (props,state)->
-
+	render: ()->
+		props = @props
+		state = @state
 		tab_options = 
 			vert: yes
 			big: no
@@ -180,7 +180,7 @@ class BookmarksView extends Component
 			content: h 'div',
 				className: css['bookmarks-list-container']
 				style:
-					background: @context.__theme.primary.inv[1]
+					background: @context.primary.inv[1]
 				props.bookmarks.map @mapBookmarkButtons
 		
 		if props.reveal
@@ -194,7 +194,7 @@ class BookmarksView extends Component
 			
 			
 				
-			
+BookmarksView.contextType = StyleContext
 			
 			
 

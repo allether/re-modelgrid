@@ -1,5 +1,4 @@
-{render,h,Component} = require 'preact'
-{Input,MenuTab,Menu,Bar,Overlay} = require 'lerp-ui'
+{Input,MenuTab,Menu,Bar,Overlay} = require 're-lui'
 onStaticFn = (opts)->
 	console.log opts
 onMethodFn = (opts)->

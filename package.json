@@ -1,18 +1,18 @@
 {
-  "name": "model-grid",
+  "name": "re-modelgrid",
   "version": "0.0.1",
   "description": "mongoose/mongodb ui mapping cms/helper",
-  "main": "./dist/index.js",
+  "main": "./component/index.coffee",
   "scripts": {
-    "client-dev": "NODE_ENV=development webpack-dev-server --config ./scripts/demo.config.js --progress --mode development",
+    "client-dev": "NODE_ENV=development webpack-dev-server --config ./scripts/demo.config.js --rogress --mode development",
     "client-prod": "NODE_ENV=production webpack --config ./scripts/lib.config.js --progress --mode production && NODE_ENV=production webpack --config ./scripts/demo.config.js --progress --mode production",
     "client-lib": "NODE_ENV=production webpack --config ./scripts/lib.config.js --watch --progress --mode production"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/lerp-io/model-grid.git"
+    "url": "git+ssh://git@github.com/lerp-io/re-modelgrid.git"
   },
-  "homepage": "https://lerp-io.github.io/model-grid/",
+  "homepage": "https://lerp-io.github.io/re-modelgrid/",
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -25,30 +25,30 @@
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
     "normalize.css": "^8.0.1",
-    "preact": "^8.3.1",
-    "preact-compat": "^3.18.4",
-    "preact-slide": "^0.4.7",
     "raw-loader": "^0.5.1",
+    "re-lui": "git+https://github.com/lerp-io/re-lui.git",
+    "re-slide": "^1.0.1",
+    "react": "^16.7.0",
+    "react-dom": "^16.7.0",
     "react-virtualized": "^9.21.0",
     "style-loader": "^0.21.0",
     "webpack": "^4.27.0",
     "webpack-cli": "^3.1.2",
-    "webpack-dev-server": "^3.1.10",
-    "lerp-ui": "git+https://github.com/lerp-io/lerp-ui.git"
+    "webpack-dev-server": "^3.1.10"
   },
   "peerDependencies": {
-    "lerp-ui": "git+https://github.com/lerp-io/lerp-ui.git",
     "classnames": "^2.2.6",
     "react-virtualized": "^9.21.0",
     "color": "^3.0.0",
     "css": "^2.2.4",
     "normalize.css": "^8.0.1",
-    "preact": "^8.3.1",
-    "preact-slide": "^0.4.7"
+    "re-slide": "^1.0.1",
+    "re-lui": "git+https://github.com/lerp-io/re-lui.git",
+    "react": "^16.7.0",
+    "react-dom": "^16.7.0"
   },
   "dependencies": {
     "adler-32": "^1.2.0",
-    
     "react-json-view": "^1.19.1"
   }
 }

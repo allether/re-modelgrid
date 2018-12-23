@@ -1,6 +1,5 @@
-{render,h,Component} = require 'preact'
-Slide = require 'preact-slide'
-{Input,MenuTab,Menu,Bar} = require 'lerp-ui'
+Slide = require 're-slide'
+{Input,MenuTab,Menu,Bar,StyleContext} = require 're-lui'
 css = require './ModelGrid.less'
 
 class CreateDocView extends Component
@@ -24,7 +23,7 @@ class CreateDocView extends Component
 		h 'form',
 			className: css['model-grid-add-doc-form']
 			style:
-				background: @context.__theme.primary.inv[0]
+				background: @context.primary.inv[0]
 			
 			h Bar,
 				vert: true
@@ -59,17 +58,17 @@ class CreateDocView extends Component
 					btn_type: 'primary'
 
 
-	render: (props,state)->
+	render: ->
 		h MenuTab,
 			vert: yes
-			show_backdrop: props.reveal
-			reveal: props.reveal
-			onClick: props.onClick
+			show_backdrop: @props.reveal
+			reveal: @props.reveal
+			onClick: @props.onClick
 			content: h Input,
 				type: 'button'
 				btn_type: 'flat'
 				i: 'add'
-			props.reveal && @renderNewDocForm(props,state)
+			@props.reveal && @renderNewDocForm(@props,@state)
 
-
+CreateDocView.contextType = StyleContext
 module.exports = CreateDocView

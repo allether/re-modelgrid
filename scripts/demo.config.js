@@ -19,10 +19,10 @@ var cfg = {
 		demo: "./demo.coffee"
 	},
 	resolve: {
-	    'alias': {
-	    	'react': 'preact-compat',
-	    	'react-dom': 'preact-compat'
-	  	}
+		extensions: [ '.js', '.coffee' ],
+		// alias:{
+		// 	're-lui':path.join(__dirname,'..','..','/re-lui')
+		// }
 	},
 	output: {
 		path: path.join(__dirname,'..','/dist'),

@@ -1,8 +1,10 @@
 # Color = require 'color'
-{render,h,Component} = require 'preact'
-Slide = require 'preact-slide'
+{createElement,Component} = require 'react'
+global.h = createElement
+global.Component = Component
+Slide = require 're-slide'
 css = require './ModelGrid.less'
-{Input,MenuTab,Menu,Bar,Overlay,AlertOverlay} = require 'lerp-ui'
+{Input,MenuTab,Menu,Bar,Overlay,AlertOverlay,StyleContext} = require 're-lui'
 
 
 ReactJson = require 'react-json-view'
@@ -309,13 +311,19 @@ class ModelGrid extends Component
 		@state.query_item.call_count = @state.query_item.call_count || 0
 		@state.query_item.call_count += 1
 
+		h_i = -1
+		q = @state.queries.find (q,i)=>
+			if q._id == @state.query_item._id
+				h_i = i
+				return true
+			return false
 
-		h_i = @state.queries.indexOf(@state.query_item)
 		if h_i > 0
 			@state.data_item = null
 			@state.queries.splice(h_i,1)
 			@state.queries.unshift @state.query_item
 			@state.queries_updated_at = Date.now()
+		
 		else if h_i < 0
 			@state.data_item = null
 			@state.queries.unshift @state.query_item
@@ -488,8 +496,8 @@ class ModelGrid extends Component
 			@state.get_data_item = false
 			@getDataItem()
 
-	getChildContext: ->
-		gridHeight: @base?.clientHeight - (@props.show_bar && DIM || 0)
+	# getChildContext: ->
+	# 	gridHeight: @base?.clientHeight - (@props.show_bar && DIM || 0)
 		
 
 	componentWillUpdate: (props,state)=>
@@ -531,32 +539,32 @@ class ModelGrid extends Component
 		@updateDataItem upd_obj
 
 
-	render: (props,state)->
+	render: ->
 		window.g = @
 		
 		@g_props.bounding_box = @base?.getBoundingClientRect()
-		@g_props.data = state.data[state.query_item._id] || []
-		@g_props.queries = state.queries
-		@g_props.bookmarks = state.bookmarks
-		@g_props.query_map = state.query_map
-		@g_props.query_item = state.query_item
-		@g_props.data_item = state.data_item
-		@g_props.new_doc = state.new_doc
-		@g_props.data_item_query = state.data_item_query
-		@g_props.schema = props.schema
-		@g_props.show_json_view = state.show_json_view
-		@g_props.queries_updated_at = state.queries_updated_at
-		@g_props.methods = props.methods
-		@g_props.filter = props.filter
+		@g_props.data = @state.data[@state.query_item._id] || []
+		@g_props.queries = @state.queries
+		@g_props.bookmarks = @state.bookmarks
+		@g_props.query_map = @state.query_map
+		@g_props.query_item = @state.query_item
+		@g_props.data_item = @state.data_item
+		@g_props.new_doc = @state.new_doc
+		@g_props.data_item_query = @state.data_item_query
+		@g_props.schema = @props.schema
+		@g_props.show_json_view = @state.show_json_view
+		@g_props.queries_updated_at = @state.queries_updated_at
+		@g_props.methods = @props.methods
+		@g_props.filter = @props.filter
 		
 		vert_json_bar = if (@base && @base.clientHeight > @base.clientWidth) then true else false
-		if state.query_item_run_error
+		if @state.query_item_run_error
 			overlay = h AlertOverlay,
 				initial_visible: no
 				alert_type: 'error'
 				visible: yes
-				backdrop_color: @context.__theme.primary.inv[2]
-				message: state.query_item_run_error.error.message
+				backdrop_color: @context.primary.inv[2]
+				message: @state.query_item_run_error.error.message
 				onClick: @clearQueryItemRunError
 				style:
 					display: 'flex'
@@ -571,16 +579,16 @@ class ModelGrid extends Component
 					# disabled: yes
 					bar: yes
 					is_valid: no
-					value: JSON.stringify(state.query_item_run_error.query_item.value,4,4)
+					value: JSON.stringify(@state.query_item_run_error.query_item.value,4,4)
 		
 		else
 			overlay = h AlertOverlay,
 				initial_visible: no
-				backdrop_color: @context.__theme.primary.inv[2]
+				backdrop_color: @context.primary.inv[2]
 				alert_type: 'error'
-				visible: state.data_item_action_error? || !state.data_item_query.completed_at && state.data_item_query.called_at
-				message: state.data_item_action_error?.error.message
-				onClick: state.data_item_action_error && @clearDataItemActionError 
+				visible: @state.data_item_action_error? || !@state.data_item_query.completed_at && @state.data_item_query.called_at
+				message: @state.data_item_action_error?.error.message
+				onClick: @state.data_item_action_error && @clearDataItemActionError 
 				# z_index: 9999
 				style:
 					display: 'flex'
@@ -589,10 +597,9 @@ class ModelGrid extends Component
 				h Input,
 					type: 'label'
 					label: [
-						
-						h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},state.data_item_query.action
-						h 'span',{className: css['model-grid-slash']},'/'
-						state.data_item_query.data_item_label || state.data_item_query.data_item_id
+						h 'span',{key:1,style:{fontWeight:600,color:@context.primary.color[0]}},@state.data_item_query.action
+						h 'span',{key:2,className: css['model-grid-slash']},'/'
+						@state.data_item_query.data_item_label || @state.data_item_query.data_item_id
 					]
 
 		
@@ -619,7 +626,7 @@ class ModelGrid extends Component
 						onAdd:@onAdd
 						shouldCollapse:@shouldCollapse
 						theme: 'eighties'
-						src: state.data_item
+						src: @state.data_item
 				h Slide,
 					dim: DIM_S
 					vert: !vert_json_bar
@@ -650,7 +657,7 @@ class ModelGrid extends Component
 ModelGrid.defaultProps = 
 	show_bar: yes
 
-
+ModelGrid.contextType = StyleContext
 
 
 module.exports = ModelGrid

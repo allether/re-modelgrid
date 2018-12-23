@@ -2,9 +2,8 @@ SearchView = require './SearchView.coffee'
 CreateDocView = require './CreateDocView.coffee'
 BookmarksView = require './BookmarksView.coffee'
 LayoutsView = require './LayoutsView.coffee'
-{render,h,Component} = require 'preact'
-Slide = require 'preact-slide'
-{Input,MenuTab,Menu,Bar} = require 'lerp-ui'
+Slide = require 're-slide'
+{Input,MenuTab,Menu,Bar,StyleContext} = require 're-lui'
 css = require './ModelGrid.less'
 
 MethodsView = require './MethodsView.coffee'
@@ -73,7 +72,9 @@ class MenuView extends Component
 
 
 
-	render: (props,state)->
+	render: ()->
+		props = @props
+		state = @state
 		schema = props.schema
 		data = props.data
 		bb = props.bounding_box
@@ -83,7 +84,7 @@ class MenuView extends Component
 		common_menu_schema = 
 			vert: no
 			bounding_box: bb
-			backdrop_color: @context.__theme.primary.inv[3]
+			backdrop_color: @context.primary.inv[3]
 			onClickBackdrop: @togglePinMenu.bind(@,null,false)
 			hover_reveal_enabled: no
 			big: true
@@ -114,9 +115,9 @@ class MenuView extends Component
 				name: 'document'
 				btn_type: 'flat'
 				label: [
-					props.filter && h 'span',{},props.filter.label
-					props.filter && h 'span',{className: css['model-grid-slash']},'/'
-					h 'span',{style:{fontWeight:600,color:@context.__theme.primary.color[0]}},schema.label
+					props.filter && h 'span',{key:'label'},props.filter.label
+					props.filter && h 'span',{key:'slash',className: css['model-grid-slash']},'/'
+					h 'span',{key:'slabel',style:{fontWeight:600,color:@context.primary.color[0]}},schema.label
 				]
 
 
@@ -209,7 +210,7 @@ class MenuView extends Component
 				
 				
 				
-
+MenuView.contextType = StyleContext
 				
 
 module.exports = MenuView
