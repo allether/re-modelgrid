@@ -681,7 +681,6 @@ class ModelGrid extends Component
 				h MenuView,@g_props
 				h GridView,@g_props
 
-log StyleContext
 ModelGrid.contextType = StyleContext
 
 ModelGrid.defaultProps = 

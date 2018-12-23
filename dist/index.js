@@ -2558,8 +2558,6 @@ ModelGrid = class ModelGrid extends Component {
 
 };
 
-log(StyleContext);
-
 ModelGrid.contextType = StyleContext;
 
 ModelGrid.defaultProps = {
