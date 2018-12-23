@@ -341,7 +341,7 @@ class GridView extends Component
 					rotate_arrow
 
 		return h 'div',
-			style: g_opts.style
+			style: Object.assign g_style,g_opts.style
 			key: g_opts.key
 			h 'div',
 				onMouseDown: !is_selected && @props.selectDataItem.bind(null,data[g_opts.rowIndex-1]) || undefined
