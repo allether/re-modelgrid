@@ -564,7 +564,7 @@ class ModelGrid extends Component
 		@updateDataItem upd_obj
 	
 	baseRef: (slide)=>
-		@base = slide._outer
+		@base = slide?._outer || undefined
 		# log @base
 
 	render: ->

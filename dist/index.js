@@ -2421,7 +2421,7 @@ ModelGrid = class ModelGrid extends Component {
 
   baseRef(slide) {
     boundMethodCheck(this, ModelGrid);
-    return this.base = slide._outer;
+    return this.base = (slide != null ? slide._outer : void 0) || void 0;
   }
 
   // log @base
