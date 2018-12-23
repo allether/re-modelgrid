@@ -1,12 +1,12 @@
 {
   "name": "re-modelgrid",
   "version": "0.0.1",
-  "description": "mongoose/mongodb ui mapping cms/helper",
-  "main": "./component/index.coffee",
+  "description": "simple database explorer react component",
+  "main": "./dist/index.js",
   "scripts": {
     "client-dev": "NODE_ENV=development webpack-dev-server --config ./scripts/demo.config.js --rogress --mode development",
-    "client-prod": "NODE_ENV=production webpack --config ./scripts/lib.config.js --progress --mode production && NODE_ENV=production webpack --config ./scripts/demo.config.js --progress --mode production",
-    "client-lib": "NODE_ENV=production webpack --config ./scripts/lib.config.js --watch --progress --mode production"
+    "client-prod": "NODE_ENV=production webpack --config ./scripts/lib.config.js --progress --mode development && NODE_ENV=production webpack --config ./scripts/demo.config.js --progress --mode production",
+    "client-lib": "NODE_ENV=production webpack --config ./scripts/lib.config.js --watch --progress --mode development"
   },
   "repository": {
     "type": "git",

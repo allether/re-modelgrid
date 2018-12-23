@@ -33,6 +33,7 @@ class ModelGrid extends Component
 			cloneQueryItem: @cloneQueryItem
 			runQuery: @runQuery
 			runDataItemMethod: @runDataItemMethod
+			runStaticMethod: @runStaticMethod
 			updateSelectedDocument: @updateSelectedDocument
 
 
@@ -47,7 +48,7 @@ class ModelGrid extends Component
 		query_item: @createQueryItem
 			key: '_id'
 			type: 'key'
-		data_item_query:
+		action_query:
 			data_item_id: null
 			called_at: 0
 			completed_at: 0
@@ -354,58 +355,82 @@ class ModelGrid extends Component
 			run_query_once: false
 
 
+	runStaticMethod: (method)=>
+		@setState
+			action_query:
+				data_item_id: '~'
+				data_item_label: @props.schema.name
+				action: method.name
+				called_at: Date.now()
+		
+		if method.fn
+			prom = method.fn(@props.schema,method)
+		else
+			prom = @props.runStaticMethod(@props.schema,method)
+		
+		# log prom
+		prom.then (method_res)=>
+			# log 'ran method',@state.data_item._label,'/',method.name,
+			@state.action_query.completed_at = Date.now()
+			@runQuery()
+		.catch @setActionStaticError
 
 	runDataItemMethod: (method)=>
-		log 'run data_item method',method
+		# log 'run data_item method',method
 		@setState
-			data_item_query:
+			action_query:
 				data_item_id: @state.data_item._id
 				data_item_label: @state.data_item._label	
 				action: method.name
 				called_at: Date.now()
+		
 		if method.fn
 			prom = method.fn(@props.schema,@state.data_item,method)
 		else
 			prom = @props.runDataItemMethod(@props.schema,@state.data_item,method)
-
+		# log prom
 		prom.then (data_item)=>
-			log 'ran method',@state.data_item._label,'/',method.name,
-			@state.data_item_query.completed_at = Date.now()
+			# log 'ran method',@state.data_item._label,'/',method.name,
+			@state.action_query.completed_at = Date.now()
 			@setState
 				data_item: Object.assign {},data_item
 			@runQuery()
-		.catch @setDataItemActionError.bind(@,@state.data_item)
+		.catch @setActionMethodError.bind(@,@state.data_item)
 
-	setDataItemActionError: (data_item,error)=>
+	setActionMethodError: (data_item,error)=>
 		@setState
-			data_item_action_error:
+			action_error:
 				data_item: data_item
 				error: error
-
-	clearDataItemActionError: =>
+	setActionStaticError: (error)=>
 		@setState
-			data_item_query: {}
-			data_item_action_error: null
+			action_error: 
+				error: error
+
+	clearActionQueryError: =>
+		@setState
+			action_query: {}
+			action_error: null
 
 
 	createDataItem: =>
 		log 'create data item'
 		@setState
-			data_item_query:
+			action_query:
 				data_item_id: JSON.stringify(@state.new_doc)
 				action: 'create'
 				called_at: Date.now()
 		@props.createDataItem(@state.new_doc).then (created_doc)=>
 			log 'created data_item',created_doc
-			@state.data_item_query.completed_at = Date.now()
+			@state.action_query.completed_at = Date.now()
 			@state.data_item = Object.assign {},created_doc
 			@runQuery()
-		.catch @setDataItemActionError.bind(@,@state.new_doc)
+		.catch @setActionMethodError.bind(@,@state.new_doc)
 
 	deleteDataItem: =>
 		log 'delete data item'
 		@setState
-			data_item_query:
+			action_query:
 				data_item_id: @state.data_item._id
 				data_item_label: @state.data_item._label
 				action: 'delete'
@@ -414,20 +439,20 @@ class ModelGrid extends Component
 		# data_item = @state.data_item
 		@props.deleteDataItem(@state.data_item._id).then (deleted_doc_id)=>
 			log 'deleted data_item',deleted_doc_id
-			@state.data_item_query.completed_at = Date.now()
+			@state.action_query.completed_at = Date.now()
 			if @state.data_item._id == deleted_doc_id
 				@setState
 					data_item: null
 			@runQuery()
-		.catch @setDataItemActionError.bind(@,@state.data_item)
+		.catch @setActionMethodError.bind(@,@state.data_item)
 
 	updateDataItem: (update)=>
 	
-		if !@state.data_item_query.completed_at && @state.data_item_query.called_at
+		if !@state.action_query.completed_at && @state.action_query.called_at
 			return
 
 		@setState
-			data_item_query:
+			action_query:
 				data_item_id: @state.data_item._id
 				data_item_label: @state.data_item._label
 				body: update
@@ -436,20 +461,20 @@ class ModelGrid extends Component
 
 		@props.updateDataItem(@state.data_item._id,update).then (doc)=>
 			log 'updated data_item',doc
-			@state.data_item_query.completed_at = Date.now()
+			@state.action_query.completed_at = Date.now()
 			if @state.data_item._id == doc._id
 				@setState
 					data_item: doc
 			@runQuery()
-		.catch @setDataItemActionError.bind(@,@state.data_item)
+		.catch @setActionMethodError.bind(@,@state.data_item)
 
 	getDataItem: ()=>
 		
-		if !@state.data_item_query.completed_at && @state.data_item_query.called_at
+		if !@state.action_query.completed_at && @state.action_query.called_at
 			return
 		
 		@setState
-			data_item_query:
+			action_query:
 				body: {}
 				data_item_id: @state.data_item._id
 				data_item_label: @state.data_item._label
@@ -458,12 +483,12 @@ class ModelGrid extends Component
 		
 		@props.getDataItem(@state.data_item._id).then (doc)=>
 			log 'got data_item',doc
-			@state.data_item_query.completed_at = Date.now()
+			@state.action_query.completed_at = Date.now()
 			if @state.data_item._id == doc._id
 				@setState
 					data_item: doc
 			# @runQuery()
-		.catch @setDataItemActionError.bind(@,@state.data_item)
+		.catch @setActionMethodError.bind(@,@state.data_item)
 
 
 
@@ -492,7 +517,7 @@ class ModelGrid extends Component
 
 		@props.onSchemaStateUpdated?(save_state)
 
-		if @state.get_data_item || (@state.data_item && @state.show_json_view && ((@state.show_json_view != state.show_json_view) || @state.data_item_query.data_item_id != @state.data_item._id))
+		if @state.get_data_item || (@state.data_item && @state.show_json_view && ((@state.show_json_view != state.show_json_view) || @state.action_query.data_item_id != @state.data_item._id))
 			@state.get_data_item = false
 			@getDataItem()
 
@@ -518,7 +543,7 @@ class ModelGrid extends Component
 
 
 		
-		# log state.data_item,state.show_json_view && state.data_item_query.data_item_id != state.data_item._id
+		# log state.data_item,state.show_json_view && state.action_query.data_item_id != state.data_item._id
 	
 
 	showJSONView: ()=>
@@ -537,7 +562,10 @@ class ModelGrid extends Component
 			upd_key = opts.name
 		upd_obj[upd_key] = opts.new_value
 		@updateDataItem upd_obj
-
+	
+	baseRef: (slide)=>
+		@base = slide._outer
+		# log @base
 
 	render: ->
 		window.g = @
@@ -550,7 +578,7 @@ class ModelGrid extends Component
 		@g_props.query_item = @state.query_item
 		@g_props.data_item = @state.data_item
 		@g_props.new_doc = @state.new_doc
-		@g_props.data_item_query = @state.data_item_query
+		@g_props.action_query = @state.action_query
 		@g_props.schema = @props.schema
 		@g_props.show_json_view = @state.show_json_view
 		@g_props.queries_updated_at = @state.queries_updated_at
@@ -586,9 +614,9 @@ class ModelGrid extends Component
 				initial_visible: no
 				backdrop_color: @context.primary.inv[2]
 				alert_type: 'error'
-				visible: @state.data_item_action_error? || !@state.data_item_query.completed_at && @state.data_item_query.called_at
-				message: @state.data_item_action_error?.error.message
-				onClick: @state.data_item_action_error && @clearDataItemActionError 
+				visible: @state.action_error? || !@state.action_query.completed_at && @state.action_query.called_at
+				message: @state.action_error?.error.message
+				onClick: @state.action_error && @clearActionQueryError 
 				# z_index: 9999
 				style:
 					display: 'flex'
@@ -597,13 +625,14 @@ class ModelGrid extends Component
 				h Input,
 					type: 'label'
 					label: [
-						h 'span',{key:1,style:{fontWeight:600,color:@context.primary.color[0]}},@state.data_item_query.action
+						@state.action_query.data_item_label || @state.action_query.data_item_id
 						h 'span',{key:2,className: css['model-grid-slash']},'/'
-						@state.data_item_query.data_item_label || @state.data_item_query.data_item_id
+						h 'span',{key:1,style:{fontWeight:600,color:@context.primary.color[0]}},@state.action_query.action
 					]
 
 		
 		h Slide,
+			ref: @baseRef
 			slide:yes
 			pos: !@state.show_json_view && 1 || 0
 			vert: vert_json_bar

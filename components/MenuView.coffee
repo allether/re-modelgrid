@@ -135,6 +135,7 @@ class MenuView extends Component
 			h MethodsView,
 				data_item: @props.data_item
 				methods: schema.statics
+				runDataItemMethod: @props.runStaticMethod
 
 
 		# ADD NEW DOCUMENT TAB / VIEW

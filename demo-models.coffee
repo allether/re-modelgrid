@@ -1,8 +1,17 @@
 {Input,MenuTab,Menu,Bar,Overlay} = require 're-lui'
-onStaticFn = (opts)->
-	console.log opts
-onMethodFn = (opts)->
-	console.log opts
+onStaticFn = (schema,method)->
+	return new Promise (resolve,reject)=>
+		setTimeout ()=>
+			reject(new Error 'test error -'+method.label)
+		,1000
+
+
+onMethodFn = (schema,data_item,method)=>
+	return new Promise (resolve,reject)=>
+		setTimeout ()=>
+			reject(new Error 'test error -'+method.label)
+		,1000
+
 onFormSubmit = (opts)->
 	console.log opts
 

@@ -153,9 +153,15 @@ class ModelGridExample extends Component
 							setTimeout ()=>
 								reject(new Error 'test error - failed to create doc')
 							,1000
-
+				
+					runDataItemMethod: (schema,data_item,method)=>
+						return new Promise (resolve,reject)=>
+							setTimeout ()=>
+								reject(new Error 'test error -'+method.label)
+							,1000
+					
 					updateDataItem: (doc_id,updates)=>
-						log 'update data item',doc_id,updates
+						# log 'update data item',doc_id,updates
 
 						return new Promise (resolve,reject)=>
 							setTimeout ()=>

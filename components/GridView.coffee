@@ -184,6 +184,8 @@ class GridView extends Component
 		super(props)
 		@state =
 			force_update_grid: props.force_update_grid
+			grid_w: 0
+			grid_h: 0
 		# log @state
 
 	
@@ -379,10 +381,16 @@ class GridView extends Component
 
 	componentDidUpdate: ->
 		# log 'did update'
-		if (@state.force_update_grid) && @_grid
+		if @_grid_slide._outer.clientWidth != @state.grid_w ||  @_grid_slide._outer.clientHeight != @state.grid_h
+			@setState
+				grid_w: @_grid_slide._outer.clientWidth || 0
+				grid_h: @_grid_slide._outer.clientHeight || 0
+
+		else if (@state.force_update_grid) && @_grid
 			@state.force_update_grid = false
 			# log 'recomputing GridView _grid'
 			@_grid?.recomputeGridSize()
+			@forceUpdate()
 
 
 	componentDidMount: ->
@@ -425,10 +433,10 @@ class GridView extends Component
 				columnCount: query_item.layout_keys.length + 1 || 0
 				fixedColumnCount:0
 				fixedRowCount:1
-				height:@_grid_slide._outer.clientHeight
+				height:@state.grid_h
 				rowHeight:@rowHeight
 				rowCount:data.length+1
-				width:@_grid_slide._outer.clientWidth
+				width:@state.grid_w
 
 	
 		h Slide,

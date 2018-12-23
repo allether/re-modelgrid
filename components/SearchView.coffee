@@ -215,7 +215,7 @@ class SearchView extends Component
 
 					
 	renderBookmarkItem: (r_opts)=>
-		log 'render bookmark'
+		# log 'render bookmark'
 		query_item = @props.bookmarks[r_opts.index]
 		is_selected = @props.query_item._id == query_item._id
 		r_opts.style.background = (r_opts.index % 2) && @context.primary.inv[1] || null
