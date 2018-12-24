@@ -4,6 +4,7 @@ global.h = createElement
 global.Component = Component
 Slide = require 're-slide'
 css = require './ModelGrid.less'
+cn = require 'classnames'
 {Input,MenuTab,Menu,Bar,Overlay,AlertOverlay,StyleContext} = require 're-lui'
 
 
@@ -92,13 +93,13 @@ class ModelGrid extends Component
 		# log 'reset label'
 		keys = Object.keys(query_item.value)
 		query_item.label = undefined
-		if @props.filter
-			filter_keys = Object.keys(@props.filter.query_value)
-		else
-			filter_keys = []
+		# if @props.filter
+		# 	filter_keys = Object.keys(@props.filter.query_value)
+		# else
+		# 	filter_keys = []
 		is_key = true
 		for key in keys
-			if key != query_item.key && filter_keys.indexOf(key) == -1
+			if key != query_item.key #&& filter_keys.indexOf(key) == -1
 				is_key = false
 				break
 		
@@ -145,20 +146,22 @@ class ModelGrid extends Component
 			query_item.type = 'key'
 	
 	
-	syncQueryItemValue: (query_item)->
+	syncQueryItem: (query_item)->
+		
+
 		if query_item.type == 'key'
 			q_value = {}
 			q_value[query_item.key || query_item.key] = query_item.input_value
 			query_item.value = q_value
-			if @props.filter
-				Object.assign q_value,@props.filter.query_value
 		else if query_item.type == 'json'
 			try
 				query_item.value = JSON.parse(query_item.input_value)
 				query_item.error = null
 			catch error
 				query_item.error = error.message
-				
+
+		@setQueryItemFilter(query_item)
+
 	
 	findQueryItemBookmark: (query_item)->
 		if query_item.type != 'bookmark'
@@ -218,11 +221,13 @@ class ModelGrid extends Component
 		# 	return found_query
 		
 		# set value (check for errors etc)
-		@syncQueryItemValue(query_item)
+		@syncQueryItem(query_item)
 
 		return query_item
-		
 
+	setQueryItemFilter: (query_item)->
+		if @props.filter
+			query_item.filter_value = @props.filter(@props.schema,query_item)
 
 	updateQueryItem: (schema,query_item)=>
 		# log 'update query_item',schema,query_item.label
@@ -246,7 +251,7 @@ class ModelGrid extends Component
 				run_query_once: yes
 		
 		# set value (check for errors etc)
-		@syncQueryItemValue(query_item)
+		@syncQueryItem(query_item)
 
 		# if schema.label = false
 		# 	@mapQueryItems()
@@ -275,6 +280,8 @@ class ModelGrid extends Component
 					@state.query_item.populate.push qp
 
 				qp.select.push key.substring(pop.length+1)
+
+		@setQueryItemFilter(@state.query_item)
 
 
 	clearQueryItemRunError: =>
@@ -333,11 +340,11 @@ class ModelGrid extends Component
 		s_q_i = @state.query_item
 		q_i = Object.assign {},@state.query_item
 		
-		if @props.filter
-			Object.assign q_i.value, @props.filter.query_value
+		# if @props.filter
+		# 	Object.assign q_i.value, @props.filter.query_value
 
 		# log q_i.value
-
+		@state.query_item.error = undefined
 		@props.runQuery(q_i).then (data)=>
 
 			if q_i._id != @state.query_item._id
@@ -634,6 +641,7 @@ class ModelGrid extends Component
 		h Slide,
 			ref: @baseRef
 			slide:yes
+			className: css['model-grid']
 			pos: !@state.show_json_view && 1 || 0
 			vert: vert_json_bar
 			outerStyle:
@@ -641,43 +649,38 @@ class ModelGrid extends Component
 			outerChildren: overlay
 			h Slide,
 				beta: 50
-				vert: vert_json_bar
-				h Slide,
-					beta: 100
-					className: css['react-json-wrap']
-					@state.show_json_view && @state.data_item && h ReactJson,
-						iconStyle: 'circle'
-						displayDataTypes: false
-						enableClipboard: yes
-						name: false
-						collapseStringsAfterLength: 100
-						onEdit:@onJSONViewEdit
-						onAdd:@onAdd
-						shouldCollapse:@shouldCollapse
-						theme: 'eighties'
-						src: @state.data_item
-				h Slide,
-					dim: DIM_S
+				className: css['react-json-wrap']
+				@state.show_json_view && @state.data_item && h ReactJson,
+					iconStyle: 'circle'
+					displayDataTypes: false
+					enableClipboard: yes
+					name: false
+					collapseStringsAfterLength: 100
+					onEdit:@onJSONViewEdit
+					onAdd:@onAdd
+					shouldCollapse:@shouldCollapse
+					theme: 'eighties'
+					src: @state.data_item
+				h Bar,
+					big: no
+					className: cn css['json-editor-menu'],css[!vert_json_bar && 'vert']
 					vert: !vert_json_bar
-					h Bar,
-						big: no
-						vert: !vert_json_bar
-						h Input,
-							type: 'button'
-							btn_type: 'flat'
-							i : 'refresh'
-							onClick: @getDataItem
-						h Input,
-							type: 'button'
-							btn_type: 'flat'
-							i : 'close'
-							onClick: @closeJSONView
+					h Input,
+						type: 'button'
+						btn_type: 'flat'
+						i : 'refresh'
+						onClick: @getDataItem
+					h Input,
+						type: 'button'
+						btn_type: 'flat'
+						i : 'close'
+						onClick: @closeJSONView
 			h Slide,
 				vert: yes
 				style:
 					transform: 'translate(0px)'
 				beta: @state.show_json_view && 50 || 100
-				className: css['model-grid']
+				
 				h MenuView,@g_props
 				h GridView,@g_props
 

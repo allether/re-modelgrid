@@ -21,7 +21,6 @@ class Demo extends Component
 			secondary2:'#386277'
 
 	onSetStyle: (primary,secondary)=>
-		# log 'on set styl'
 		@setState
 			background: primary.inv[0]
 			color: primary.color[0]
@@ -41,12 +40,6 @@ class Demo extends Component
 				vert:yes
 				beta: 100
 				Slide: no
-				# h Slide,
-				# 	beta: 20
-				# 	style:
-				# 		background: @state.background
-				# 		color: @state.color
-				# 	h ModelGridExample
 				h Slide,
 					beta: 30
 					style:
@@ -147,7 +140,8 @@ class ModelGridExample extends Component
 					schema_state: schema_state
 					schema_state_id: @state.schema_state_id
 					onSchemaStateUpdated: setStateConfig.bind(null,demo_models.models[@state.selected_model_index])
-					
+					filter: (schema)->
+						{test_filter:schema.name}
 					createDataItem: (doc)=>
 						return new Promise (resolve,reject)=>
 							setTimeout ()=>

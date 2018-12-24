@@ -1114,7 +1114,8 @@ JsonView = class JsonView extends Component {
       }
     }
     return h('div', {
-      className: css['json-view']
+      className: css['json-view'],
+      style: this.props.style
     }, children);
   }
 
@@ -1701,7 +1702,7 @@ module.exports = MethodsView;
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {  // Color = require 'color'
-var AlertOverlay, Bar, Component, DIM, DIM_S, GridView, Input, Menu, MenuTab, MenuView, ModelGrid, Overlay, ReactJson, Slide, StyleContext, createElement, css,
+var AlertOverlay, Bar, Component, DIM, DIM_S, GridView, Input, Menu, MenuTab, MenuView, ModelGrid, Overlay, ReactJson, Slide, StyleContext, cn, createElement, css,
   boundMethodCheck = function(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new Error('Bound instance method accessed before binding'); } };
 
 ({createElement, Component} = __webpack_require__(/*! react */ "react"));
@@ -1713,6 +1714,8 @@ global.Component = Component;
 Slide = __webpack_require__(/*! re-slide */ "re-slide");
 
 css = __webpack_require__(/*! ./ModelGrid.less */ "./components/ModelGrid.less");
+
+cn = __webpack_require__(/*! classnames */ "classnames");
 
 ({Input, MenuTab, Menu, Bar, Overlay, AlertOverlay, StyleContext} = __webpack_require__(/*! re-lui */ "re-lui"));
 
@@ -1846,19 +1849,18 @@ ModelGrid = class ModelGrid extends Component {
   }
 
   resetQueryItemLabel(query_item) {
-    var filter_keys, is_key, j, key, keys, len;
+    var is_key, j, key, keys, len;
     // log 'reset label'
     keys = Object.keys(query_item.value);
     query_item.label = void 0;
-    if (this.props.filter) {
-      filter_keys = Object.keys(this.props.filter.query_value);
-    } else {
-      filter_keys = [];
-    }
+    // if @props.filter
+    // 	filter_keys = Object.keys(@props.filter.query_value)
+    // else
+    // 	filter_keys = []
     is_key = true;
     for (j = 0, len = keys.length; j < len; j++) {
       key = keys[j];
-      if (key !== query_item.key && filter_keys.indexOf(key) === -1) {
+      if (key !== query_item.key) { //&& filter_keys.indexOf(key) == -1
         is_key = false;
         break;
       }
@@ -1916,24 +1918,22 @@ ModelGrid = class ModelGrid extends Component {
     }
   }
 
-  syncQueryItemValue(query_item) {
+  syncQueryItem(query_item) {
     var error, q_value;
     if (query_item.type === 'key') {
       q_value = {};
       q_value[query_item.key || query_item.key] = query_item.input_value;
       query_item.value = q_value;
-      if (this.props.filter) {
-        return Object.assign(q_value, this.props.filter.query_value);
-      }
     } else if (query_item.type === 'json') {
       try {
         query_item.value = JSON.parse(query_item.input_value);
-        return query_item.error = null;
+        query_item.error = null;
       } catch (error1) {
         error = error1;
-        return query_item.error = error.message;
+        query_item.error = error.message;
       }
     }
+    return this.setQueryItemFilter(query_item);
   }
 
   findQueryItemBookmark(query_item) {
@@ -1998,8 +1998,14 @@ ModelGrid = class ModelGrid extends Component {
     // 	return found_query
 
     // set value (check for errors etc)
-    this.syncQueryItemValue(query_item);
+    this.syncQueryItem(query_item);
     return query_item;
+  }
+
+  setQueryItemFilter(query_item) {
+    if (this.props.filter) {
+      return query_item.filter_value = this.props.filter(this.props.schema, query_item);
+    }
   }
 
   updateQueryItem(schema, query_item) {
@@ -2026,14 +2032,14 @@ ModelGrid = class ModelGrid extends Component {
     }
     
     // set value (check for errors etc)
-    this.syncQueryItemValue(query_item);
+    this.syncQueryItem(query_item);
     // if schema.label = false
     // 	@mapQueryItems()
     return query_item;
   }
 
   cleanQuery() {
-    var j, key, len, pop, qp, ref, results;
+    var j, key, len, pop, qp, ref;
     boundMethodCheck(this, ModelGrid);
     if (this.state.query_item.type === 'key') {
       if (!this.state.query_item.input_value) {
@@ -2048,7 +2054,6 @@ ModelGrid = class ModelGrid extends Component {
     this.state.query_item.populate = [];
     if (this.props.schema.populate) {
       ref = this.state.query_item.layout_keys;
-      results = [];
       for (j = 0, len = ref.length; j < len; j++) {
         key = ref[j];
         pop = this.props.schema.populate.find(function(_pop) {
@@ -2067,10 +2072,10 @@ ModelGrid = class ModelGrid extends Component {
           };
           this.state.query_item.populate.push(qp);
         }
-        results.push(qp.select.push(key.substring(pop.length + 1)));
+        qp.select.push(key.substring(pop.length + 1));
       }
-      return results;
     }
+    return this.setQueryItemFilter(this.state.query_item);
   }
 
   clearQueryItemRunError() {
@@ -2142,10 +2147,12 @@ ModelGrid = class ModelGrid extends Component {
     }
     s_q_i = this.state.query_item;
     q_i = Object.assign({}, this.state.query_item);
-    if (this.props.filter) {
-      Object.assign(q_i.value, this.props.filter.query_value);
-    }
+    
+    // if @props.filter
+    // 	Object.assign q_i.value, @props.filter.query_value
+
     // log q_i.value
+    this.state.query_item.error = void 0;
     this.props.runQuery(q_i).then((data) => {
       if (q_i._id !== this.state.query_item._id) {
         return this.setQueryItemRunError(q_i, new Error('previously ran query does not match current state query ' + q_i._id + ' != ' + this.state.query_item._id));
@@ -2507,6 +2514,7 @@ ModelGrid = class ModelGrid extends Component {
     return h(Slide, {
       ref: this.baseRef,
       slide: true,
+      className: css['model-grid'],
       pos: !this.state.show_json_view && 1 || 0,
       vert: vert_json_bar,
       outerStyle: {
@@ -2515,9 +2523,6 @@ ModelGrid = class ModelGrid extends Component {
       outerChildren: overlay
     }, h(Slide, {
       beta: 50,
-      vert: vert_json_bar
-    }, h(Slide, {
-      beta: 100,
       className: css['react-json-wrap']
     }, this.state.show_json_view && this.state.data_item && h(ReactJson, {
       iconStyle: 'circle',
@@ -2530,11 +2535,9 @@ ModelGrid = class ModelGrid extends Component {
       shouldCollapse: this.shouldCollapse,
       theme: 'eighties',
       src: this.state.data_item
-    })), h(Slide, {
-      dim: DIM_S,
-      vert: !vert_json_bar
-    }, h(Bar, {
+    }), h(Bar, {
       big: false,
+      className: cn(css['json-editor-menu'], css[!vert_json_bar && 'vert']),
       vert: !vert_json_bar
     }, h(Input, {
       type: 'button',
@@ -2546,13 +2549,12 @@ ModelGrid = class ModelGrid extends Component {
       btn_type: 'flat',
       i: 'close',
       onClick: this.closeJSONView
-    })))), h(Slide, {
+    }))), h(Slide, {
       vert: true,
       style: {
         transform: 'translate(0px)'
       },
-      beta: this.state.show_json_view && 50 || 100,
-      className: css['model-grid']
+      beta: this.state.show_json_view && 50 || 100
     }, h(MenuView, this.g_props), h(GridView, this.g_props)));
   }
 
@@ -2905,13 +2907,26 @@ SearchView = class SearchView extends Component {
       className: css['json']
     }, h(JsonView, {
       json: query_item.value,
+      trim: true,
       colors: {
         key: !is_selected && this.context.primary.color[0] || this.context.secondary.inv[0],
         number: 'orange',
         string: this.context.primary.true,
         boolean: this.context.primary.false
       }
-    }), h('div', {
+    }), query_item.filter_value && (h(JsonView, {
+      json: query_item.filter_value,
+      trim: true,
+      style: {
+        opacity: 0.3
+      },
+      colors: {
+        key: !is_selected && this.context.primary.color[2] || this.context.secondary.inv[2],
+        number: 'orange',
+        string: this.context.primary.true,
+        boolean: this.context.primary.false
+      }
+    })) || null, h('div', {
       className: css['search-query-item-label']
     }, query_item.label && '#' + query_item.label || null, query_item.label && h('i', {
       className: 'material-icons'
@@ -3375,7 +3390,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".lui-2AHD- {\n  height: 100%;\n  width: 100%;\n}\n.lui-2jxDq {\n  opacity: 0.4;\n  padding: 0 4;\n}\n.lui-2NWoF {\n  opacity: 0.4;\n  padding-right: 4;\n}\n.lui-2S7gN {\n  width: 30px;\n  height: 30px;\n}\n.lui-3exNq {\n  width: 100%;\n  height: 100%;\n}\n.lui-2Oig8 {\n  opacity: 0.5;\n}\n.lui-1Wnc8 {\n  max-height: 300px;\n  height: fit-content;\n  overflow-y: scroll;\n}\n.lui-eFoi1 {\n  white-space: nowrap;\n  margin-left: 3px;\n  margin-top: 1px;\n}\n.lui-2-Riw {\n  color: red;\n}\n.lui-3HzB1 {\n  right: 10px;\n  position: absolute;\n}\n.lui-3lJiS {\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  padding-left: 10px;\n  font-family: \"monor\";\n  opacity: 0.8;\n}\n.lui-3lJiS:hover {\n  opacity: 1;\n}\n.ReactVirtualized__Grid__innerScrollContainer {\n  min-width: 100%;\n}\n.lui-2hSbl {\n  width: 30px !important;\n}\n.lui-22qIa {\n  position: absolute;\n  right: 0;\n  bottom: 0;\n  padding: 5px;\n  transform: scale(0.8);\n  max-width: 200px;\n  overflow-x: scroll;\n  min-width: 20px;\n  min-height: 20px;\n}\n.lui-1dCqE {\n  position: absolute;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 12px;\n  opacity: 0.7;\n  padding: 8px;\n  padding-right: 14px;\n  right: 0;\n  top: 0;\n}\n.lui-1dCqE i {\n  font-size: 16px;\n  padding-right: 6px;\n}\n.lui-3-5T7 {\n  height: auto !important;\n  min-height: 30px;\n  font-family: \"monor\";\n}\n.lui-3-5T7 .lui-24gT1 {\n  position: relative;\n  min-height: 30px;\n  margin: 0;\n  overflow-wrap: break-word;\n  padding: 8px;\n  font-size: 11px;\n  color: grey;\n  cursor: pointer;\n  white-space: pre;\n}\n* {\n  outline: none;\n}\n.lui-1-PvV {\n  overflow: visible !important;\n}\n.lui-2hSbl {\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  font-size: 15 !important;\n  width: 30;\n  opacity: 0.2;\n  transition: opacity 0.3s;\n  cursor: pointer;\n}\n.lui-2hSbl:hover {\n  opacity: 1;\n}\n.lui-4gr2j {\n  width: auto;\n  height: 230;\n  min-width: 200;\n  overflow-y: scroll;\n}\n.lui-3K2EQ {\n  cursor: pointer;\n}\n.lui-3K2EQ i {\n  margin: 0;\n}\n.lui-P8ljS {\n  width: 300px;\n  height: 300px;\n  display: flex;\n  flex-direction: column;\n}\n.lui-1w7qC {\n  position: absolute;\n  left: 0;\n  top: 0;\n}\n.lui-2X1G6 {\n  cursor: pointer;\n}\n.lui-2X1G6 .lui-2S7gN {\n  opacity: 0.5;\n  transition: opacity 0.3s ease;\n  line-height: inherit;\n}\n.lui-2X1G6:hover .lui-2S7gN {\n  opacity: 1;\n}\n.lui-2S7gN {\n  line-height: 30px;\n}\n.lui-19xT8 {\n  position: absolute !important;\n  top: 0px;\n  right: 0px;\n}\n.lui-bVM3E {\n  cursor: pointer;\n  height: 100%;\n  font-family: \"monor\";\n  font-size: 13px;\n  vertical-align: middle;\n  line-height: 30px;\n  overflow: hidden;\n  text-align: left;\n  white-space: nowrap;\n  padding: 0px 10px;\n}\n.lui-bVM3E .lui-2PbsQ {\n  float: left;\n}\n.lui-bVM3E input {\n  font-family: \"monor\";\n  font-size: 13px;\n  padding: 0px 10px;\n  margin-left: -10px;\n  margin-right: -10px;\n  transition: background 0.3s ease;\n  width: 100%;\n  height: 30px;\n  outline: none;\n}\n.lui-bVM3E input::placeholder {\n  color: inherit;\n  opacity: 0.5;\n}\n.lui-1dXoa .react-json-view {\n  padding: 12px !important;\n  font-size: 11px !important;\n  overflow: scroll !important;\n  white-space: nowrap;\n  min-width: 100%;\n  font-family: \"monor\" !important;\n  width: 100% !important;\n}\n.lui-1dXoa .react-json-view svg {\n  font-size: 11px !important;\n}\n.lui-llMOW {\n  width: 100%;\n  flex-direction: row-reverse;\n}\n.lui-36sov {\n  width: 140px;\n}\n.lui-1mNiI {\n  overflow-y: scroll;\n  transform: translate(0px);\n  overflow-x: hidden;\n  display: flex;\n  flex-direction: column;\n  height: 170px;\n  width: 100%;\n  min-width: 300px;\n}\n", ""]);
+exports.push([module.i, ".lui-2AHD- {\n  height: 100%;\n  width: 100%;\n}\n.lui-2AHD- ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  background-color: rgba(0, 0, 0, 0.2);\n  width: 8px;\n  height: 8px;\n}\n.lui-2AHD- ::-webkit-scrollbar-corner {\n  background-color: rgba(0, 0, 0, 0.3);\n}\n.lui-2AHD- ::-webkit-scrollbar-thumb {\n  border-radius: 0px;\n  background-color: #7F7F7F;\n  transition: background-color 0.3s ease;\n}\n.lui-2AHD- ::-webkit-scrollbar-thumb:hover {\n  background-color: #8F8F8F;\n}\n.lui-2jxDq {\n  opacity: 0.4;\n  padding: 0 4;\n}\n.lui-2NWoF {\n  opacity: 0.4;\n  padding-right: 4;\n}\n.lui-2S7gN {\n  width: 30px;\n  height: 30px;\n}\n.lui-3exNq {\n  width: 100%;\n  height: 100%;\n}\n.lui-2Oig8 {\n  opacity: 0.5;\n}\n.lui-1Wnc8 {\n  max-height: 300px;\n  height: fit-content;\n  overflow-y: scroll;\n}\n.lui-eFoi1 {\n  white-space: nowrap;\n  margin-left: 3px;\n  margin-top: 1px;\n}\n.lui-2-Riw {\n  color: red;\n}\n.lui-3HzB1 {\n  right: 10px;\n  position: absolute;\n}\n.lui-3lJiS {\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  padding-left: 10px;\n  font-family: \"monor\";\n  opacity: 0.8;\n}\n.lui-3lJiS:hover {\n  opacity: 1;\n}\n.ReactVirtualized__Grid__innerScrollContainer {\n  min-width: 100%;\n}\n.lui-2hSbl {\n  width: 30px !important;\n}\n.lui-22qIa {\n  position: absolute;\n  right: 0;\n  bottom: 0;\n  padding: 5px;\n  transform: scale(0.8);\n  max-width: 200px;\n  min-width: 20px;\n  min-height: 20px;\n}\n.lui-22qIa .lui-2-Riw {\n  overflow-x: scroll;\n  overflow-y: visible;\n  padding: 5px;\n}\n.lui-1dCqE {\n  position: absolute;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 12px;\n  opacity: 0.7;\n  padding: 8px;\n  padding-right: 14px;\n  right: 0;\n  top: 0;\n}\n.lui-1dCqE i {\n  font-size: 16px;\n  padding-right: 6px;\n}\n.lui-3-5T7 {\n  height: auto !important;\n  min-height: 30px;\n  font-family: \"monor\";\n}\n.lui-3-5T7 .lui-24gT1 {\n  position: relative;\n  min-height: 30px;\n  margin: 0;\n  overflow-wrap: break-word;\n  padding: 8px;\n  font-size: 11px;\n  color: grey;\n  cursor: pointer;\n  white-space: pre;\n}\n* {\n  outline: none;\n}\n.lui-1-PvV {\n  overflow: visible !important;\n}\n.lui-2hSbl {\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  font-size: 15 !important;\n  width: 30;\n  opacity: 0.2;\n  transition: opacity 0.3s;\n  cursor: pointer;\n}\n.lui-2hSbl:hover {\n  opacity: 1;\n}\n.lui-4gr2j {\n  width: auto;\n  height: 230;\n  min-width: 200;\n  overflow-y: scroll;\n}\n.lui-3K2EQ {\n  cursor: pointer;\n}\n.lui-3K2EQ i {\n  margin: 0;\n}\n.lui-P8ljS {\n  width: 300px;\n  height: 300px;\n  display: flex;\n  flex-direction: column;\n}\n.lui-1w7qC {\n  position: absolute;\n  left: 0;\n  top: 0;\n}\n.lui-2X1G6 {\n  cursor: pointer;\n}\n.lui-2X1G6 .lui-2S7gN {\n  opacity: 0.5;\n  transition: opacity 0.3s ease;\n  line-height: inherit;\n}\n.lui-2X1G6:hover .lui-2S7gN {\n  opacity: 1;\n}\n.lui-2S7gN {\n  line-height: 30px;\n}\n.lui-3vBBz {\n  position: fixed !important;\n  width: fit-content;\n  bottom: 8px;\n  left: 0px;\n  right: unset;\n}\n.lui-3vBBz.lui-bPIzo {\n  height: fit-content;\n  top: 0px;\n  right: 8px;\n  left: unset;\n}\n.lui-bVM3E {\n  cursor: pointer;\n  height: 100%;\n  font-family: \"monor\";\n  font-size: 13px;\n  vertical-align: middle;\n  line-height: 30px;\n  overflow: hidden;\n  text-align: left;\n  white-space: nowrap;\n  padding: 0px 10px;\n}\n.lui-bVM3E .lui-2PbsQ {\n  float: left;\n}\n.lui-bVM3E input {\n  font-family: \"monor\";\n  font-size: 13px;\n  padding: 0px 10px;\n  margin-left: -10px;\n  margin-right: -10px;\n  transition: background 0.3s ease;\n  width: 100%;\n  height: 30px;\n  outline: none;\n}\n.lui-bVM3E input::placeholder {\n  color: inherit;\n  opacity: 0.5;\n}\n.lui-1dXoa {\n  position: relative;\n  transform: translate(0);\n}\n.lui-1dXoa .react-json-view {\n  overflow: scroll !important;\n  padding: 12px !important;\n  font-size: 11px !important;\n  white-space: nowrap;\n  width: 100%;\n  height: 100%;\n  font-family: \"monor\" !important;\n}\n.lui-1dXoa .react-json-view svg {\n  font-size: 11px !important;\n}\n.lui-llMOW {\n  width: 100%;\n  flex-direction: row-reverse;\n}\n.lui-36sov {\n  width: 140px;\n}\n.lui-1mNiI {\n  overflow-y: scroll;\n  transform: translate(0px);\n  overflow-x: hidden;\n  display: flex;\n  flex-direction: column;\n  height: 170px;\n  width: 100%;\n  min-width: 300px;\n}\n", ""]);
 
 // exports
 exports.locals = {
@@ -3401,7 +3416,8 @@ exports.locals = {
 	"model-grid-search-query-view": "lui-P8ljS",
 	"data-item-method-menu": "lui-1w7qC",
 	"model-grid-key": "lui-2X1G6",
-	"json-close": "lui-19xT8",
+	"json-editor-menu": "lui-3vBBz",
+	"vert": "lui-bPIzo",
 	"model-grid-cell": "lui-bVM3E",
 	"model-grid-label": "lui-2PbsQ",
 	"react-json-wrap": "lui-1dXoa",

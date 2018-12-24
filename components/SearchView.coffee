@@ -192,11 +192,24 @@ class SearchView extends Component
 					className: css['json']
 					h JsonView,
 						json: query_item.value
+						trim: yes
 						colors:
 							key: !is_selected && @context.primary.color[0] || @context.secondary.inv[0]
 							number: 'orange'
 							string: @context.primary.true
 							boolean: @context.primary.false
+
+					query_item.filter_value && (h JsonView,
+						json: query_item.filter_value
+						trim: yes
+						style: 
+							opacity: 0.3
+						colors:
+							key: !is_selected && @context.primary.color[2] || @context.secondary.inv[2]
+							number: 'orange'
+							string: @context.primary.true
+							boolean: @context.primary.false
+					) || null
 
 					h 'div',
 						className: css['search-query-item-label']

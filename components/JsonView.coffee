@@ -20,6 +20,7 @@ class JsonView extends Component
 			key_map[val] = true
 			return ''+sep+val+sep+':'
 		children = str.split(sep)
+
 		# children = children.map (val,i)->
 		for val,i in children 
 			if i % 2 == 0
@@ -50,6 +51,7 @@ class JsonView extends Component
 
 		h 'div',
 			className: css['json-view']
+			style: @props.style
 			children
 
 module.exports = JsonView
