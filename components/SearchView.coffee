@@ -120,7 +120,7 @@ class SearchView extends Component
 			# log props.queries.indexOf(props.query_item)
 			state.scroll_queries_index = props.queries.indexOf(props.query_item)
 			# state.force_update_grid = true
-			# state.force_render_grid = true
+			state.force_render_grid = true
 			
 
 
@@ -431,7 +431,7 @@ class SearchView extends Component
 		else if qi.type == 'key'
 			search_placeholder =  'search by '+props.keys[qi.key].label
 			info_label = [
-				'search by'
+				'search by '
 				h 'span',{key:2,style:color:@context.primary.true},qi.key
 			]
 			info_i = 'menu'

@@ -1877,7 +1877,6 @@ ModelGrid = class ModelGrid extends Component {
   setQueryItemLabel(query_item, label) {
     var b, j, len, ref;
     boundMethodCheck(this, ModelGrid);
-    log('set label');
     if (!label) {
       return;
     }
@@ -1922,18 +1921,18 @@ ModelGrid = class ModelGrid extends Component {
     var error, q_value;
     if (query_item.type === 'key') {
       q_value = {};
+      query_item.error = null;
       q_value[query_item.key || query_item.key] = query_item.input_value;
-      query_item.value = q_value;
+      return query_item.value = q_value;
     } else if (query_item.type === 'json') {
       try {
         query_item.value = JSON.parse(query_item.input_value);
-        query_item.error = null;
+        return query_item.error = null;
       } catch (error1) {
         error = error1;
-        query_item.error = error.message;
+        return query_item.error = error.message;
       }
     }
-    return this.setQueryItemFilter(query_item);
   }
 
   findQueryItemBookmark(query_item) {
@@ -2836,12 +2835,12 @@ SearchView = class SearchView extends Component {
         }
       }
       // log props.queries.indexOf(props.query_item)
-      return state.scroll_queries_index = props.queries.indexOf(props.query_item);
+      state.scroll_queries_index = props.queries.indexOf(props.query_item);
+      // state.force_update_grid = true
+      return state.force_render_grid = true;
     }
   }
 
-  // state.force_update_grid = true
-  // state.force_render_grid = true
   componentDidUpdate(props, state) {
     var ref;
     if (this.state.force_render_grid) {
@@ -3150,7 +3149,7 @@ SearchView = class SearchView extends Component {
     } else if (qi.type === 'key') {
       search_placeholder = 'search by ' + props.keys[qi.key].label;
       info_label = [
-        'search by',
+        'search by ',
         h('span',
         {
           key: 2,

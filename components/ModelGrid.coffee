@@ -113,7 +113,7 @@ class ModelGrid extends Component
 
 
 	setQueryItemLabel: (query_item,label)=>
-		log 'set label'
+		# flog 'set label'
 		if !label
 			return
 		for b in @state.bookmarks
@@ -151,6 +151,7 @@ class ModelGrid extends Component
 
 		if query_item.type == 'key'
 			q_value = {}
+			query_item.error = null
 			q_value[query_item.key || query_item.key] = query_item.input_value
 			query_item.value = q_value
 		else if query_item.type == 'json'
@@ -160,7 +161,8 @@ class ModelGrid extends Component
 			catch error
 				query_item.error = error.message
 
-		@setQueryItemFilter(query_item)
+
+		
 
 	
 	findQueryItemBookmark: (query_item)->
