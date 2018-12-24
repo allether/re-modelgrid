@@ -1904,7 +1904,7 @@ ModelGrid = class ModelGrid extends Component {
       value: query_item != null ? query_item.value : void 0,
       input_value: (query_item != null ? query_item.input_value : void 0) || "",
       call_count: 0,
-      _id: Date.now().toString(24) + Math.random(1337).toString(24).substring(2)
+      _id: Date.now().toString(24)
     };
   }
 
@@ -3016,7 +3016,7 @@ SearchView = class SearchView extends Component {
           type: 'input',
           onInput: this.setQueryItemLabel,
           onEntr: this.saveQueryItem,
-          value: this.state.query_item_label,
+          value: this.state.query_item_label || '',
           placeholder: 'max ' + MAX_CHAR + ' char',
           label: 'label'
         })
@@ -3062,7 +3062,8 @@ SearchView = class SearchView extends Component {
   }
 
   renderKeysView() {
-    return h('div', {
+    return h(Bar, {
+      vert: true,
       style: {
         background: this.context.primary.inv[1]
       },
@@ -3186,7 +3187,7 @@ SearchView = class SearchView extends Component {
         info_fn = this.showInfoOptions; //@unsaveQueryItem
       } else {
         info_i = 'bookmark';
-        info_label = h('div', {}, 'save', h('span', {
+        info_label = h('div', {}, 'save ', h('span', {
           style: {
             opacity: .5
           }

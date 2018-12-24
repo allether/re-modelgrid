@@ -134,7 +134,7 @@ class ModelGrid extends Component
 		value: query_item?.value
 		input_value: query_item?.input_value || ""
 		call_count: 0
-		_id: Date.now().toString(24)+Math.random(1337).toString(24).substring(2)
+		_id: Date.now().toString(24)
 
 	
 	decideQueryItemType: (query_item)->

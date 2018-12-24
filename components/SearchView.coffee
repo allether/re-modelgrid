@@ -298,7 +298,7 @@ class SearchView extends Component
 					type: 'input'
 					onInput: @setQueryItemLabel
 					onEntr: @saveQueryItem
-					value: @state.query_item_label
+					value: @state.query_item_label || ''
 					placeholder: 'max '+MAX_CHAR+' char'
 					label: 'label'
 			
@@ -371,11 +371,12 @@ class SearchView extends Component
 				]
 
 	renderKeysView: ->
-		h 'div',
+		h Bar,
+			vert: yes
 			style: 
 				background: @context.primary.inv[1]
 			className: css['search-keys-container']
-			@props.keys_array.map @mapMenuSearchKeys	
+			@props.keys_array.map @mapMenuSearchKeys
 
 
 	showView: =>
@@ -457,7 +458,7 @@ class SearchView extends Component
 			else
 				info_i = 'bookmark'
 				info_label = h 'div',{},
-					'save'
+					'save '
 					h 'span',{style:opacity:.5},props.query_item._id
 				# 
 				info_type = 'button'
