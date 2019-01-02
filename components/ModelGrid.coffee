@@ -282,6 +282,11 @@ class ModelGrid extends Component
 		if @state.query_item.layout_keys.length == 0
 			@state.query_item.layout_keys[0] = '_id'
 
+		@state.query_item.hidden_layout_keys = []
+		for key in @state.query_item.layout_keys
+			if @props.schema.keys[key].keys_array
+				@state.query_item.hidden_layout_keys = @state.query_item.hidden_layout_keys.concat @props.schema.keys[key].keys_array
+
 		@state.query_item.populate = []
 		if @props.schema.populate
 			for key in @state.query_item.layout_keys

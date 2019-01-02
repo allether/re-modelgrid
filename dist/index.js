@@ -2076,7 +2076,7 @@ ModelGrid = class ModelGrid extends Component {
   }
 
   cleanQuery() {
-    var j, key, len, pop, qp, ref;
+    var j, k, key, len, len1, pop, qp, ref, ref1;
     boundMethodCheck(this, ModelGrid);
     if (this.state.query_item.type === 'key') {
       if (!this.state.query_item.input_value) {
@@ -2088,11 +2088,19 @@ ModelGrid = class ModelGrid extends Component {
     if (this.state.query_item.layout_keys.length === 0) {
       this.state.query_item.layout_keys[0] = '_id';
     }
+    this.state.query_item.hidden_layout_keys = [];
+    ref = this.state.query_item.layout_keys;
+    for (j = 0, len = ref.length; j < len; j++) {
+      key = ref[j];
+      if (this.props.schema.keys[key].keys_array) {
+        this.state.query_item.hidden_layout_keys = this.state.query_item.hidden_layout_keys.concat(this.props.schema.keys[key].keys_array);
+      }
+    }
     this.state.query_item.populate = [];
     if (this.props.schema.populate) {
-      ref = this.state.query_item.layout_keys;
-      for (j = 0, len = ref.length; j < len; j++) {
-        key = ref[j];
+      ref1 = this.state.query_item.layout_keys;
+      for (k = 0, len1 = ref1.length; k < len1; k++) {
+        key = ref1[k];
         pop = this.props.schema.populate.find(function(_pop) {
           return key.indexOf(_pop) === 0;
         });
