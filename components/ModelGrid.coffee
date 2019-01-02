@@ -7,7 +7,7 @@ css = require './ModelGrid.less'
 cn = require 'classnames'
 {Input,MenuTab,Menu,Bar,Overlay,AlertOverlay,StyleContext} = require 're-lui'
 
-
+# require 'colors'
 ReactJson = require 'react-json-view'
 ReactJson = ReactJson.default
 
@@ -37,15 +37,25 @@ class ModelGrid extends Component
 			runStaticMethod: @runStaticMethod
 			updateSelectedDocument: @updateSelectedDocument
 
+	log: =>
+		arr = ['%c [modelgrid]','color:yellow']
+		for arg in arguments
+			arr.push arg
+		console.log.apply(console.log,arr)
+
 
 
 	getDefaultConfig: (props)=>
 		
 		queries: [] # array <query_item>
+		query_map: new Map # map <query_item>
+
+		data: new Map # <query._id> : [<data_item>]
+		
 		queries_updated_at: 0
-		query_map: {} # array <query_item>
+		
 		bookmarks: [] 	# array <query_item_id>
-		data: {} # <query._id> : [<data_item>]
+	
 		query_item: @createQueryItem
 			key: '_id'
 			type: 'key'
@@ -70,20 +80,21 @@ class ModelGrid extends Component
 
 
 	mapQueryItems: (props,state)=>
+		@log 'update query items'
 		state = state || @state
 		props = props || @props
-		state.query_map = {}
 		state.bookmarks = []
 		for q in state.queries
 			if q.label
 				state.bookmarks.push q
-			state.query_map[q._id] = q
+			state.query_map.set(q._id,q)
 			if state.query_item?._id == q._id
 				state.query_item = q
 		state.bookmarks_updated_at = Date.now() 
 
 
 	setQueryItem: (query_item,run_query_once)=>
+		query_item.skip = 0
 		@setState
 			run_query_once: run_query_once
 			query_item: query_item
@@ -130,8 +141,10 @@ class ModelGrid extends Component
 		layout_keys: query_item?.layout_keys || ['_id']
 		key: query_item?.key || props.schema.keys_array[0]
 		label: query_item?.label
+		skip: 0
 		type: query_item?.type
 		value: query_item?.value
+		limit: @props.query_limit || 100
 		input_value: query_item?.input_value || ""
 		call_count: 0
 		_id: Date.now().toString(24)
@@ -301,7 +314,8 @@ class ModelGrid extends Component
 	mapDataItems: =>
 		state_data_item_found = false
 		if !@state.data_item then return
-		for item in @state.data[@state.query_item._id]
+		data = @state.data.get(@state.query_item._id)
+		for item in data
 			if item._id == @state.data_item._id
 				state_data_item_found = true
 				break
@@ -312,7 +326,7 @@ class ModelGrid extends Component
 
 
 
-	runQuery: =>
+	runQuery: (run_next)=>
 		@cleanQuery()
 
 
@@ -320,6 +334,13 @@ class ModelGrid extends Component
 		@state.query_item.completed_at = null
 		@state.query_item.call_count = @state.query_item.call_count || 0
 		@state.query_item.call_count += 1
+
+		if run_next == true
+			@state.query_item.skip += @state.query_item.limit
+		else
+			@state.query_item.skip = 0
+			@state.query_item.end_reached = false
+
 
 		h_i = -1
 		q = @state.queries.find (q,i)=>
@@ -339,21 +360,27 @@ class ModelGrid extends Component
 			@state.queries.unshift @state.query_item
 			@state.queries_updated_at = Date.now()
 
+
+
 		s_q_i = @state.query_item
 		q_i = Object.assign {},@state.query_item
-		
-		# if @props.filter
-		# 	Object.assign q_i.value, @props.filter.query_value
 
-		# log q_i.value
+
+
 		@state.query_item.error = undefined
 		@props.runQuery(q_i).then (data)=>
 
 			if q_i._id != @state.query_item._id
 				return @setQueryItemRunError(q_i,new Error('previously ran query does not match current state query '+q_i._id+' != '+@state.query_item._id))
-			@state.data[@state.query_item._id] = data
+			current_data = @state.data.get(@state.query_item._id) || []
+			if !run_next
+				current_data = []
+			@state.data.set(@state.query_item._id,current_data.concat(data))
+
 			@state.query_item.completed_at = Date.now()
-			log 'runQuery completed',@state.query_item._id,(@state.query_item.completed_at - @state.query_item.called_at)+'ms','#'+data.length
+			if data.length < @state.query_item.limit
+				@state.query_item.end_reached = true
+			@log 'runQuery completed',@state.query_item._id,(@state.query_item.completed_at - @state.query_item.called_at)+'ms','#'+data.length
 			@mapDataItems()
 			@forceUpdate()
 		.catch @setQueryItemRunError.bind(@,s_q_i)
@@ -423,21 +450,21 @@ class ModelGrid extends Component
 
 
 	createDataItem: =>
-		log 'create data item'
+		@log 'create data item'
 		@setState
 			action_query:
 				data_item_id: JSON.stringify(@state.new_doc)
 				action: 'create'
 				called_at: Date.now()
 		@props.createDataItem(@state.new_doc).then (created_doc)=>
-			log 'created data_item',created_doc
+			@log 'created data_item',created_doc
 			@state.action_query.completed_at = Date.now()
 			@state.data_item = Object.assign {},created_doc
 			@runQuery()
 		.catch @setActionMethodError.bind(@,@state.new_doc)
 
 	deleteDataItem: =>
-		log 'delete data item'
+		@log 'delete data item'
 		@setState
 			action_query:
 				data_item_id: @state.data_item._id
@@ -447,7 +474,7 @@ class ModelGrid extends Component
 
 		# data_item = @state.data_item
 		@props.deleteDataItem(@state.data_item._id).then (deleted_doc_id)=>
-			log 'deleted data_item',deleted_doc_id
+			@log 'deleted data_item',deleted_doc_id
 			@state.action_query.completed_at = Date.now()
 			if @state.data_item._id == deleted_doc_id
 				@setState
@@ -469,7 +496,7 @@ class ModelGrid extends Component
 				called_at: Date.now()
 
 		@props.updateDataItem(@state.data_item._id,update).then (doc)=>
-			log 'updated data_item',doc
+			@log 'updated data_item',doc
 			@state.action_query.completed_at = Date.now()
 			if @state.data_item._id == doc._id
 				@setState
@@ -491,7 +518,7 @@ class ModelGrid extends Component
 				action: 'get'
 		
 		@props.getDataItem(@state.data_item._id).then (doc)=>
-			log 'got data_item',doc
+			@log 'got data_item',doc
 			@state.action_query.completed_at = Date.now()
 			if @state.data_item._id == doc._id
 				@setState
@@ -580,7 +607,7 @@ class ModelGrid extends Component
 		window.g = @
 		
 		@g_props.bounding_box = @base?.getBoundingClientRect()
-		@g_props.data = @state.data[@state.query_item._id] || []
+		@g_props.data = @state.data.get(@state.query_item._id) || []
 		@g_props.queries = @state.queries
 		@g_props.bookmarks = @state.bookmarks
 		@g_props.query_map = @state.query_map
@@ -589,6 +616,7 @@ class ModelGrid extends Component
 		@g_props.new_doc = @state.new_doc
 		@g_props.action_query = @state.action_query
 		@g_props.schema = @props.schema
+		@g_props.scroll_query_beta_offset = @props.scroll_query_beta_offset
 		@g_props.show_json_view = @state.show_json_view
 		@g_props.queries_updated_at = @state.queries_updated_at
 		@g_props.methods = @props.methods
@@ -690,6 +718,8 @@ ModelGrid.contextType = StyleContext
 
 ModelGrid.defaultProps = 
 	show_bar: yes
+	query_limit: 100
+	scroll_query_beta_offset: 2
 
 
 

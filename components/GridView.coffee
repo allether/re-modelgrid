@@ -252,8 +252,11 @@ class GridView extends Component
 
 		return key.col_width
 
-
-
+	onScroll: (e)=>
+		if !@props.query_item.end_reached && @props.query_item.completed_at && e.scrollTop > 0 && e.scrollTop > (e.scrollHeight - (e.clientHeight * @props.scroll_query_beta_offset))
+			@props.runQuery(true)
+			# @setState
+			# 	run: yes
 	# {index, isScrolling, key, parent, style}
 	renderCell: (g_opts)=>
 		schema = @props.schema
@@ -424,10 +427,12 @@ class GridView extends Component
 
 		if @_grid_slide
 			grid = h MultiGrid,
+				key: @props.query_item._id
 				styleTopRightGrid:
 					background:  @context.primary.inv[1]
 				className: css['model-grid-list']
 				ref: @gridRef
+				onScroll: @onScroll
 				cellRenderer: @renderCell
 				columnWidth: @columnWidth
 				columnCount: query_item.layout_keys.length + 1 || 0
@@ -446,5 +451,6 @@ class GridView extends Component
 			method_menu || null
 			
 GridView.contextType = StyleContext
-
+GridView.defaultProps = 
+	scroll_query_beta_offset: 2
 module.exports = GridView

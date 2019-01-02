@@ -187,13 +187,13 @@ class ModelGridExample extends Component
 							,500
 
 					runQuery: (query)=>
-						log 'runQuery',query
+						log 'runQuery',query.limit,query.skip
 						new Promise (resolve,reject)=>
 							setTimeout ()=>
 								if query.input_value == '{}'
 									reject new Error 'test error for input_value == {} (type something in the search field)'
 								else
-									resolve(demo_models.data[@state.selected_model_index])
+									resolve(demo_models.data[@state.selected_model_index].slice(query.skip,query.skip+query.limit))
 								
 							,1000
 

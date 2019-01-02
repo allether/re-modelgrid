@@ -740,6 +740,9 @@ GridView = class GridView extends Component {
     this.showMethodMenu = this.showMethodMenu.bind(this);
     this.hideMethodMenu = this.hideMethodMenu.bind(this);
     this.columnWidth = this.columnWidth.bind(this);
+    this.onScroll = this.onScroll.bind(this);
+    // @setState
+    // 	run: yes
     // {index, isScrolling, key, parent, style}
     this.renderCell = this.renderCell.bind(this);
     this.onShowMenu = this.onShowMenu.bind(this);
@@ -834,6 +837,13 @@ GridView = class GridView extends Component {
       throw new Error('schema key not found ,' + key_name);
     }
     return key.col_width;
+  }
+
+  onScroll(e) {
+    boundMethodCheck(this, GridView);
+    if (!this.props.query_item.end_reached && this.props.query_item.completed_at && e.scrollTop > 0 && e.scrollTop > (e.scrollHeight - (e.clientHeight * this.props.scroll_query_beta_offset))) {
+      return this.props.runQuery(true);
+    }
   }
 
   renderCell(g_opts) {
@@ -1017,11 +1027,13 @@ GridView = class GridView extends Component {
     }
     if (this._grid_slide) {
       grid = h(MultiGrid, {
+        key: this.props.query_item._id,
         styleTopRightGrid: {
           background: this.context.primary.inv[1]
         },
         className: css['model-grid-list'],
         ref: this.gridRef,
+        onScroll: this.onScroll,
         cellRenderer: this.renderCell,
         columnWidth: this.columnWidth,
         columnCount: query_item.layout_keys.length + 1 || 0,
@@ -1042,6 +1054,10 @@ GridView = class GridView extends Component {
 };
 
 GridView.contextType = StyleContext;
+
+GridView.defaultProps = {
+  scroll_query_beta_offset: 2
+};
 
 module.exports = GridView;
 
@@ -1719,6 +1735,7 @@ cn = __webpack_require__(/*! classnames */ "classnames");
 
 ({Input, MenuTab, Menu, Bar, Overlay, AlertOverlay, StyleContext} = __webpack_require__(/*! re-lui */ "re-lui"));
 
+// require 'colors'
 ReactJson = __webpack_require__(/*! react-json-view */ "react-json-view");
 
 ReactJson = ReactJson.default;
@@ -1734,6 +1751,7 @@ GridView = __webpack_require__(/*! ./GridView.coffee */ "./components/GridView.c
 ModelGrid = class ModelGrid extends Component {
   constructor(props) {
     super(props);
+    this.log = this.log.bind(this);
     this.getDefaultConfig = this.getDefaultConfig.bind(this);
     this.selectDataItem = this.selectDataItem.bind(this);
     this.mapQueryItems = this.mapQueryItems.bind(this);
@@ -1786,14 +1804,25 @@ ModelGrid = class ModelGrid extends Component {
     };
   }
 
+  log() {
+    var arg, arr, j, len;
+    boundMethodCheck(this, ModelGrid);
+    arr = ['%c [modelgrid]', 'color:yellow'];
+    for (j = 0, len = arguments.length; j < len; j++) {
+      arg = arguments[j];
+      arr.push(arg);
+    }
+    return console.log.apply(console.log, arr);
+  }
+
   getDefaultConfig(props) {
     boundMethodCheck(this, ModelGrid);
     return {
       queries: [],
+      query_map: new Map, // map <query_item>
+      data: new Map, // <query._id> : [<data_item>]
       queries_updated_at: 0,
-      query_map: {},
       bookmarks: [],
-      data: {},
       query_item: this.createQueryItem({
         key: '_id',
         type: 'key'
@@ -1822,9 +1851,9 @@ ModelGrid = class ModelGrid extends Component {
   mapQueryItems(props, state) {
     var j, len, q, ref, ref1;
     boundMethodCheck(this, ModelGrid);
+    this.log('update query items');
     state = state || this.state;
     props = props || this.props;
-    state.query_map = {};
     state.bookmarks = [];
     ref = state.queries;
     for (j = 0, len = ref.length; j < len; j++) {
@@ -1832,7 +1861,7 @@ ModelGrid = class ModelGrid extends Component {
       if (q.label) {
         state.bookmarks.push(q);
       }
-      state.query_map[q._id] = q;
+      state.query_map.set(q._id, q);
       if (((ref1 = state.query_item) != null ? ref1._id : void 0) === q._id) {
         state.query_item = q;
       }
@@ -1842,6 +1871,7 @@ ModelGrid = class ModelGrid extends Component {
 
   setQueryItem(query_item, run_query_once) {
     boundMethodCheck(this, ModelGrid);
+    query_item.skip = 0;
     return this.setState({
       run_query_once: run_query_once,
       query_item: query_item
@@ -1899,8 +1929,10 @@ ModelGrid = class ModelGrid extends Component {
       layout_keys: (query_item != null ? query_item.layout_keys : void 0) || ['_id'],
       key: (query_item != null ? query_item.key : void 0) || props.schema.keys_array[0],
       label: query_item != null ? query_item.label : void 0,
+      skip: 0,
       type: query_item != null ? query_item.type : void 0,
       value: query_item != null ? query_item.value : void 0,
+      limit: this.props.query_limit || 100,
       input_value: (query_item != null ? query_item.input_value : void 0) || "",
       call_count: 0,
       _id: Date.now().toString(24)
@@ -2097,15 +2129,15 @@ ModelGrid = class ModelGrid extends Component {
   }
 
   mapDataItems() {
-    var item, j, len, ref, state_data_item_found;
+    var data, item, j, len, state_data_item_found;
     boundMethodCheck(this, ModelGrid);
     state_data_item_found = false;
     if (!this.state.data_item) {
       return;
     }
-    ref = this.state.data[this.state.query_item._id];
-    for (j = 0, len = ref.length; j < len; j++) {
-      item = ref[j];
+    data = this.state.data.get(this.state.query_item._id);
+    for (j = 0, len = data.length; j < len; j++) {
+      item = data[j];
       if (item._id === this.state.data_item._id) {
         state_data_item_found = true;
         break;
@@ -2118,7 +2150,7 @@ ModelGrid = class ModelGrid extends Component {
     }
   }
 
-  runQuery() {
+  runQuery(run_next) {
     var h_i, q, q_i, s_q_i;
     boundMethodCheck(this, ModelGrid);
     this.cleanQuery();
@@ -2126,6 +2158,12 @@ ModelGrid = class ModelGrid extends Component {
     this.state.query_item.completed_at = null;
     this.state.query_item.call_count = this.state.query_item.call_count || 0;
     this.state.query_item.call_count += 1;
+    if (run_next === true) {
+      this.state.query_item.skip += this.state.query_item.limit;
+    } else {
+      this.state.query_item.skip = 0;
+      this.state.query_item.end_reached = false;
+    }
     h_i = -1;
     q = this.state.queries.find((q, i) => {
       if (q._id === this.state.query_item._id) {
@@ -2146,19 +2184,22 @@ ModelGrid = class ModelGrid extends Component {
     }
     s_q_i = this.state.query_item;
     q_i = Object.assign({}, this.state.query_item);
-    
-    // if @props.filter
-    // 	Object.assign q_i.value, @props.filter.query_value
-
-    // log q_i.value
     this.state.query_item.error = void 0;
     this.props.runQuery(q_i).then((data) => {
+      var current_data;
       if (q_i._id !== this.state.query_item._id) {
         return this.setQueryItemRunError(q_i, new Error('previously ran query does not match current state query ' + q_i._id + ' != ' + this.state.query_item._id));
       }
-      this.state.data[this.state.query_item._id] = data;
+      current_data = this.state.data.get(this.state.query_item._id) || [];
+      if (!run_next) {
+        current_data = [];
+      }
+      this.state.data.set(this.state.query_item._id, current_data.concat(data));
       this.state.query_item.completed_at = Date.now();
-      log('runQuery completed', this.state.query_item._id, (this.state.query_item.completed_at - this.state.query_item.called_at) + 'ms', '#' + data.length);
+      if (data.length < this.state.query_item.limit) {
+        this.state.query_item.end_reached = true;
+      }
+      this.log('runQuery completed', this.state.query_item._id, (this.state.query_item.completed_at - this.state.query_item.called_at) + 'ms', '#' + data.length);
       this.mapDataItems();
       return this.forceUpdate();
     }).catch(this.setQueryItemRunError.bind(this, s_q_i));
@@ -2249,7 +2290,7 @@ ModelGrid = class ModelGrid extends Component {
 
   createDataItem() {
     boundMethodCheck(this, ModelGrid);
-    log('create data item');
+    this.log('create data item');
     this.setState({
       action_query: {
         data_item_id: JSON.stringify(this.state.new_doc),
@@ -2258,7 +2299,7 @@ ModelGrid = class ModelGrid extends Component {
       }
     });
     return this.props.createDataItem(this.state.new_doc).then((created_doc) => {
-      log('created data_item', created_doc);
+      this.log('created data_item', created_doc);
       this.state.action_query.completed_at = Date.now();
       this.state.data_item = Object.assign({}, created_doc);
       return this.runQuery();
@@ -2267,7 +2308,7 @@ ModelGrid = class ModelGrid extends Component {
 
   deleteDataItem() {
     boundMethodCheck(this, ModelGrid);
-    log('delete data item');
+    this.log('delete data item');
     this.setState({
       action_query: {
         data_item_id: this.state.data_item._id,
@@ -2278,7 +2319,7 @@ ModelGrid = class ModelGrid extends Component {
     });
     // data_item = @state.data_item
     return this.props.deleteDataItem(this.state.data_item._id).then((deleted_doc_id) => {
-      log('deleted data_item', deleted_doc_id);
+      this.log('deleted data_item', deleted_doc_id);
       this.state.action_query.completed_at = Date.now();
       if (this.state.data_item._id === deleted_doc_id) {
         this.setState({
@@ -2304,7 +2345,7 @@ ModelGrid = class ModelGrid extends Component {
       }
     });
     return this.props.updateDataItem(this.state.data_item._id, update).then((doc) => {
-      log('updated data_item', doc);
+      this.log('updated data_item', doc);
       this.state.action_query.completed_at = Date.now();
       if (this.state.data_item._id === doc._id) {
         this.setState({
@@ -2330,7 +2371,7 @@ ModelGrid = class ModelGrid extends Component {
       }
     });
     return this.props.getDataItem(this.state.data_item._id).then((doc) => {
-      log('got data_item', doc);
+      this.log('got data_item', doc);
       this.state.action_query.completed_at = Date.now();
       if (this.state.data_item._id === doc._id) {
         return this.setState({
@@ -2435,7 +2476,7 @@ ModelGrid = class ModelGrid extends Component {
     var overlay, ref, ref1, vert_json_bar;
     window.g = this;
     this.g_props.bounding_box = (ref = this.base) != null ? ref.getBoundingClientRect() : void 0;
-    this.g_props.data = this.state.data[this.state.query_item._id] || [];
+    this.g_props.data = this.state.data.get(this.state.query_item._id) || [];
     this.g_props.queries = this.state.queries;
     this.g_props.bookmarks = this.state.bookmarks;
     this.g_props.query_map = this.state.query_map;
@@ -2444,6 +2485,7 @@ ModelGrid = class ModelGrid extends Component {
     this.g_props.new_doc = this.state.new_doc;
     this.g_props.action_query = this.state.action_query;
     this.g_props.schema = this.props.schema;
+    this.g_props.scroll_query_beta_offset = this.props.scroll_query_beta_offset;
     this.g_props.show_json_view = this.state.show_json_view;
     this.g_props.queries_updated_at = this.state.queries_updated_at;
     this.g_props.methods = this.props.methods;
@@ -2562,7 +2604,9 @@ ModelGrid = class ModelGrid extends Component {
 ModelGrid.contextType = StyleContext;
 
 ModelGrid.defaultProps = {
-  show_bar: true
+  show_bar: true,
+  query_limit: 100,
+  scroll_query_beta_offset: 2
 };
 
 module.exports = ModelGrid;
