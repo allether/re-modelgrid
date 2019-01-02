@@ -746,6 +746,7 @@ GridView = class GridView extends Component {
     // {index, isScrolling, key, parent, style}
     this.renderCell = this.renderCell.bind(this);
     this.onShowMenu = this.onShowMenu.bind(this);
+    this.rowHeight = this.rowHeight.bind(this);
     this.state = {
       force_update_grid: props.force_update_grid,
       grid_w: 0,
@@ -1002,9 +1003,16 @@ GridView = class GridView extends Component {
     });
   }
 
-  
-  // rowHeight: (r_opts)=>
-  // 	return 30
+  rowHeight(r_opts) {
+    boundMethodCheck(this, GridView);
+    if (r_opts.index === 0) {
+      return 30;
+    } else {
+      return this.props.row_height;
+    }
+  }
+
+  // return 30
   render() {
     var data, grid, method_menu, query_item, schema;
     schema = this.props.schema;
@@ -1037,7 +1045,7 @@ GridView = class GridView extends Component {
         fixedColumnCount: 0,
         fixedRowCount: 1,
         height: this.state.grid_h,
-        rowHeight: this.props.row_height, //@rowHeight
+        rowHeight: this.rowHeight,
         rowCount: data.length + 1,
         width: this.state.grid_w
       });

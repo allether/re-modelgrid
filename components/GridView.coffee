@@ -404,8 +404,12 @@ class GridView extends Component
 		@setState
 			scroll_to_data_item: true
 	
-	# rowHeight: (r_opts)=>
-	# 	return 30
+	rowHeight: (r_opts)=>
+		if r_opts.index == 0
+			return 30
+		else
+			return @props.row_height
+		# return 30
 	
 	render: ->
 		schema = @props.schema
@@ -439,7 +443,7 @@ class GridView extends Component
 				fixedColumnCount:0
 				fixedRowCount:1
 				height:@state.grid_h
-				rowHeight:@props.row_height #@rowHeight
+				rowHeight: @rowHeight
 				rowCount:data.length+1
 				width:@state.grid_w
 
