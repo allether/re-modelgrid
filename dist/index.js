@@ -746,7 +746,6 @@ GridView = class GridView extends Component {
     // {index, isScrolling, key, parent, style}
     this.renderCell = this.renderCell.bind(this);
     this.onShowMenu = this.onShowMenu.bind(this);
-    this.rowHeight = this.rowHeight.bind(this);
     this.state = {
       force_update_grid: props.force_update_grid,
       grid_w: 0,
@@ -1003,11 +1002,9 @@ GridView = class GridView extends Component {
     });
   }
 
-  rowHeight(r_opts) {
-    boundMethodCheck(this, GridView);
-    return 30;
-  }
-
+  
+  // rowHeight: (r_opts)=>
+  // 	return 30
   render() {
     var data, grid, method_menu, query_item, schema;
     schema = this.props.schema;
@@ -1040,7 +1037,7 @@ GridView = class GridView extends Component {
         fixedColumnCount: 0,
         fixedRowCount: 1,
         height: this.state.grid_h,
-        rowHeight: this.rowHeight,
+        rowHeight: this.props.row_height, //@rowHeight
         rowCount: data.length + 1,
         width: this.state.grid_w
       });
@@ -1056,6 +1053,7 @@ GridView = class GridView extends Component {
 GridView.contextType = StyleContext;
 
 GridView.defaultProps = {
+  row_height: 30,
   scroll_query_beta_offset: 2
 };
 
@@ -2485,6 +2483,7 @@ ModelGrid = class ModelGrid extends Component {
     this.g_props.new_doc = this.state.new_doc;
     this.g_props.action_query = this.state.action_query;
     this.g_props.schema = this.props.schema;
+    this.g_props.row_height = this.props.schema.row_height || 30;
     this.g_props.scroll_query_beta_offset = this.props.scroll_query_beta_offset;
     this.g_props.show_json_view = this.state.show_json_view;
     this.g_props.queries_updated_at = this.state.queries_updated_at;

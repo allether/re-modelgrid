@@ -616,6 +616,7 @@ class ModelGrid extends Component
 		@g_props.new_doc = @state.new_doc
 		@g_props.action_query = @state.action_query
 		@g_props.schema = @props.schema
+		@g_props.row_height = @props.schema.row_height || 30
 		@g_props.scroll_query_beta_offset = @props.scroll_query_beta_offset
 		@g_props.show_json_view = @state.show_json_view
 		@g_props.queries_updated_at = @state.queries_updated_at
