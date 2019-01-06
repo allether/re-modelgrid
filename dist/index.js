@@ -1792,6 +1792,7 @@ ModelGrid = class ModelGrid extends Component {
     
     this.closeJSONView = this.closeJSONView.bind(this);
     this.onJSONViewEdit = this.onJSONViewEdit.bind(this);
+    this.onJSONViewAdd = this.onJSONViewAdd.bind(this);
     this.baseRef = this.baseRef.bind(this);
     this.state = this.getDefaultConfig(props);
     this.g_props = {
@@ -2482,6 +2483,19 @@ ModelGrid = class ModelGrid extends Component {
     return this.updateDataItem(upd_obj);
   }
 
+  onJSONViewAdd(opts) {
+    var upd_key, upd_obj;
+    boundMethodCheck(this, ModelGrid);
+    upd_obj = {};
+    if (opts.namespace.length) {
+      upd_key = opts.namespace.join('.') + '.' + opts.name;
+    } else {
+      upd_key = opts.name;
+    }
+    upd_obj[upd_key] = opts.new_value;
+    return this.updateDataItem(upd_obj);
+  }
+
   baseRef(slide) {
     boundMethodCheck(this, ModelGrid);
     return this.base = (slide != null ? slide._outer : void 0) || void 0;
@@ -2589,7 +2603,7 @@ ModelGrid = class ModelGrid extends Component {
       name: false,
       collapseStringsAfterLength: 100,
       onEdit: this.onJSONViewEdit,
-      onAdd: this.onAdd,
+      onAdd: this.onJSONViewAdd,
       shouldCollapse: this.shouldCollapse,
       theme: 'eighties',
       src: this.state.data_item

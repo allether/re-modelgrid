@@ -603,6 +603,16 @@ class ModelGrid extends Component
 			upd_key = opts.name
 		upd_obj[upd_key] = opts.new_value
 		@updateDataItem upd_obj
+
+	onJSONViewAdd: (opts)=>
+		upd_obj = {}
+		if opts.namespace.length
+			upd_key = opts.namespace.join('.')+'.'+opts.name
+		else
+			upd_key = opts.name
+		upd_obj[upd_key] = opts.new_value
+		@updateDataItem upd_obj
+
 	
 	baseRef: (slide)=>
 		@base = slide?._outer || undefined
@@ -693,7 +703,7 @@ class ModelGrid extends Component
 					name: false
 					collapseStringsAfterLength: 100
 					onEdit:@onJSONViewEdit
-					onAdd:@onAdd
+					onAdd:@onJSONViewAdd
 					shouldCollapse:@shouldCollapse
 					theme: 'eighties'
 					src: @state.data_item
