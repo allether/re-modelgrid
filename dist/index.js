@@ -1342,6 +1342,8 @@ LayoutsView = class LayoutsView extends Component {
       big: false,
       force_split_x: -1,
       force_bar_dir_x: -1,
+      force_split_y: 1,
+      orce_bar_dir_y: 1,
       onClick: this.props.onClick,
       onClickBackdrop: this.onClickBackdrop,
       reveal: this.props.reveal,
