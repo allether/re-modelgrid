@@ -38,10 +38,7 @@ class ModelGrid extends Component
 			updateSelectedDocument: @updateSelectedDocument
 
 	log: =>
-		arr = ['%c [modelgrid]','color:yellow']
-		for arg in arguments
-			arr.push arg
-		console.log.apply(console.log,arr)
+		console.log('%c [modelgrid]','color:yellow',arguments[0]||'',arguments[1]||'',arguments[2]||'',arguments[3]||'',arguments[4]||'',arguments[5]||'')
 
 
 
@@ -604,14 +601,27 @@ class ModelGrid extends Component
 		upd_obj[upd_key] = opts.new_value
 		@updateDataItem upd_obj
 
-	onJSONViewAdd: (opts)=>
-		upd_obj = {}
-		if opts.namespace.length
-			upd_key = opts.namespace.join('.')+'.'+opts.name
-		else
-			upd_key = opts.name
-		upd_obj[upd_key] = opts.new_value
-		@updateDataItem upd_obj
+	# onJSONViewAdd: (opts)=>
+	# 	upd_obj = {}
+	# 	if opts.namespace.length
+	# 		upd_key = opts.namespace.join('.')+'.'+opts.name
+	# 	else
+	# 		upd_key = opts.name
+	# 	upd_obj[upd_key] = opts.new_value
+	# 	@updateDataItem upd_obj
+
+	# onJSONViewDelete: (opts)=>
+	# 	upd_obj = {}
+	# 	if opts.namespace.length
+	# 		upd_key = opts.namespace.join('.')+'.'+opts.name
+	# 	else
+	# 		upd_key = opts.name
+		
+	# 	upd_obj = 
+	# 		$unset:
+	# 			upd_key: true
+		
+	# 	@updateDataItem upd_obj
 
 	
 	baseRef: (slide)=>
@@ -703,7 +713,8 @@ class ModelGrid extends Component
 					name: false
 					collapseStringsAfterLength: 100
 					onEdit:@onJSONViewEdit
-					onAdd:@onJSONViewAdd
+					onAdd:@onJSONViewEdit
+					onDelete:@onJSONViewEdit
 					shouldCollapse:@shouldCollapse
 					theme: 'eighties'
 					src: @state.data_item
