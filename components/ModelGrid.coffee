@@ -618,8 +618,8 @@ class ModelGrid extends Component
 			upd_key = opts.name
 		
 		upd_obj = 
-			$unset:
-				upd_key: true
+			$unset:{}
+		upd_obj['$unset'][upd_key] = true
 		
 		@updateDataItem upd_obj
 

@@ -2495,10 +2495,9 @@ ModelGrid = class ModelGrid extends Component {
       upd_key = opts.name;
     }
     upd_obj = {
-      $unset: {
-        upd_key: true
-      }
+      $unset: {}
     };
+    upd_obj['$unset'][upd_key] = true;
     return this.updateDataItem(upd_obj);
   }
 
