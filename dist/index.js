@@ -1800,19 +1800,7 @@ ModelGrid = class ModelGrid extends Component {
     // 		upd_key = opts.name
     // 	upd_obj[upd_key] = opts.new_value
     // 	@updateDataItem upd_obj
-
-    // onJSONViewDelete: (opts)=>
-    // 	upd_obj = {}
-    // 	if opts.namespace.length
-    // 		upd_key = opts.namespace.join('.')+'.'+opts.name
-    // 	else
-    // 		upd_key = opts.name
-
-    // 	upd_obj = 
-    // 		$unset:
-    // 			upd_key: true
-
-    // 	@updateDataItem upd_obj
+    this.onJSONViewDelete = this.onJSONViewDelete.bind(this);
     this.baseRef = this.baseRef.bind(this);
     this.state = this.getDefaultConfig(props);
     this.g_props = {
@@ -2497,6 +2485,23 @@ ModelGrid = class ModelGrid extends Component {
     return this.updateDataItem(upd_obj);
   }
 
+  onJSONViewDelete(opts) {
+    var upd_key, upd_obj;
+    boundMethodCheck(this, ModelGrid);
+    upd_obj = {};
+    if (opts.namespace.length) {
+      upd_key = opts.namespace.join('.') + '.' + opts.name;
+    } else {
+      upd_key = opts.name;
+    }
+    upd_obj = {
+      $unset: {
+        upd_key: true
+      }
+    };
+    return this.updateDataItem(upd_obj);
+  }
+
   baseRef(slide) {
     boundMethodCheck(this, ModelGrid);
     return this.base = (slide != null ? slide._outer : void 0) || void 0;
@@ -2605,7 +2610,7 @@ ModelGrid = class ModelGrid extends Component {
       collapseStringsAfterLength: 100,
       onEdit: this.onJSONViewEdit,
       onAdd: this.onJSONViewEdit,
-      onDelete: this.onJSONViewEdit,
+      onDelete: this.onJSONViewDelete,
       shouldCollapse: this.shouldCollapse,
       theme: 'eighties',
       src: this.state.data_item

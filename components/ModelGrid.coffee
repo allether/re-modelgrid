@@ -610,18 +610,18 @@ class ModelGrid extends Component
 	# 	upd_obj[upd_key] = opts.new_value
 	# 	@updateDataItem upd_obj
 
-	# onJSONViewDelete: (opts)=>
-	# 	upd_obj = {}
-	# 	if opts.namespace.length
-	# 		upd_key = opts.namespace.join('.')+'.'+opts.name
-	# 	else
-	# 		upd_key = opts.name
+	onJSONViewDelete: (opts)=>
+		upd_obj = {}
+		if opts.namespace.length
+			upd_key = opts.namespace.join('.')+'.'+opts.name
+		else
+			upd_key = opts.name
 		
-	# 	upd_obj = 
-	# 		$unset:
-	# 			upd_key: true
+		upd_obj = 
+			$unset:
+				upd_key: true
 		
-	# 	@updateDataItem upd_obj
+		@updateDataItem upd_obj
 
 	
 	baseRef: (slide)=>
@@ -714,7 +714,7 @@ class ModelGrid extends Component
 					collapseStringsAfterLength: 100
 					onEdit:@onJSONViewEdit
 					onAdd:@onJSONViewEdit
-					onDelete:@onJSONViewEdit
+					onDelete:@onJSONViewDelete
 					shouldCollapse:@shouldCollapse
 					theme: 'eighties'
 					src: @state.data_item
