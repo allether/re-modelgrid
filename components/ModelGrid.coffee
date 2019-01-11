@@ -679,7 +679,7 @@ class ModelGrid extends Component
 				alert_type: 'error'
 				visible: @state.action_error? || !@state.action_query.completed_at && @state.action_query.called_at
 				message: @state.action_error?.error.message
-				onClick: @state.action_error && @clearActionQueryError 
+				onClick: @state.action_error && @clearActionQueryError || undefined
 				# z_index: 9999
 				style:
 					display: 'flex'
