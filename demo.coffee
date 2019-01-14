@@ -195,7 +195,7 @@ class ModelGridExample extends Component
 								else
 									resolve(demo_models.data[@state.selected_model_index].slice(query.skip,query.skip+query.limit))
 								
-							,1000
+							,100000
 
 ModelGridExample.contextType = StyleContext
 

@@ -1,6 +1,6 @@
 {
   "name": "re-modelgrid",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "simple database explorer react component",
   "main": "./dist/index.js",
   "scripts": {
@@ -27,12 +27,12 @@
     "normalize.css": "^8.0.1",
     "raw-loader": "^0.5.1",
     "re-slide": "^1.0.1",
+    "re-lui": "^0.4.0",
     "react": "^16.7.0",
     "react-dom": "^16.7.0",
     "react-virtualized": "^9.21.0",
     "style-loader": "^0.21.0",
     "webpack": "^4.28.4",
-    "re-lui": "^0.3.4",
     "webpack-cli": "^3.2.1",
     "webpack-dev-server": "^3.1.14"
   },
@@ -43,7 +43,7 @@
     "css": "^2.2.4",
     "normalize.css": "^8.0.1",
     "re-slide": "^1.0.1",
-    "re-lui": "^0.3.4",
+    "re-lui": "^0.4.0",
     "react": "^16.7.0",
     "react-dom": "^16.7.0"
   },
