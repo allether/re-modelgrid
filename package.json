@@ -42,8 +42,8 @@
     "color": "^3.0.0",
     "css": "^2.2.4",
     "normalize.css": "^8.0.1",
-    "re-slide": "^1.0.1",
-    "re-lui": "^0.4.0",
+    "re-slide": "*",
+    "re-lui": "*",
     "react": "^16.7.0",
     "react-dom": "^16.7.0"
   },
