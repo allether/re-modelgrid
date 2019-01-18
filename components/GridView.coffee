@@ -261,6 +261,7 @@ class GridView extends Component
 	renderCell: (g_opts)=>
 		schema = @props.schema
 		data = @props.data
+		doc = data[g_opts.rowIndex-1]
 		is_key = g_opts.rowIndex == 0
 		g_style = {}
 		
@@ -272,12 +273,16 @@ class GridView extends Component
 		
 		if g_opts.rowIndex != 0 && is_selected
 			g_style.color = @context.secondary.inv[0]
-		
-		if alt_cell
-			g_style.background = @context.primary.inv[1]
 
-		if g_opts.rowIndex != 0 && is_selected
-			g_style.background = @context.secondary.color[1]
+
+		if schema.rowColor
+			g_style.background = schema.row_color(schema,doc)
+		else
+			if alt_cell
+				g_style.background = @context.primary.inv[1]
+
+			if g_opts.rowIndex != 0 && is_selected
+				g_style.background = @context.secondary.color[1]
 			
 
 		if g_opts.columnIndex == 0
