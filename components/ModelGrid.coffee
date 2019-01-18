@@ -331,6 +331,9 @@ class ModelGrid extends Component
 	runQuery: (run_next)=>
 		@cleanQuery()
 
+		if @state.query_item.error
+			return
+
 
 		@state.query_item.called_at = Date.now()
 		@state.query_item.completed_at = null

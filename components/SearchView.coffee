@@ -34,7 +34,8 @@ class SearchView extends Component
 		# @state.force_update_grid = true
 		# @state.force_render_grid = true
 		@_cell_cache.clearAll()
-		@props.runQuery()
+		@props.onHide()
+		# @props.runQuery()
 
 	buildCache: ->
 		
@@ -218,7 +219,6 @@ class SearchView extends Component
 							className: 'material-icons'
 							'bookmark'
 						query_item.call_count
-					
 
 					bot_right && (h 'div',
 						className: css['search-query-item-label2']
@@ -496,6 +496,8 @@ class SearchView extends Component
 			onFocus: @onFocus
 			ref: @searchRef
 			type: search_input_label && 'button' || 'input'
+			input_props:
+				autocomplete: 'off'
 			btn_type: 'flat'
 			style: 
 				paddingLeft: 0

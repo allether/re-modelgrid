@@ -46,6 +46,7 @@ class InputCell extends Component
 	componentWillUpdate: (props)->
 		if @props.value != props.value
 			@state.value = props.value
+	
 	render: ->
 		h 'input',		
 			value: @state.value
