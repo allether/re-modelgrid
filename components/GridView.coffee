@@ -275,7 +275,7 @@ class GridView extends Component
 			g_style.color = @context.secondary.inv[0]
 
 
-		if schema.rowColor
+		if schema.rowColor && doc
 			g_style.background = schema.rowColor(schema,doc,g_opts.rowIndex)
 		
 
