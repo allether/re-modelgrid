@@ -865,7 +865,8 @@ GridView = class GridView extends Component {
     }
     if (schema.rowColor) {
       g_style.background = schema.rowColor(schema, doc, g_opts.rowIndex);
-    } else {
+    }
+    if (!g_style.background) {
       if (alt_cell) {
         g_style.background = this.context.primary.inv[1];
       }
