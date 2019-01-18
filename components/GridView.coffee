@@ -47,8 +47,6 @@ class InputCell extends Component
 		if @props.value != props.value
 			@state.value = props.value
 	render: ->
-		# if typeof @state.value == 'number'
-			# type = 'number'
 		h 'input',		
 			value: @state.value
 			type: typeof @state.value
@@ -60,12 +58,9 @@ class InputCell extends Component
 			onKeyDown: @onEnter
 			onChange: @onInput
 			onBlur: @onBlur
-			# onInput: @props.updateKeyValue.bind(null,key_name)
 			style:
 				border: @state.focus && '1px dashed' || 'none'
-				padding: @state.focus && '0px 9px' || '0px 10px'
-				paddingBottom: '1px'
-				# caretColor: @context.secondary.true
+				paddingLeft: @state.focus && '9px' || '10px'
 				color: (@state.focus || @state.hover) && @context.secondary.inv[0] || @context.secondary.inv[1]
 				borderColor: @context.secondary.inv[0]
 				background: (@state.focus || @state.hover) && @context.secondary.color[0] || @context.secondary.color[1]
