@@ -1177,8 +1177,6 @@ LayoutsView = class LayoutsView extends Component {
     this.hideNewLayoutForm = this.hideNewLayoutForm.bind(this);
     this.submitNewLayoutForm = this.submitNewLayoutForm.bind(this);
     this.mapMenuLayoutButtons = this.mapMenuLayoutButtons.bind(this);
-    // label: '[keys]'
-    this.onClickBackdrop = this.onClickBackdrop.bind(this);
   }
 
   onSelectKey(key_name) {
@@ -1329,12 +1327,12 @@ LayoutsView = class LayoutsView extends Component {
     ];
   }
 
-  onClickBackdrop(e) {
-    boundMethodCheck(this, LayoutsView);
-    this.props.onHide(e);
-    return this.props.runQuery();
-  }
+  
+  // onClickBackdrop: (e)=>
+  // 	@props.onHide(e)
 
+  // 	@props.runQuery()
+  // label: '[keys]'
   render() {
     var form_tab, tab_options;
     tab_options = {
@@ -1345,7 +1343,7 @@ LayoutsView = class LayoutsView extends Component {
       force_split_y: 1,
       orce_bar_dir_y: 1,
       onClick: this.props.onClick,
-      onClickBackdrop: this.onClickBackdrop,
+      onClickBackdrop: this.props.onHide,
       reveal: this.props.reveal,
       show_backdrop: this.props.reveal,
       content: h(Input, {
@@ -1446,12 +1444,15 @@ MenuView = class MenuView extends Component {
 
   togglePinMenu(pin_menu_name, toggle) {
     boundMethodCheck(this, MenuView);
-    return this.setState({
+    this.setState({
       show_search_query_helper: false,
       show_new_layout_form: false,
       pin_menu_name: pin_menu_name,
       menu_backdrop: toggle
     });
+    if (!pin_menu_name && !toggle) {
+      return this.props.runQuery();
+    }
   }
 
   getPinMenuBoolean(pin_menu_name, bool) {

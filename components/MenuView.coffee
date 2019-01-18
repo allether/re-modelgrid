@@ -53,6 +53,8 @@ class MenuView extends Component
 			show_new_layout_form: false
 			pin_menu_name: pin_menu_name
 			menu_backdrop: toggle
+		if !pin_menu_name && !toggle
+			@props.runQuery()
 
 
 

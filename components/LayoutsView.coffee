@@ -115,10 +115,10 @@ class LayoutsView extends Component
 					# label: '[keys]'
 		]
 	
-	onClickBackdrop: (e)=>
-		@props.onHide(e)
+	# onClickBackdrop: (e)=>
+	# 	@props.onHide(e)
 
-		@props.runQuery()
+	# 	@props.runQuery()
 
 			
 	
@@ -133,7 +133,7 @@ class LayoutsView extends Component
 			orce_bar_dir_y: 1
 
 			onClick: @props.onClick
-			onClickBackdrop: @onClickBackdrop
+			onClickBackdrop: @props.onHide
 			reveal: @props.reveal
 			show_backdrop: @props.reveal
 			content: h Input,
