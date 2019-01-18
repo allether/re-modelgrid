@@ -277,15 +277,12 @@ class GridView extends Component
 
 		if schema.rowColor && doc
 			g_style.background = schema.rowColor(schema,doc,g_opts.rowIndex)
+		else if alt_cell
+			g_style.background = @context.primary.inv[1]
+
+		if g_opts.rowIndex != 0 && is_selected
+			g_style.background = @context.secondary.color[1]
 		
-
-		if !g_style.background
-			if alt_cell
-				g_style.background = @context.primary.inv[1]
-
-			if g_opts.rowIndex != 0 && is_selected
-				g_style.background = @context.secondary.color[1]
-			
 
 		if g_opts.columnIndex == 0
 			if is_key
