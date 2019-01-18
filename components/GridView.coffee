@@ -280,6 +280,7 @@ class GridView extends Component
 		else if alt_cell
 			g_style.background = @context.primary.inv[1]
 
+
 		if g_opts.rowIndex != 0 && is_selected
 			g_style.background = @context.secondary.color[1]
 		
