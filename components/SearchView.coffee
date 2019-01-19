@@ -497,7 +497,7 @@ class SearchView extends Component
 			ref: @searchRef
 			type: search_input_label && 'button' || 'input'
 			input_props:
-				autocomplete: 'off'
+				autoComplete: 'off'
 			btn_type: 'flat'
 			style: 
 				paddingLeft: 0
