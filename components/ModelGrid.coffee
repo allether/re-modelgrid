@@ -608,14 +608,7 @@ class ModelGrid extends Component
 		upd_obj['$set'][upd_key] = opts.new_value
 		@updateDataItem upd_obj
 
-	# onJSONViewAdd: (opts)=>
-	# 	upd_obj = {}
-	# 	if opts.namespace.length
-	# 		upd_key = opts.namespace.join('.')+'.'+opts.name
-	# 	else
-	# 		upd_key = opts.name
-	# 	upd_obj[upd_key] = opts.new_value
-	# 	@updateDataItem upd_obj
+
 
 	onJSONViewDelete: (opts)=>
 		upd_obj = {}

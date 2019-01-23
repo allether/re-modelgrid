@@ -347,8 +347,7 @@ module.exports = BookmarksView;
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-var Bar, CreateDocView, Input, Menu, MenuTab, Slide, StyleContext, css,
-  boundMethodCheck = function(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new Error('Bound instance method accessed before binding'); } };
+var Bar, CreateDocView, Input, Menu, MenuTab, Slide, StyleContext, css;
 
 Slide = __webpack_require__(/*! re-slide */ "re-slide");
 
@@ -357,15 +356,10 @@ Slide = __webpack_require__(/*! re-slide */ "re-slide");
 css = __webpack_require__(/*! ./ModelGrid.less */ "./components/ModelGrid.less");
 
 CreateDocView = class CreateDocView extends Component {
-  constructor() {
-    super(...arguments);
-    this.onNewDocFormInput = this.onNewDocFormInput.bind(this);
-  }
-
   onNewDocFormInput(key_name, e) {
-    boundMethodCheck(this, CreateDocView);
+    // log key_name,e.target.value
     this.props.new_doc[key_name] = e.target.value;
-    return this.setState();
+    return this.forceUpdate();
   }
 
   renderNewDocForm(props, state) {
@@ -387,16 +381,15 @@ CreateDocView = class CreateDocView extends Component {
     }, h(Bar, {
       vert: true,
       big: false
-    }, props.keys_array.map((key_name, i) => {
-      var key, key_val, override;
-      if (!props.keys[key_name].form) {
-        return null;
-      }
-      if (props.keys[key_name].form.render) {
-        return props.keys[key_name].form.render((key_cb) => {
-          return this.onNewDocFormInput.bind(null, key_name);
+    }, props.form.keys.map((key, i) => {
+      var key_name, key_val, override;
+      key_name = key.name;
+      if (key.render) {
+        return key.render(props.new_doc, () => {
+          return this.forceUpdate();
         });
       }
+      // @onNewDocFormInput.bind(null,key_name,value)
       override = null;
       if (filter_q && filter_q[key_name]) {
         override = filter_q[key_name];
@@ -405,14 +398,15 @@ CreateDocView = class CreateDocView extends Component {
       props.new_doc[key_name] = override || props.new_doc[key_name];
       key_val = props.new_doc[key_name];
       return h(Input, {
-        key: i,
+        key: key_name,
         label: key.label.padStart(lc + 4, " "),
         bar: true,
+        name: props.schema.name + '/' + key_name,
         disabled: override && true,
         required: key.form_required && true,
         is_valid: (typeof key.form_validate === "function" ? key.form_validate(key_val) : void 0) || void 0,
-        value: override || key_val,
-        onInput: this.onNewDocFormInput.bind(null, key_name),
+        value: override || key_val || '',
+        onInput: this.onNewDocFormInput.bind(this, key_name),
         placeholder: key.form_placeholder || key_name
       });
     }), h(Input, {
@@ -1549,10 +1543,11 @@ MenuView = class MenuView extends Component {
       runDataItemMethod: this.props.runStaticMethod
     }));
     // ADD NEW DOCUMENT TAB / VIEW
-    if (schema.can_add) {
+    if (schema.form) {
       new_doc_tab = h(CreateDocView, {
         reveal: this.getPinMenuBoolean('add-doc', true),
         keys: schema.keys,
+        form: schema.form,
         filter: props.filter,
         schema: schema,
         new_doc: props.new_doc,
@@ -1798,14 +1793,6 @@ ModelGrid = class ModelGrid extends Component {
     
     this.closeJSONView = this.closeJSONView.bind(this);
     this.onJSONViewEdit = this.onJSONViewEdit.bind(this);
-    // onJSONViewAdd: (opts)=>
-    // 	upd_obj = {}
-    // 	if opts.namespace.length
-    // 		upd_key = opts.namespace.join('.')+'.'+opts.name
-    // 	else
-    // 		upd_key = opts.name
-    // 	upd_obj[upd_key] = opts.new_value
-    // 	@updateDataItem upd_obj
     this.onJSONViewDelete = this.onJSONViewDelete.bind(this);
     this.baseRef = this.baseRef.bind(this);
     this.state = this.getDefaultConfig(props);
@@ -2700,7 +2687,7 @@ if(false) {}
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-var Bar, CellMeasurer, CellMeasurerCache, Input, JsonView, List, MAX_CHAR, Menu, MenuTab, SearchView, Slide, SquareLoader, StyleContext, cn, css,
+var Bar, CellMeasurer, CellMeasurerCache, Input, JsonView, List, MAX_CHAR, Menu, MenuTab, SEARCH_BAR_WIDTH, SearchView, Slide, SquareLoader, StyleContext, cn, css,
   boundMethodCheck = function(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new Error('Bound instance method accessed before binding'); } };
 
 Slide = __webpack_require__(/*! re-slide */ "re-slide");
@@ -2718,6 +2705,8 @@ JsonView = __webpack_require__(/*! ./JsonView.coffee */ "./components/JsonView.c
 ({CellMeasurer, CellMeasurerCache} = __webpack_require__(/*! react-virtualized/dist/commonjs/CellMeasurer */ "react-virtualized/dist/commonjs/CellMeasurer"));
 
 MAX_CHAR = 32;
+
+SEARCH_BAR_WIDTH = 400;
 
 SearchView = class SearchView extends Component {
   constructor(props) {
@@ -2737,7 +2726,6 @@ SearchView = class SearchView extends Component {
     this.selectItem = this.selectItem.bind(this);
     this.renderQueryListItem = this.renderQueryListItem.bind(this);
     this.renderBookmarkItem = this.renderBookmarkItem.bind(this);
-    
     // h MenuTab,
     // 	content: h Input,
     // 		type: 'input'
@@ -3049,7 +3037,7 @@ SearchView = class SearchView extends Component {
   renderBookmarksList(height) {
     return h(List, {
       height: height,
-      width: 300,
+      width: SEARCH_BAR_WIDTH,
       key: 'bookmarks',
       rowHeight: 30,
       rowCount: this.props.bookmarks.length,
@@ -3063,7 +3051,7 @@ SearchView = class SearchView extends Component {
     this.state.scroll_queries_index = void 0;
     return h(List, {
       height: height,
-      width: 300,
+      width: SEARCH_BAR_WIDTH,
       ref: this.listRef,
       key: 'queries-' + this.props.queries_updated_at,
       scrollToAlignment: 'start',
@@ -3193,7 +3181,7 @@ SearchView = class SearchView extends Component {
 
   onKeyDown(e) {
     boundMethodCheck(this, SearchView);
-    if (e.code === 'Escape') {
+    if (e.keyCode === 27) {
       this._search.blur();
       return this.props.onHide(e);
     }
@@ -3329,7 +3317,7 @@ SearchView = class SearchView extends Component {
         paddingLeft: 0,
         background: 'none',
         color: qi.type === 'json' && this.context.secondary.color[2] || this.context.primary.color[0],
-        width: 260
+        width: SEARCH_BAR_WIDTH - 40
       },
       value: qi.input_value,
       bar_style: bar_style,
@@ -3389,7 +3377,7 @@ SearchView = class SearchView extends Component {
     info_bar = h(Input, {
       i: info_i,
       style: {
-        width: 300,
+        width: SEARCH_BAR_WIDTH,
         overflow: 'hidden'
       },
       onClick: info_fn,
@@ -3415,10 +3403,10 @@ SearchView = class SearchView extends Component {
       vert: true,
       big: false,
       tab_style: {
-        width: 300
+        width: SEARCH_BAR_WIDTH
       },
       bar_style: {
-        width: 300
+        width: SEARCH_BAR_WIDTH
       },
       reveal: props.reveal,
       show_backdrop: props.reveal,
@@ -3486,7 +3474,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".lui-2AHD- {\n  font-family: \"monor\";\n  font-size: 13px;\n  height: 100%;\n  width: 100%;\n}\n.lui-2AHD- ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  background-color: rgba(0, 0, 0, 0.2);\n  width: 8px;\n  height: 8px;\n}\n.lui-2AHD- ::-webkit-scrollbar-corner {\n  background-color: rgba(0, 0, 0, 0.3);\n}\n.lui-2AHD- ::-webkit-scrollbar-thumb {\n  border-radius: 0px;\n  background-color: #7F7F7F;\n  transition: background-color 0.3s ease;\n}\n.lui-2AHD- ::-webkit-scrollbar-thumb:hover {\n  background-color: #8F8F8F;\n}\n.lui-2jxDq {\n  opacity: 0.4;\n  padding: 0 4;\n}\n.lui-2NWoF {\n  opacity: 0.4;\n  padding-right: 4;\n}\n.lui-2S7gN {\n  width: 30px;\n  height: 30px;\n}\n.lui-3exNq {\n  width: 100%;\n  height: 100%;\n}\n.lui-2Oig8 {\n  opacity: 0.5;\n}\n.lui-1Wnc8 {\n  max-height: 300px;\n  height: fit-content;\n  overflow-y: scroll;\n}\n.lui-eFoi1 {\n  white-space: nowrap;\n  margin-left: 3px;\n  margin-top: 1px;\n}\n.lui-2-Riw {\n  color: red;\n  background: rgba(0, 0, 0, 0.5);\n}\n.lui-3HzB1 {\n  right: 10px;\n  position: absolute;\n}\n.lui-3lJiS {\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  padding-left: 10px;\n  font-family: \"monor\";\n  opacity: 0.8;\n}\n.lui-3lJiS:hover {\n  opacity: 1;\n}\n.ReactVirtualized__Grid__innerScrollContainer {\n  min-width: 100%;\n}\n.lui-2hSbl {\n  width: 30px !important;\n}\n.lui-22qIa {\n  position: absolute;\n  right: 0;\n  bottom: 0;\n  padding: 5px;\n  transform: scale(0.8);\n  max-width: 200px;\n  min-width: 20px;\n  min-height: 20px;\n}\n.lui-22qIa .lui-2-Riw {\n  overflow-x: scroll;\n  overflow-y: visible;\n  padding: 5px;\n}\n.lui-1dCqE {\n  position: absolute;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 12px;\n  opacity: 0.7;\n  padding: 8px;\n  padding-right: 14px;\n  right: 0;\n  top: 0;\n}\n.lui-1dCqE i {\n  font-size: 16px;\n  padding-right: 6px;\n}\n.lui-3-5T7 {\n  height: auto !important;\n  min-height: 30px;\n  font-family: \"monor\";\n}\n.lui-3-5T7 .lui-24gT1 {\n  position: relative;\n  min-height: 30px;\n  margin: 0;\n  overflow-wrap: break-word;\n  padding: 8px;\n  font-size: 11px;\n  color: grey;\n  cursor: pointer;\n  white-space: pre;\n}\n* {\n  outline: none;\n}\n.lui-1-PvV {\n  overflow: visible !important;\n}\n.lui-2hSbl {\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  font-size: 15 !important;\n  width: 30;\n  opacity: 0.2;\n  transition: opacity 0.3s;\n  cursor: pointer;\n}\n.lui-2hSbl:hover {\n  opacity: 1;\n}\n.lui-4gr2j {\n  width: auto;\n  height: 230;\n  min-width: 200;\n  overflow-y: scroll;\n}\n.lui-3K2EQ {\n  cursor: pointer;\n}\n.lui-3K2EQ i {\n  margin: 0;\n}\n.lui-P8ljS {\n  width: 300px;\n  height: 300px;\n  display: flex;\n  flex-direction: column;\n}\n.lui-1w7qC {\n  position: absolute;\n  left: 0;\n  top: 0;\n}\n.lui-2X1G6 {\n  cursor: pointer;\n}\n.lui-2X1G6 .lui-2S7gN {\n  opacity: 0.5;\n  transition: opacity 0.3s ease;\n  line-height: inherit;\n}\n.lui-2X1G6:hover .lui-2S7gN {\n  opacity: 1;\n}\n.lui-2S7gN {\n  line-height: 30px;\n}\n.lui-3vBBz {\n  position: fixed !important;\n  width: fit-content;\n  bottom: 8px;\n  left: 0px;\n  right: unset;\n}\n.lui-3vBBz.lui-bPIzo {\n  height: fit-content;\n  top: 0px;\n  right: 8px;\n  left: unset;\n}\n.lui-bVM3E {\n  display: flex;\n  cursor: pointer;\n  height: 100%;\n  align-items: center;\n  vertical-align: middle;\n  line-height: 30px;\n  overflow: hidden;\n  text-align: left;\n  white-space: nowrap;\n  padding: 0px 10px;\n}\n.lui-bVM3E .lui-2PbsQ {\n  float: left;\n}\n.lui-bVM3E input {\n  font-family: \"monor\";\n  font-size: 13px;\n  margin-left: -10px;\n  transition: background 0.3s ease;\n  width: 100%;\n  height: 30px;\n  line-height: 30px;\n  outline: none;\n}\n.lui-bVM3E input::placeholder {\n  color: inherit;\n  opacity: 0.5;\n}\n.lui-1dXoa {\n  position: relative;\n  transform: translate(0);\n}\n.lui-1dXoa .react-json-view {\n  overflow: scroll !important;\n  padding: 12px !important;\n  white-space: nowrap;\n  width: 100%;\n  height: 100%;\n  font-family: \"monor\" !important;\n}\n.lui-1dXoa .react-json-view * {\n  font-size: 13px !important;\n  vertical-align: top;\n}\n.lui-llMOW {\n  width: 100%;\n  flex-shrink: 1 !important;\n  flex-direction: row-reverse;\n}\n.lui-36sov {\n  width: 140px;\n}\n.lui-1mNiI {\n  overflow-y: scroll;\n  transform: translate(0px);\n  overflow-x: hidden;\n  display: flex;\n  flex-direction: column;\n  height: 170px;\n  width: 100%;\n  min-width: 300px;\n}\n", ""]);
+exports.push([module.i, ".lui-2AHD- {\n  font-family: \"monor\";\n  font-size: 13px;\n  height: 100%;\n  width: 100%;\n}\n.lui-2AHD- ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  background-color: rgba(0, 0, 0, 0.2);\n  width: 8px;\n  height: 8px;\n}\n.lui-2AHD- ::-webkit-scrollbar-corner {\n  background-color: rgba(0, 0, 0, 0.3);\n}\n.lui-2AHD- ::-webkit-scrollbar-thumb {\n  border-radius: 0px;\n  background-color: #7F7F7F;\n  transition: background-color 0.3s ease;\n}\n.lui-2AHD- ::-webkit-scrollbar-thumb:hover {\n  background-color: #8F8F8F;\n}\n.lui-2jxDq {\n  opacity: 0.4;\n  padding: 0 4;\n}\n.lui-2NWoF {\n  opacity: 0.4;\n  padding-right: 4;\n}\n.lui-2S7gN {\n  width: 30px;\n  height: 30px;\n}\n.lui-3exNq {\n  width: 100%;\n  height: 100%;\n}\n.lui-2Oig8 {\n  opacity: 0.5;\n}\n.lui-1Wnc8 {\n  max-height: 300px;\n  height: fit-content;\n  overflow-y: scroll;\n}\n.lui-eFoi1 {\n  white-space: nowrap;\n  margin-left: 3px;\n  margin-top: 1px;\n}\n.lui-2-Riw {\n  color: red;\n  background: rgba(0, 0, 0, 0.5);\n}\n.lui-3HzB1 {\n  right: 10px;\n  position: absolute;\n}\n.lui-3lJiS {\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  padding-left: 10px;\n  font-family: \"monor\";\n  opacity: 0.8;\n}\n.lui-3lJiS:hover {\n  opacity: 1;\n}\n.ReactVirtualized__Grid__innerScrollContainer {\n  min-width: 100%;\n}\n.lui-2hSbl {\n  width: 30px !important;\n}\n.lui-22qIa {\n  position: absolute;\n  right: 0;\n  bottom: 0;\n  padding: 5px;\n  transform: scale(0.8);\n  max-width: 200px;\n  min-width: 20px;\n  min-height: 20px;\n}\n.lui-22qIa .lui-2-Riw {\n  overflow-x: scroll;\n  overflow-y: visible;\n  padding: 5px;\n}\n.lui-1dCqE {\n  position: absolute;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 12px;\n  opacity: 0.7;\n  padding: 8px;\n  padding-right: 14px;\n  right: 0;\n  top: 0;\n}\n.lui-1dCqE i {\n  font-size: 16px;\n  padding-right: 6px;\n}\n.lui-3-5T7 {\n  height: auto !important;\n  min-height: 30px;\n  font-family: \"monor\";\n}\n.lui-3-5T7 .lui-24gT1 {\n  position: relative;\n  min-height: 30px;\n  margin: 0;\n  overflow-wrap: break-word;\n  padding: 8px;\n  font-size: 11px;\n  color: grey;\n  cursor: pointer;\n  white-space: pre;\n}\n* {\n  outline: none;\n}\n.lui-1-PvV {\n  overflow: visible !important;\n}\n.lui-2hSbl {\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  font-size: 15 !important;\n  width: 30;\n  opacity: 0.2;\n  transition: opacity 0.3s;\n  cursor: pointer;\n}\n.lui-2hSbl:hover {\n  opacity: 1;\n}\n.lui-4gr2j {\n  width: auto;\n  height: 230;\n  min-width: 200;\n  overflow-y: scroll;\n}\n.lui-3K2EQ {\n  cursor: pointer;\n}\n.lui-3K2EQ i {\n  margin: 0;\n}\n.lui-P8ljS {\n  width: 400px;\n  height: 300px;\n  display: flex;\n  flex-direction: column;\n}\n.lui-1w7qC {\n  position: absolute;\n  left: 0;\n  top: 0;\n}\n.lui-2X1G6 {\n  cursor: pointer;\n}\n.lui-2X1G6 .lui-2S7gN {\n  opacity: 0.5;\n  transition: opacity 0.3s ease;\n  line-height: inherit;\n}\n.lui-2X1G6:hover .lui-2S7gN {\n  opacity: 1;\n}\n.lui-2S7gN {\n  line-height: 30px;\n}\n.lui-3vBBz {\n  position: fixed !important;\n  width: fit-content;\n  bottom: 8px;\n  left: 0px;\n  right: unset;\n}\n.lui-3vBBz.lui-bPIzo {\n  height: fit-content;\n  top: 0px;\n  right: 8px;\n  left: unset;\n}\n.lui-bVM3E {\n  display: flex;\n  cursor: pointer;\n  height: 100%;\n  align-items: center;\n  vertical-align: middle;\n  line-height: 30px;\n  overflow: hidden;\n  text-align: left;\n  white-space: nowrap;\n  padding: 0px 10px;\n}\n.lui-bVM3E .lui-2PbsQ {\n  float: left;\n}\n.lui-bVM3E input {\n  font-family: \"monor\";\n  font-size: 13px;\n  margin-left: -10px;\n  transition: background 0.3s ease;\n  width: 100%;\n  height: 30px;\n  line-height: 30px;\n  outline: none;\n}\n.lui-bVM3E input::placeholder {\n  color: inherit;\n  opacity: 0.5;\n}\n.lui-1dXoa {\n  position: relative;\n  transform: translate(0);\n}\n.lui-1dXoa .react-json-view {\n  overflow: scroll !important;\n  padding: 12px !important;\n  white-space: nowrap;\n  width: 100%;\n  height: 100%;\n  font-family: \"monor\" !important;\n}\n.lui-1dXoa .react-json-view * {\n  font-size: 13px !important;\n  vertical-align: top;\n}\n.lui-llMOW {\n  width: 100%;\n  flex-shrink: 1 !important;\n  flex-direction: row-reverse;\n}\n.lui-36sov {\n  width: 140px;\n}\n.lui-1mNiI {\n  overflow-y: scroll;\n  transform: translate(0px);\n  overflow-x: hidden;\n  display: flex;\n  flex-direction: column;\n  height: 170px;\n  width: 100%;\n  min-width: 400px;\n}\n", ""]);
 
 // exports
 exports.locals = {

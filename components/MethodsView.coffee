@@ -37,7 +37,6 @@ class MethodsView extends Component
 				i: method.icon || (method.render && 'subject' || 'play_arrow')
 				label: method.label
 			
-
 	render: ->
 		method_tabs = @props.methods.map @mapMethods
 		if @state.render_method

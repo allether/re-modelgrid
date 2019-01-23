@@ -8,7 +8,7 @@ JsonView = require './JsonView.coffee'
 
 MAX_CHAR = 32
 
-
+SEARCH_BAR_WIDTH = 400
 
 
 class SearchView extends Component
@@ -247,7 +247,7 @@ class SearchView extends Component
 	renderBookmarksList: (height)->
 		h List,
 			height: height
-			width: 300
+			width: SEARCH_BAR_WIDTH
 			key: 'bookmarks'
 			rowHeight: 30
 			rowCount: @props.bookmarks.length
@@ -261,7 +261,7 @@ class SearchView extends Component
 
 		h List,
 			height: height
-			width: 300
+			width: SEARCH_BAR_WIDTH
 			ref: @listRef
 			key: 'queries-'+@props.queries_updated_at
 			scrollToAlignment: 'start'
@@ -301,7 +301,7 @@ class SearchView extends Component
 					value: @state.query_item_label || ''
 					placeholder: 'max '+MAX_CHAR+' char'
 					label: 'label'
-			
+
 			# h MenuTab,
 			# 	content: h Input,
 			# 		type: 'input'
@@ -392,7 +392,7 @@ class SearchView extends Component
 		@setState show_info_options:no
 
 	onKeyDown: (e)=>
-		if e.code == 'Escape'
+		if e.keyCode == 27
 			@_search.blur()
 			@props.onHide(e)
 	searchRef: (el)=>
@@ -503,7 +503,7 @@ class SearchView extends Component
 				paddingLeft: 0
 				background: 'none'
 				color: qi.type == 'json' && @context.secondary.color[2] || @context.primary.color[0]
-				width: 260
+				width: SEARCH_BAR_WIDTH - 40
 			value: qi.input_value
 			bar_style: bar_style
 			onInput: @setSearchValue
@@ -576,7 +576,7 @@ class SearchView extends Component
 		info_bar = h Input,
 			i: info_i
 			style:
-				width: 300
+				width: SEARCH_BAR_WIDTH
 				overflow: 'hidden'
 			onClick: info_fn
 
@@ -602,9 +602,9 @@ class SearchView extends Component
 			vert: yes
 			big: no
 			tab_style:
-				width: 300
+				width: SEARCH_BAR_WIDTH
 			bar_style:
-				width: 300
+				width: SEARCH_BAR_WIDTH
 			reveal: props.reveal
 			show_backdrop: props.reveal
 			onClickBackdrop: props.onHide

@@ -141,10 +141,11 @@ class MenuView extends Component
 
 
 		# ADD NEW DOCUMENT TAB / VIEW
-		if schema.can_add
+		if schema.form
 			new_doc_tab = h CreateDocView,
 				reveal: @getPinMenuBoolean('add-doc',true)
 				keys: schema.keys
+				form: schema.form
 				filter: props.filter
 				schema: schema
 				new_doc: props.new_doc

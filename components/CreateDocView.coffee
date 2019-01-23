@@ -3,9 +3,10 @@ Slide = require 're-slide'
 css = require './ModelGrid.less'
 
 class CreateDocView extends Component
-	onNewDocFormInput: (key_name,e)=>
+	onNewDocFormInput: (key_name,e)->
+		# log key_name,e.target.value
 		@props.new_doc[key_name] = e.target.value
-		@setState()
+		@forceUpdate()
 
 
 	renderNewDocForm: (props,state)->
@@ -28,13 +29,12 @@ class CreateDocView extends Component
 			h Bar,
 				vert: true
 				big: false
-				props.keys_array.map (key_name,i)=>
-					if !props.keys[key_name].form
-						return null
-
-					if props.keys[key_name].form.render
-						return props.keys[key_name].form.render (key_cb)=>
-							@onNewDocFormInput.bind(null,key_name)
+				props.form.keys.map (key,i)=>
+					key_name = key.name
+					if key.render
+						return key.render props.new_doc,()=>
+							@forceUpdate()
+							# @onNewDocFormInput.bind(null,key_name,value)
 					
 
 					override = null
@@ -46,14 +46,15 @@ class CreateDocView extends Component
 					props.new_doc[key_name] = override || props.new_doc[key_name]
 					key_val = props.new_doc[key_name]
 					h Input,
-						key: i
+						key: key_name
 						label: key.label.padStart(lc+4," ")
 						bar: yes
+						name: props.schema.name+'/'+key_name
 						disabled: override && yes
 						required: key.form_required && yes
 						is_valid: key.form_validate?(key_val) || undefined
-						value: override || key_val
-						onInput: @onNewDocFormInput.bind(null,key_name)
+						value: override || key_val || ''
+						onInput: @onNewDocFormInput.bind(@,key_name)
 						placeholder: key.form_placeholder || key_name
 				
 
