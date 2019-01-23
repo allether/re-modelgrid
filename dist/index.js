@@ -389,10 +389,14 @@ CreateDocView = class CreateDocView extends Component {
       big: false
     }, props.keys_array.map((key_name, i) => {
       var key, key_val, override;
-      if (!props.keys[key_name].form_render) {
+      if (!props.keys[key_name].form) {
         return null;
       }
-      // log key_name
+      if (props.keys[key_name].form.render) {
+        return props.keys[key_name].form.render((key_cb) => {
+          return this.onNewDocFormInput.bind(null, key_name);
+        });
+      }
       override = null;
       if (filter_q && filter_q[key_name]) {
         override = filter_q[key_name];
@@ -1545,17 +1549,19 @@ MenuView = class MenuView extends Component {
       runDataItemMethod: this.props.runStaticMethod
     }));
     // ADD NEW DOCUMENT TAB / VIEW
-    new_doc_tab = h(CreateDocView, {
-      reveal: this.getPinMenuBoolean('add-doc', true),
-      keys: schema.keys,
-      filter: props.filter,
-      schema: schema,
-      new_doc: props.new_doc,
-      keys_array: schema.keys_array,
-      onClick: this.togglePinMenu.bind(this, 'add-doc', true),
-      onHide: this.togglePinMenu.bind(this, null, false),
-      createDataItem: props.createDataItem
-    });
+    if (schema.can_add) {
+      new_doc_tab = h(CreateDocView, {
+        reveal: this.getPinMenuBoolean('add-doc', true),
+        keys: schema.keys,
+        filter: props.filter,
+        schema: schema,
+        new_doc: props.new_doc,
+        keys_array: schema.keys_array,
+        onClick: this.togglePinMenu.bind(this, 'add-doc', true),
+        onHide: this.togglePinMenu.bind(this, null, false),
+        createDataItem: props.createDataItem
+      });
+    }
     // SEARCH TAB / VIEW
     search_tab = h(SearchView, {
       reveal: this.getPinMenuBoolean('search', true),

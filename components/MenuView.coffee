@@ -141,16 +141,17 @@ class MenuView extends Component
 
 
 		# ADD NEW DOCUMENT TAB / VIEW
-		new_doc_tab = h CreateDocView,
-			reveal: @getPinMenuBoolean('add-doc',true)
-			keys: schema.keys
-			filter: props.filter
-			schema: schema
-			new_doc: props.new_doc
-			keys_array: schema.keys_array
-			onClick: @togglePinMenu.bind(@,'add-doc',true)
-			onHide: @togglePinMenu.bind(@,null,false)
-			createDataItem: props.createDataItem
+		if schema.can_add
+			new_doc_tab = h CreateDocView,
+				reveal: @getPinMenuBoolean('add-doc',true)
+				keys: schema.keys
+				filter: props.filter
+				schema: schema
+				new_doc: props.new_doc
+				keys_array: schema.keys_array
+				onClick: @togglePinMenu.bind(@,'add-doc',true)
+				onHide: @togglePinMenu.bind(@,null,false)
+				createDataItem: props.createDataItem
 
 
 		# SEARCH TAB / VIEW

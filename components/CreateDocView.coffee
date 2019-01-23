@@ -29,12 +29,18 @@ class CreateDocView extends Component
 				vert: true
 				big: false
 				props.keys_array.map (key_name,i)=>
-					if !props.keys[key_name].form_render
+					if !props.keys[key_name].form
 						return null
-					# log key_name
+
+					if props.keys[key_name].form.render
+						return props.keys[key_name].form.render (key_cb)=>
+							@onNewDocFormInput.bind(null,key_name)
+					
+
 					override = null
 					if filter_q && filter_q[key_name]
 						override = filter_q[key_name]
+
 
 					key = props.keys[key_name]
 					props.new_doc[key_name] = override || props.new_doc[key_name]
@@ -49,6 +55,8 @@ class CreateDocView extends Component
 						value: override || key_val
 						onInput: @onNewDocFormInput.bind(null,key_name)
 						placeholder: key.form_placeholder || key_name
+				
+
 				h Input,
 					big: yes
 					type: 'button'
