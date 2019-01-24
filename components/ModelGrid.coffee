@@ -58,6 +58,8 @@ class ModelGrid extends Component
 		data: new Map # <query._id> : [<data_item>]
 		
 		queries_updated_at: 0
+
+		is_visible: false
 		
 		bookmarks: [] 	# array <query_item_id>
 	
@@ -90,7 +92,7 @@ class ModelGrid extends Component
 
 
 	mapQueryItems: (props,state)=>
-		@log 'update query items'
+		# @log 'update query items'
 		state = state || @state
 		props = props || @props
 		state.bookmarks = []
@@ -111,13 +113,9 @@ class ModelGrid extends Component
 
 
 	resetQueryItemLabel: (query_item)->
-		# log 'reset label'
+		
 		keys = Object.keys(query_item.value)
 		query_item.label = undefined
-		# if @props.filter
-		# 	filter_keys = Object.keys(@props.filter.query_value)
-		# else
-		# 	filter_keys = []
 		is_key = true
 		for key in keys
 			if key != query_item.key #&& filter_keys.indexOf(key) == -1
@@ -134,7 +132,6 @@ class ModelGrid extends Component
 
 
 	setQueryItemLabel: (query_item,label)=>
-		# flog 'set label'
 		if !label
 			return
 		for b in @state.bookmarks
@@ -235,7 +232,6 @@ class ModelGrid extends Component
 		if query_item.label
 			@resetQueryItemLabel(query_item)
 
-		# log schema
 		Object.assign query_item,schema
 
 
@@ -256,7 +252,6 @@ class ModelGrid extends Component
 			query_item.filter_value = @props.filter(@props.schema,query_item)
 
 	updateQueryItem: (schema,query_item)=>
-		# log 'update query_item',schema,query_item.label
 		if !query_item.label && schema.label
 			@setQueryItemLabel(query_item,schema.label)
 			@mapQueryItems()
@@ -400,7 +395,7 @@ class ModelGrid extends Component
 			@state.query_item.completed_at = Date.now()
 			if data.length < @state.query_item.limit
 				@state.query_item.end_reached = true
-			@log 'runQuery completed',@state.query_item._id,(@state.query_item.completed_at - @state.query_item.called_at)+'ms','#'+data.length
+			# @log 'runQuery completed',@state.query_item._id,(@state.query_item.completed_at - @state.query_item.called_at)+'ms','#'+data.length
 			@mapDataItems()
 			@forceUpdate()
 		.catch @setQueryItemRunError.bind(@,s_q_i)
@@ -424,15 +419,13 @@ class ModelGrid extends Component
 		else
 			prom = @props.runStaticMethod(@props.schema,method)
 		
-		# log prom
+		
 		prom.then (method_res)=>
-			# log 'ran method',@state.data_item._label,'/',method.name,
 			@state.action_query.completed_at = Date.now()
 			@runQuery()
 		.catch @setActionStaticError
 
 	runDataItemMethod: (method)=>
-		# log 'run data_item method',method
 		@setState
 			action_query:
 				data_item_id: @state.data_item._id
@@ -444,9 +437,8 @@ class ModelGrid extends Component
 			prom = method.fn(@props.schema,@state.data_item,method)
 		else
 			prom = @props.runDataItemMethod(@props.schema,@state.data_item,method)
-		# log prom
+		
 		prom.then (data_item)=>
-			# log 'ran method',@state.data_item._label,'/',method.name,
 			@state.action_query.completed_at = Date.now()
 			@setState
 				data_item: Object.assign {},data_item
@@ -473,7 +465,7 @@ class ModelGrid extends Component
 
 
 	createDataItem: =>
-		@log 'create data item'
+		# @log 'create data item'
 		@setState
 			action_query:
 				data_item_id: JSON.stringify(@state.new_doc)
@@ -487,7 +479,7 @@ class ModelGrid extends Component
 		.catch @setActionMethodError.bind(@,@state.new_doc)
 
 	deleteDataItem: =>
-		@log 'delete data item'
+		# @log 'delete data item'
 		@setState
 			action_query:
 				data_item_id: @state.data_item._id
@@ -495,9 +487,9 @@ class ModelGrid extends Component
 				action: 'delete'
 				called_at: Date.now()
 
-		# data_item = @state.data_item
+		
 		@props.deleteDataItem(@state.data_item._id).then (deleted_doc_id)=>
-			@log 'deleted data_item',deleted_doc_id
+			# @log 'deleted data_item',deleted_doc_id
 			@state.action_query.completed_at = Date.now()
 			if @state.data_item._id == deleted_doc_id
 				@setState
@@ -522,7 +514,7 @@ class ModelGrid extends Component
 				called_at: Date.now()
 
 		@props.updateDataItem(@state.editor_value_id,@state.editor_patches).then (doc)=>
-			@log 'updated data_item',doc
+			# @log 'updated data_item',doc
 			@state.editor_value_id = null
 			@state.action_query.completed_at = Date.now()
 			if @state.data_item._id == doc._id
@@ -545,13 +537,12 @@ class ModelGrid extends Component
 				action: 'get'
 		
 		@props.getDataItem(@state.data_item._id).then (doc)=>
-			@log 'got data_item',doc
+			# @log 'got data_item',doc
 			@state.action_query.completed_at = Date.now()
 			@state.editor_value_id = null
 			if @state.data_item._id == doc._id
 				@setState
 					data_item: doc
-			# @runQuery()
 		.catch @setActionMethodError.bind(@,@state.data_item)
 
 
@@ -585,9 +576,16 @@ class ModelGrid extends Component
 			@state.get_data_item = false
 			@getDataItem()
 
+		split_vert = if (@base && @base.clientHeight > @base.clientWidth) then true else false
+		if split_vert != @state.split_vert
+			@setState
+				split_vert: split_vert
+
 	# getChildContext: ->
 	# 	gridHeight: @base?.clientHeight - (@props.show_bar && DIM || 0)
-		
+	componentDidMount: =>
+		# log 'DID MOUNT'
+		# @forceUpdate()
 
 	componentWillUpdate: (props,state)=>
 		# log props.schema_state_id,state.schema_state_id
@@ -605,7 +603,6 @@ class ModelGrid extends Component
 		if state.query_item != @state.query_item
 			state.show_json_view = false
 
-		# log state.data_item_id,state.editor_value_id
 		if state.data_item
 			if state.data_item._id != state.editor_value_id
 				if state.data_item
@@ -654,18 +651,18 @@ class ModelGrid extends Component
 	
 	baseRef: (slide)=>
 		@base = slide?._outer || undefined
-		# log @base
+		if @base
+			@setState
+				is_visible:yes
+		else
+			@setState
+				is_visible:no
+		
 
 	render: ->
-		if !@base
-			return h Slide,
-				ref: @baseRef
-				slide:  no
-				className: css['model-grid']
-				outerChildren: overlay
-		window.g = @
+		window[@props.schema.name+'_grid'] = @
 
-		# log @_pc
+		
 		if @_pc != @context.primary.color[0]
 			@_pc = @context.primary.color[0]
 			@_pc_is_dark = !Color(@_pc).isDark()
@@ -690,7 +687,6 @@ class ModelGrid extends Component
 		@g_props.methods = @props.methods
 		@g_props.filter = @props.filter
 		
-		vert_json_bar = if (@base && @base.clientHeight > @base.clientWidth) then true else false
 
 
 		if @state.query_item_run_error
@@ -742,14 +738,20 @@ class ModelGrid extends Component
 						h 'span',{key:2,className: css['model-grid-slash']},'/'
 						@state.action_query.data_item_label || @state.action_query.data_item_id
 					]
-	
+		style = {}
+		style.visiblity = @state.is_visible && 'visible' || 'hidden'
+		style.transform = 'translate(0px)'
 		
-		return h Slide,
+		
+
+		h Slide,
 			ref: @baseRef
 			slide: yes
+			beta: @props.beta
+			style: Object.assign style,@props.style
 			className: css['model-grid']
 			pos: !@state.show_json_view && 1 || 0
-			vert: vert_json_bar
+			vert: @state.split_vert
 			outerChildren: overlay
 			h Slide,
 				className: css['react-json-wrap']
@@ -797,19 +799,20 @@ class ModelGrid extends Component
 						padding: 13
 						style:
 							fontFamily: 'monor, monospace'
+							height: 'fit-content'
 							fontSize: 13
 				h Slide,
-					dim: DIM*2
+					dim: DIM
 					vert: yes
 					scroll: yes
 					style:
-						background: @context.primary.inv[0]
+						background: @context.primary.inv[1]
 					@state.editor_patches.map (patch,i)=>
 						h JsonView,
 							key: 'patch-'+i
 							style:
 								width: '100%'
-								background: i%2 == 0 && @context.primary.inv[1]
+								background: i%2 != 0 && @context.primary.inv[2]
 								padding: 13
 							json: patch
 							trim: yes
@@ -822,10 +825,7 @@ class ModelGrid extends Component
 	
 			h Slide,
 				vert: yes
-				style:
-					transform: 'translate(0px)'
 				beta: @state.show_json_view && 50 || 100
-				
 				h MenuView,@g_props
 				h GridView,@g_props
 

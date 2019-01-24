@@ -455,12 +455,15 @@ class SearchView extends Component
 			ref: @searchRef
 			type: search_input_label && 'button' || 'input'
 			input_props:
-				autoComplete: 'off'
+				autoComplete: 'false'
+				spellCheck: 'false'
+				autoCorrect: 'false'
+				autoCapitalize: 'false'
 			btn_type: 'flat'
 			style: 
 				paddingLeft: 0
 				background: 'none'
-				color: qi.type == 'json' && @context.secondary.color[2] || @context.primary.color[0]
+				# color: qi.type == 'json' && @context.secondary.color[2] || @context.primary.color[0]
 				width: SEARCH_BAR_WIDTH - 40
 			value: qi.input_value
 			bar_style: bar_style

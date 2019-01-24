@@ -196,8 +196,8 @@ class GridView extends Component
 	gridRef: (el)=>
 		@_grid = el		
 	
-	slideRef: (el)=>
-		@_grid_slide = el
+	baseRef: (el)=>
+		@base = el
 
 
 	toggleSortKey: (key)=>
@@ -384,19 +384,26 @@ class GridView extends Component
 			state.grid_key = g_k
 			state.force_update_grid = true
 
+		if state.grid_w != @base.clientWidth || state.grid_h != @base.clientHeight
+			state.grid_w = @base.clientWidth
+			state.grid_h = @base.clientHeight
+
+
+
 
 	componentDidUpdate: ->
-		# log 'did update'
-		if @_grid_slide._outer.clientWidth != @state.grid_w ||  @_grid_slide._outer.clientHeight != @state.grid_h
-			@setState
-				grid_w: @_grid_slide._outer.clientWidth || 0
-				grid_h: @_grid_slide._outer.clientHeight || 0
+		if @state.grid_w != @base.clientWidth || @state.grid_h != @base.clientHeight
+			log 'update grid size',@props.schema.name,@base.clientHeight,@base.clientWidth
+			return @setState
+				force_update_grid: false
+				grid_w: @base.clientWidth
+				grid_h: @base.clientHeight
 
-		else if (@state.force_update_grid) && @_grid
-			@state.force_update_grid = false
-			# log 'recomputing GridView _grid'
+
+		if (@state.force_update_grid) && @_grid
 			@_grid?.recomputeGridSize()
-			@forceUpdate()
+			@setState
+				force_update_grid: false
 
 
 	componentDidMount: ->
@@ -419,7 +426,6 @@ class GridView extends Component
 		data = @props.data
 		query_item = @props.query_item
 
-
 		if @state.show_method_menu
 			method_menu = h DocumentMethodMenu,
 				g_opts: @state.data_item_g_opts
@@ -432,30 +438,32 @@ class GridView extends Component
 				schema: @props.schema
 
 
-		if @_grid_slide
-			grid = h MultiGrid,
-				key: @props.query_item._id
-				styleTopRightGrid:
-					background:  @context.primary.inv[1]
-				className: css['model-grid-list']
-				ref: @gridRef
-				onScroll: @onScroll
-				cellRenderer: @renderCell
-				columnWidth: @columnWidth
-				columnCount: query_item.layout_keys.length + 1 || 0
-				fixedColumnCount:0
-				fixedRowCount:1
-				height:@state.grid_h
-				rowHeight: @rowHeight
-				rowCount:data.length+1
-				width:@state.grid_w
+		
+		grid = h MultiGrid,
+			key: @props.query_item._id
+			styleTopRightGrid:
+				background:  @context.primary.inv[1]
+			className: css['model-grid-list']
+			ref: @gridRef
+			onScroll: @onScroll
+			cellRenderer: @renderCell
+			columnWidth: @columnWidth
+			columnCount: query_item.layout_keys.length + 1 || 0
+			fixedColumnCount:0
+			fixedRowCount:1
+			height: @state.grid_h
+			width:@state.grid_w
+			rowHeight: @rowHeight
+			rowCount:data.length+1
+			
 
-	
-		h Slide,
-			beta: 100
-			ref: @slideRef
-			grid || null
+		h 'div',
+			className: css['model-grid-wrap']
+			ref: @baseRef
 			method_menu || null
+			grid || null
+
+			
 			
 GridView.contextType = StyleContext
 GridView.defaultProps = 

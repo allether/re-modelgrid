@@ -727,7 +727,7 @@ GridView = class GridView extends Component {
   constructor(props) {
     super(props);
     this.gridRef = this.gridRef.bind(this);
-    this.slideRef = this.slideRef.bind(this);
+    this.baseRef = this.baseRef.bind(this);
     this.toggleSortKey = this.toggleSortKey.bind(this);
     this.onSelectDocumentById = this.onSelectDocumentById.bind(this);
     this.showMethodMenu = this.showMethodMenu.bind(this);
@@ -761,9 +761,9 @@ GridView = class GridView extends Component {
     return this._grid = el;
   }
 
-  slideRef(el) {
+  baseRef(el) {
     boundMethodCheck(this, GridView);
-    return this._grid_slide = el;
+    return this.base = el;
   }
 
   toggleSortKey(key) {
@@ -966,25 +966,31 @@ GridView = class GridView extends Component {
     // log g_k
     if (g_k !== state.grid_key) {
       state.grid_key = g_k;
-      return state.force_update_grid = true;
+      state.force_update_grid = true;
+    }
+    if (state.grid_w !== this.base.clientWidth || state.grid_h !== this.base.clientHeight) {
+      state.grid_w = this.base.clientWidth;
+      return state.grid_h = this.base.clientHeight;
     }
   }
 
   componentDidUpdate() {
     var ref;
-    // log 'did update'
-    if (this._grid_slide._outer.clientWidth !== this.state.grid_w || this._grid_slide._outer.clientHeight !== this.state.grid_h) {
+    if (this.state.grid_w !== this.base.clientWidth || this.state.grid_h !== this.base.clientHeight) {
+      log('update grid size', this.props.schema.name, this.base.clientHeight, this.base.clientWidth);
       return this.setState({
-        grid_w: this._grid_slide._outer.clientWidth || 0,
-        grid_h: this._grid_slide._outer.clientHeight || 0
+        force_update_grid: false,
+        grid_w: this.base.clientWidth,
+        grid_h: this.base.clientHeight
       });
-    } else if (this.state.force_update_grid && this._grid) {
-      this.state.force_update_grid = false;
-      // log 'recomputing GridView _grid'
+    }
+    if (this.state.force_update_grid && this._grid) {
       if ((ref = this._grid) != null) {
         ref.recomputeGridSize();
       }
-      return this.forceUpdate();
+      return this.setState({
+        force_update_grid: false
+      });
     }
   }
 
@@ -1027,30 +1033,28 @@ GridView = class GridView extends Component {
         schema: this.props.schema
       });
     }
-    if (this._grid_slide) {
-      grid = h(MultiGrid, {
-        key: this.props.query_item._id,
-        styleTopRightGrid: {
-          background: this.context.primary.inv[1]
-        },
-        className: css['model-grid-list'],
-        ref: this.gridRef,
-        onScroll: this.onScroll,
-        cellRenderer: this.renderCell,
-        columnWidth: this.columnWidth,
-        columnCount: query_item.layout_keys.length + 1 || 0,
-        fixedColumnCount: 0,
-        fixedRowCount: 1,
-        height: this.state.grid_h,
-        rowHeight: this.rowHeight,
-        rowCount: data.length + 1,
-        width: this.state.grid_w
-      });
-    }
-    return h(Slide, {
-      beta: 100,
-      ref: this.slideRef
-    }, grid || null, method_menu || null);
+    grid = h(MultiGrid, {
+      key: this.props.query_item._id,
+      styleTopRightGrid: {
+        background: this.context.primary.inv[1]
+      },
+      className: css['model-grid-list'],
+      ref: this.gridRef,
+      onScroll: this.onScroll,
+      cellRenderer: this.renderCell,
+      columnWidth: this.columnWidth,
+      columnCount: query_item.layout_keys.length + 1 || 0,
+      fixedColumnCount: 0,
+      fixedRowCount: 1,
+      height: this.state.grid_h,
+      width: this.state.grid_w,
+      rowHeight: this.rowHeight,
+      rowCount: data.length + 1
+    });
+    return h('div', {
+      className: css['model-grid-wrap'],
+      ref: this.baseRef
+    }, method_menu || null, grid || null);
   }
 
 };
@@ -1798,7 +1802,15 @@ ModelGrid = class ModelGrid extends Component {
     this.getDataItem = this.getDataItem.bind(this);
     // getChildContext: ->
     // 	gridHeight: @base?.clientHeight - (@props.show_bar && DIM || 0)
+    this.componentDidMount = this.componentDidMount.bind(this);
+    // log 'DID MOUNT'
+    // @forceUpdate()
     this.componentWillUpdate = this.componentWillUpdate.bind(this);
+    // log @base.clientHeight,@props.schema.name
+
+    // split_vert = if (@base && @base.clientHeight > @base.clientWidth) then true else false
+    // if @state.split_vert != split_vert
+    // 	state.split_vert = split_vert
     this.showJSONView = this.showJSONView.bind(this);
     this.closeJSONView = this.closeJSONView.bind(this);
     this.onEditorValueChange = this.onEditorValueChange.bind(this);
@@ -1834,6 +1846,7 @@ ModelGrid = class ModelGrid extends Component {
       query_map: new Map, // map <query_item>
       data: new Map, // <query._id> : [<data_item>]
       queries_updated_at: 0,
+      is_visible: false,
       bookmarks: [],
       query_item: this.createQueryItem({
         key: '_id',
@@ -1866,7 +1879,7 @@ ModelGrid = class ModelGrid extends Component {
   mapQueryItems(props, state) {
     var j, len, q, ref, ref1;
     boundMethodCheck(this, ModelGrid);
-    this.log('update query items');
+    // @log 'update query items'
     state = state || this.state;
     props = props || this.props;
     state.bookmarks = [];
@@ -2227,7 +2240,7 @@ ModelGrid = class ModelGrid extends Component {
       if (data.length < this.state.query_item.limit) {
         this.state.query_item.end_reached = true;
       }
-      this.log('runQuery completed', this.state.query_item._id, (this.state.query_item.completed_at - this.state.query_item.called_at) + 'ms', '#' + data.length);
+      // @log 'runQuery completed',@state.query_item._id,(@state.query_item.completed_at - @state.query_item.called_at)+'ms','#'+data.length
       this.mapDataItems();
       return this.forceUpdate();
     }).catch(this.setQueryItemRunError.bind(this, s_q_i));
@@ -2320,7 +2333,7 @@ ModelGrid = class ModelGrid extends Component {
 
   createDataItem() {
     boundMethodCheck(this, ModelGrid);
-    this.log('create data item');
+    // @log 'create data item'
     this.setState({
       action_query: {
         data_item_id: JSON.stringify(this.state.new_doc),
@@ -2338,7 +2351,7 @@ ModelGrid = class ModelGrid extends Component {
 
   deleteDataItem() {
     boundMethodCheck(this, ModelGrid);
-    this.log('delete data item');
+    // @log 'delete data item'
     this.setState({
       action_query: {
         data_item_id: this.state.data_item._id,
@@ -2349,7 +2362,7 @@ ModelGrid = class ModelGrid extends Component {
     });
     // data_item = @state.data_item
     return this.props.deleteDataItem(this.state.data_item._id).then((deleted_doc_id) => {
-      this.log('deleted data_item', deleted_doc_id);
+      // @log 'deleted data_item',deleted_doc_id
       this.state.action_query.completed_at = Date.now();
       if (this.state.data_item._id === deleted_doc_id) {
         this.setState({
@@ -2378,7 +2391,7 @@ ModelGrid = class ModelGrid extends Component {
       }
     });
     return this.props.updateDataItem(this.state.editor_value_id, this.state.editor_patches).then((doc) => {
-      this.log('updated data_item', doc);
+      // @log 'updated data_item',doc
       this.state.editor_value_id = null;
       this.state.action_query.completed_at = Date.now();
       if (this.state.data_item._id === doc._id) {
@@ -2405,7 +2418,7 @@ ModelGrid = class ModelGrid extends Component {
       }
     });
     return this.props.getDataItem(this.state.data_item._id).then((doc) => {
-      this.log('got data_item', doc);
+      // @log 'got data_item',doc
       this.state.action_query.completed_at = Date.now();
       this.state.editor_value_id = null;
       if (this.state.data_item._id === doc._id) {
@@ -2413,7 +2426,6 @@ ModelGrid = class ModelGrid extends Component {
           data_item: doc
         });
       }
-    // @runQuery()
     }).catch(this.setActionMethodError.bind(this, this.state.data_item));
   }
 
@@ -2434,7 +2446,7 @@ ModelGrid = class ModelGrid extends Component {
   }
 
   componentDidUpdate(props, state) {
-    var base, save_state;
+    var base, save_state, split_vert;
     save_state = Object.assign({}, {
       queries: this.state.queries,
       query_item: this.state.query_item,
@@ -2443,6 +2455,7 @@ ModelGrid = class ModelGrid extends Component {
       new_doc: this.state.new_doc
     });
     if (this.state.run_query_once) {
+      // log 'RUN MODELGRID QUERY',@props.schema.name
       this.runQuery();
     }
     if (typeof (base = this.props).onSchemaStateUpdated === "function") {
@@ -2450,8 +2463,19 @@ ModelGrid = class ModelGrid extends Component {
     }
     if (this.state.get_data_item || (this.state.data_item && this.state.show_json_view && ((this.state.show_json_view !== state.show_json_view) || this.state.action_query.data_item_id !== this.state.data_item._id))) {
       this.state.get_data_item = false;
-      return this.getDataItem();
+      this.getDataItem();
     }
+    split_vert = (this.base && this.base.clientHeight > this.base.clientWidth) ? true : false;
+    if (split_vert !== this.state.split_vert) {
+      // log 'UPDATE MODELGRID SPLIT',@props.schema.name,@base.clientHeight,@base.clientWidth,split_vert
+      return this.setState({
+        split_vert: split_vert
+      });
+    }
+  }
+
+  componentDidMount() {
+    boundMethodCheck(this, ModelGrid);
   }
 
   componentWillUpdate(props, state) {
@@ -2529,21 +2553,22 @@ ModelGrid = class ModelGrid extends Component {
 
   baseRef(slide) {
     boundMethodCheck(this, ModelGrid);
-    return this.base = (slide != null ? slide._outer : void 0) || void 0;
+    this.base = (slide != null ? slide._outer : void 0) || void 0;
+    if (this.base) {
+      return this.setState({
+        is_visible: true
+      });
+    } else {
+      return this.setState({
+        is_visible: false
+      });
+    }
   }
 
   // log @base
   render() {
-    var overlay, ref, ref1, vert_json_bar;
-    if (!this.base) {
-      return h(Slide, {
-        ref: this.baseRef,
-        slide: false,
-        className: css['model-grid'],
-        outerChildren: overlay
-      });
-    }
-    window.g = this;
+    var overlay, ref, ref1, style;
+    window[this.props.schema.name + '_grid'] = this;
     // log @_pc
     if (this._pc !== this.context.primary.color[0]) {
       this._pc = this.context.primary.color[0];
@@ -2566,7 +2591,6 @@ ModelGrid = class ModelGrid extends Component {
     this.g_props.queries_updated_at = this.state.queries_updated_at;
     this.g_props.methods = this.props.methods;
     this.g_props.filter = this.props.filter;
-    vert_json_bar = (this.base && this.base.clientHeight > this.base.clientWidth) ? true : false;
     if (this.state.query_item_run_error) {
       overlay = h(AlertOverlay, {
         initial_visible: false,
@@ -2634,12 +2658,18 @@ ModelGrid = class ModelGrid extends Component {
         ]
       }));
     }
+    style = {};
+    style.visiblity = this.state.is_visible && 'visible' || 'hidden';
+    style.transform = 'translate(0px)';
+    log('RENDER MODELGRID', this.props.schema.name, this.state.split_vert);
     return h(Slide, {
       ref: this.baseRef,
       slide: true,
+      beta: this.props.beta,
+      style: Object.assign(style, this.props.style),
       className: css['model-grid'],
       pos: !this.state.show_json_view && 1 || 0,
-      vert: vert_json_bar,
+      vert: this.state.split_vert,
       outerChildren: overlay
     }, h(Slide, {
       className: css['react-json-wrap'],
@@ -2689,21 +2719,22 @@ ModelGrid = class ModelGrid extends Component {
       padding: 13,
       style: {
         fontFamily: 'monor, monospace',
+        height: 'fit-content',
         fontSize: 13
       }
     })), h(Slide, {
-      dim: DIM * 2,
+      dim: DIM,
       vert: true,
       scroll: true,
       style: {
-        background: this.context.primary.inv[0]
+        background: this.context.primary.inv[1]
       }
     }, this.state.editor_patches.map((patch, i) => {
       return h(JsonView, {
         key: 'patch-' + i,
         style: {
           width: '100%',
-          background: i % 2 === 0 && this.context.primary.inv[1],
+          background: i % 2 !== 0 && this.context.primary.inv[2],
           padding: 13
         },
         json: patch,
@@ -2717,9 +2748,6 @@ ModelGrid = class ModelGrid extends Component {
       });
     }))), h(Slide, {
       vert: true,
-      style: {
-        transform: 'translate(0px)'
-      },
       beta: this.state.show_json_view && 50 || 100
     }, h(MenuView, this.g_props), h(GridView, this.g_props)));
   }
@@ -3359,13 +3387,16 @@ SearchView = class SearchView extends Component {
       ref: this.searchRef,
       type: search_input_label && 'button' || 'input',
       input_props: {
-        autoComplete: 'off'
+        autoComplete: 'false',
+        spellCheck: 'false',
+        autoCorrect: 'false',
+        autoCapitalize: 'false'
       },
       btn_type: 'flat',
       style: {
         paddingLeft: 0,
         background: 'none',
-        color: qi.type === 'json' && this.context.secondary.color[2] || this.context.primary.color[0],
+        // color: qi.type == 'json' && @context.secondary.color[2] || @context.primary.color[0]
         width: SEARCH_BAR_WIDTH - 40
       },
       value: qi.input_value,
@@ -3542,44 +3573,45 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".lui-2AHD- {\n  font-family: \"monor\";\n  font-size: 13px;\n  transform: translate(0);\n  height: 100%;\n  width: 100%;\n}\n.lui-2AHD- ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  background-color: rgba(0, 0, 0, 0.2);\n  width: 8px;\n  height: 8px;\n}\n.lui-2AHD- ::-webkit-scrollbar-corner {\n  background-color: rgba(0, 0, 0, 0.3);\n}\n.lui-2AHD- ::-webkit-scrollbar-thumb {\n  border-radius: 0px;\n  background-color: #7F7F7F;\n  transition: background-color 0.3s ease;\n}\n.lui-2AHD- ::-webkit-scrollbar-thumb:hover {\n  background-color: #8F8F8F;\n}\n.lui-2jxDq {\n  opacity: 0.4;\n  padding: 0 4;\n}\n.lui-2NWoF {\n  opacity: 0.4;\n  padding-right: 4;\n}\n.lui-2S7gN {\n  width: 30px;\n  height: 30px;\n}\n.lui-3exNq {\n  width: 100%;\n  height: 100%;\n}\n.lui-2Oig8 {\n  opacity: 0.5;\n}\n.lui-1Wnc8 {\n  max-height: 300px;\n  height: fit-content;\n  overflow-y: scroll;\n}\n.lui-eFoi1 {\n  white-space: nowrap;\n  margin-left: 3px;\n  margin-top: 1px;\n}\n.lui-2-Riw {\n  color: red;\n  background: rgba(0, 0, 0, 0.5);\n}\n.lui-3HzB1 {\n  right: 10px;\n  position: absolute;\n}\n.lui-3lJiS {\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  padding-left: 10px;\n  font-family: \"monor\";\n  opacity: 0.8;\n}\n.lui-3lJiS:hover {\n  opacity: 1;\n}\n.ReactVirtualized__Grid__innerScrollContainer {\n  min-width: 100%;\n}\n.lui-2hSbl {\n  width: 30px !important;\n}\n.lui-22qIa {\n  position: absolute;\n  right: 0;\n  bottom: 0;\n  padding: 5px;\n  transform: scale(0.8);\n  max-width: 200px;\n  min-width: 20px;\n  min-height: 20px;\n}\n.lui-22qIa .lui-2-Riw {\n  overflow-x: scroll;\n  overflow-y: visible;\n  padding: 5px;\n}\n.lui-1dCqE {\n  position: absolute;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 12px;\n  opacity: 0.7;\n  padding: 8px;\n  padding-right: 14px;\n  right: 0;\n  top: 0;\n}\n.lui-1dCqE i {\n  font-size: 16px;\n  padding-right: 6px;\n}\n.lui-3-5T7 {\n  height: auto !important;\n  min-height: 30px;\n  font-family: \"monor\";\n}\n.lui-3-5T7 .lui-24gT1 {\n  position: relative;\n  min-height: 30px;\n  margin: 0;\n  overflow-wrap: break-word;\n  padding: 8px;\n  font-size: 11px;\n  color: grey;\n  cursor: pointer;\n  white-space: pre;\n}\n* {\n  outline: none;\n}\n.lui-1-PvV {\n  overflow: visible !important;\n}\n.lui-2hSbl {\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  font-size: 15 !important;\n  width: 30;\n  opacity: 0.2;\n  transition: opacity 0.3s;\n  cursor: pointer;\n}\n.lui-2hSbl:hover {\n  opacity: 1;\n}\n.lui-4gr2j {\n  width: auto;\n  height: 230;\n  min-width: 200;\n  overflow-y: scroll;\n}\n.lui-3K2EQ {\n  cursor: pointer;\n}\n.lui-3K2EQ i {\n  margin: 0;\n}\n.lui-P8ljS {\n  width: 400px;\n  height: 300px;\n  display: flex;\n  flex-direction: column;\n}\n.lui-1w7qC {\n  position: absolute;\n  left: 0;\n  top: 0;\n}\n.lui-2X1G6 {\n  cursor: pointer;\n}\n.lui-2X1G6 .lui-2S7gN {\n  opacity: 0.5;\n  transition: opacity 0.3s ease;\n  line-height: inherit;\n}\n.lui-2X1G6:hover .lui-2S7gN {\n  opacity: 1;\n}\n.lui-2S7gN {\n  line-height: 30px;\n}\n.lui-bVM3E {\n  display: flex;\n  cursor: pointer;\n  height: 100%;\n  align-items: center;\n  vertical-align: middle;\n  line-height: 30px;\n  overflow: hidden;\n  text-align: left;\n  white-space: nowrap;\n  padding: 0px 10px;\n}\n.lui-bVM3E .lui-2PbsQ {\n  float: left;\n}\n.lui-bVM3E input {\n  font-family: \"monor\";\n  font-size: 13px;\n  margin-left: -10px;\n  transition: background 0.3s ease;\n  width: 100%;\n  height: 30px;\n  line-height: 30px;\n  outline: none;\n}\n.lui-bVM3E input::placeholder {\n  color: inherit;\n  opacity: 0.5;\n}\n.lui-1dXoa {\n  position: relative;\n  transform: translate(0);\n}\n.lui-1a1QO {\n  overflow: scroll;\n}\n.lui-1a1QO.lui-2eAQu .number {\n  color: #ff7a00;\n}\n.lui-1a1QO.lui-2eAQu .string {\n  color: #32e03f;\n}\n.lui-1a1QO.lui-2eAQu .property {\n  color: #e7e7e7;\n}\n.lui-1a1QO.lui-2eAQu .operator,\n.lui-1a1QO.lui-2eAQu .punctuation {\n  color: #929292;\n}\n.lui-1a1QO.lui-2ukSJ .number {\n  color: #a14e03;\n}\n.lui-1a1QO.lui-2ukSJ .string {\n  color: #1c7122;\n}\n.lui-1a1QO.lui-2ukSJ .property {\n  color: #121212;\n}\n.lui-1a1QO.lui-2ukSJ .operator,\n.lui-1a1QO.lui-2ukSJ .punctuation {\n  color: #878787;\n}\n.lui-3vBBz {\n  position: fixed !important;\n  height: fit-content !important;\n  width: fit-content !important;\n  bottom: 8px;\n  margin: 0px;\n  left: 0px;\n  right: unset;\n}\n.lui-3vBBz.lui-bPIzo {\n  top: 0px;\n  right: 8px;\n  left: unset;\n}\n.lui-llMOW {\n  width: 100%;\n  flex-shrink: 1 !important;\n  flex-direction: row-reverse;\n}\n.lui-36sov {\n  width: 140px;\n}\n.lui-1mNiI {\n  overflow-y: scroll;\n  transform: translate(0px);\n  overflow-x: hidden;\n  display: flex;\n  flex-direction: column;\n  height: 170px;\n  width: 100%;\n  min-width: 400px;\n}\n.lui-3JIxs {\n  position: fixed !important;\n  margin: 12px !important;\n  left: 0 !important;\n  top: 0 !important;\n}\n.lui-3JIxs * {\n  color: inherit !important;\n}\n", ""]);
+exports.push([module.i, ".lui-g-model-grid {\n  font-family: \"monor\";\n  font-size: 13px;\n  transform: translate(0);\n  height: 100%;\n  width: 100%;\n}\n.lui-g-model-grid ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  background-color: rgba(0, 0, 0, 0.2);\n  width: 8px;\n  height: 8px;\n}\n.lui-g-model-grid ::-webkit-scrollbar-corner {\n  background-color: rgba(0, 0, 0, 0.3);\n}\n.lui-g-model-grid ::-webkit-scrollbar-thumb {\n  border-radius: 0px;\n  background-color: #7F7F7F;\n  transition: background-color 0.3s ease;\n}\n.lui-g-model-grid ::-webkit-scrollbar-thumb:hover {\n  background-color: #8F8F8F;\n}\n.lui-g-model-grid-wrap {\n  display: flex;\n  flex-direction: row;\n  width: 100%;\n  height: 100%;\n}\n.lui-g-model-grid-slash {\n  opacity: 0.4;\n  padding: 0 4;\n}\n.lui-g-model-grid-slash-right {\n  opacity: 0.4;\n  padding-right: 4;\n}\n.lui-g-model-grid-key-toggle {\n  width: 30px;\n  height: 30px;\n}\n.lui-g-model-grid-slide {\n  width: 100%;\n  height: 100%;\n}\n.lui-g-model-grid-opaque {\n  opacity: 0.5;\n}\n.lui-g-model-grid-add-doc-form {\n  max-height: 300px;\n  height: fit-content;\n  overflow-y: scroll;\n}\n.lui-g-search-query-menu-search-label {\n  white-space: nowrap;\n  margin-left: 3px;\n  margin-top: 1px;\n}\n.lui-g-search-query-error {\n  color: red;\n  background: rgba(0, 0, 0, 0.5);\n}\n.lui-g-model-grid-label-float-right {\n  right: 10px;\n  position: absolute;\n}\n.lui-g-model-grid-search-bookmark-item {\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  padding-left: 10px;\n  font-family: \"monor\";\n  opacity: 0.8;\n}\n.lui-g-model-grid-search-bookmark-item:hover {\n  opacity: 1;\n}\n.ReactVirtualized__Grid__innerScrollContainer {\n  min-width: 100%;\n}\n.lui-g-model-grid-cell-method-button {\n  width: 30px !important;\n}\n.lui-g-search-query-item-label2 {\n  position: absolute;\n  right: 0;\n  bottom: 0;\n  padding: 5px;\n  transform: scale(0.8);\n  max-width: 200px;\n  min-width: 20px;\n  min-height: 20px;\n}\n.lui-g-search-query-item-label2 .lui-g-search-query-error {\n  overflow-x: scroll;\n  overflow-y: visible;\n  padding: 5px;\n}\n.lui-g-search-query-item-label {\n  position: absolute;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 12px;\n  opacity: 0.7;\n  padding: 8px;\n  padding-right: 14px;\n  right: 0;\n  top: 0;\n}\n.lui-g-search-query-item-label i {\n  font-size: 16px;\n  padding-right: 6px;\n}\n.lui-g-model-grid-search-query-l-item {\n  height: auto !important;\n  min-height: 30px;\n  font-family: \"monor\";\n}\n.lui-g-model-grid-search-query-l-item .lui-g-json {\n  position: relative;\n  min-height: 30px;\n  margin: 0;\n  overflow-wrap: break-word;\n  padding: 8px;\n  font-size: 11px;\n  color: grey;\n  cursor: pointer;\n  white-space: pre;\n}\n* {\n  outline: none;\n}\n.lui-g-menu-slide {\n  overflow: visible !important;\n}\n.lui-g-model-grid-cell-method-button {\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  font-size: 15 !important;\n  width: 30;\n  opacity: 0.2;\n  transition: opacity 0.3s;\n  cursor: pointer;\n}\n.lui-g-model-grid-cell-method-button:hover {\n  opacity: 1;\n}\n.lui-g-search-keys-container {\n  width: auto;\n  height: 230;\n  min-width: 200;\n  overflow-y: scroll;\n}\n.lui-g-search-query-menu-icon {\n  cursor: pointer;\n}\n.lui-g-search-query-menu-icon i {\n  margin: 0;\n}\n.lui-g-model-grid-search-query-view {\n  width: 400px;\n  height: 300px;\n  display: flex;\n  flex-direction: column;\n}\n.lui-g-data-item-method-menu {\n  position: absolute;\n  left: 0;\n  top: 0;\n}\n.lui-g-model-grid-key {\n  cursor: pointer;\n}\n.lui-g-model-grid-key .lui-g-model-grid-key-toggle {\n  opacity: 0.5;\n  transition: opacity 0.3s ease;\n  line-height: inherit;\n}\n.lui-g-model-grid-key:hover .lui-g-model-grid-key-toggle {\n  opacity: 1;\n}\n.lui-g-model-grid-key-toggle {\n  line-height: 30px;\n}\n.lui-g-model-grid-cell {\n  display: flex;\n  cursor: pointer;\n  height: 100%;\n  align-items: center;\n  vertical-align: middle;\n  line-height: 30px;\n  overflow: hidden;\n  text-align: left;\n  white-space: nowrap;\n  padding: 0px 10px;\n}\n.lui-g-model-grid-cell .lui-g-model-grid-label {\n  float: left;\n}\n.lui-g-model-grid-cell input {\n  font-family: \"monor\";\n  font-size: 13px;\n  margin-left: -10px;\n  transition: background 0.3s ease;\n  width: 100%;\n  height: 30px;\n  line-height: 30px;\n  outline: none;\n}\n.lui-g-model-grid-cell input::placeholder {\n  color: inherit;\n  opacity: 0.5;\n}\n.lui-g-react-json-wrap {\n  position: relative;\n  transform: translate(0);\n}\n.lui-g-react-json-container {\n  overflow: scroll;\n}\n.lui-g-react-json-container.lui-g-dark .number {\n  color: #ff7a00;\n}\n.lui-g-react-json-container.lui-g-dark .string {\n  color: #32e03f;\n}\n.lui-g-react-json-container.lui-g-dark .property {\n  color: #e7e7e7;\n}\n.lui-g-react-json-container.lui-g-dark .operator,\n.lui-g-react-json-container.lui-g-dark .punctuation {\n  color: #929292;\n}\n.lui-g-react-json-container.lui-g-light .number {\n  color: #a14e03;\n}\n.lui-g-react-json-container.lui-g-light .string {\n  color: #1c7122;\n}\n.lui-g-react-json-container.lui-g-light .property {\n  color: #121212;\n}\n.lui-g-react-json-container.lui-g-light .operator,\n.lui-g-react-json-container.lui-g-light .punctuation {\n  color: #878787;\n}\n.lui-g-json-editor-menu {\n  position: fixed !important;\n  height: fit-content !important;\n  width: fit-content !important;\n  bottom: 8px;\n  margin: 0px;\n  left: 0px;\n  right: unset;\n}\n.lui-g-json-editor-menu.lui-g-vert {\n  top: 0px;\n  right: 8px;\n  left: unset;\n}\n.lui-g-model-grid-list-menu-right {\n  width: 100%;\n  flex-shrink: 1 !important;\n  flex-direction: row-reverse;\n}\n.lui-g-model-grid-list-layout-button {\n  width: 140px;\n}\n.lui-g-methods-list-container {\n  overflow-y: scroll;\n  transform: translate(0px);\n  overflow-x: hidden;\n  display: flex;\n  flex-direction: column;\n  height: 170px;\n  width: 100%;\n  min-width: 400px;\n}\n.lui-g-overlay-label-button {\n  position: fixed !important;\n  margin: 12px !important;\n  left: 0 !important;\n  top: 0 !important;\n}\n.lui-g-overlay-label-button * {\n  color: inherit !important;\n}\n", ""]);
 
 // exports
 exports.locals = {
-	"model-grid": "lui-2AHD-",
-	"model-grid-slash": "lui-2jxDq",
-	"model-grid-slash-right": "lui-2NWoF",
-	"model-grid-key-toggle": "lui-2S7gN",
-	"model-grid-slide": "lui-3exNq",
-	"model-grid-opaque": "lui-2Oig8",
-	"model-grid-add-doc-form": "lui-1Wnc8",
-	"search-query-menu-search-label": "lui-eFoi1",
-	"search-query-error": "lui-2-Riw",
-	"model-grid-label-float-right": "lui-3HzB1",
-	"model-grid-search-bookmark-item": "lui-3lJiS",
-	"model-grid-cell-method-button": "lui-2hSbl",
-	"search-query-item-label2": "lui-22qIa",
-	"search-query-item-label": "lui-1dCqE",
-	"model-grid-search-query-l-item": "lui-3-5T7",
-	"json": "lui-24gT1",
-	"menu-slide": "lui-1-PvV",
-	"search-keys-container": "lui-4gr2j",
-	"search-query-menu-icon": "lui-3K2EQ",
-	"model-grid-search-query-view": "lui-P8ljS",
-	"data-item-method-menu": "lui-1w7qC",
-	"model-grid-key": "lui-2X1G6",
-	"model-grid-cell": "lui-bVM3E",
-	"model-grid-label": "lui-2PbsQ",
-	"react-json-wrap": "lui-1dXoa",
-	"react-json-container": "lui-1a1QO",
-	"dark": "lui-2eAQu",
-	"light": "lui-2ukSJ",
-	"json-editor-menu": "lui-3vBBz",
-	"vert": "lui-bPIzo",
-	"model-grid-list-menu-right": "lui-llMOW",
-	"model-grid-list-layout-button": "lui-36sov",
-	"methods-list-container": "lui-1mNiI",
-	"overlay-label-button": "lui-3JIxs"
+	"model-grid": "lui-g-model-grid",
+	"model-grid-wrap": "lui-g-model-grid-wrap",
+	"model-grid-slash": "lui-g-model-grid-slash",
+	"model-grid-slash-right": "lui-g-model-grid-slash-right",
+	"model-grid-key-toggle": "lui-g-model-grid-key-toggle",
+	"model-grid-slide": "lui-g-model-grid-slide",
+	"model-grid-opaque": "lui-g-model-grid-opaque",
+	"model-grid-add-doc-form": "lui-g-model-grid-add-doc-form",
+	"search-query-menu-search-label": "lui-g-search-query-menu-search-label",
+	"search-query-error": "lui-g-search-query-error",
+	"model-grid-label-float-right": "lui-g-model-grid-label-float-right",
+	"model-grid-search-bookmark-item": "lui-g-model-grid-search-bookmark-item",
+	"model-grid-cell-method-button": "lui-g-model-grid-cell-method-button",
+	"search-query-item-label2": "lui-g-search-query-item-label2",
+	"search-query-item-label": "lui-g-search-query-item-label",
+	"model-grid-search-query-l-item": "lui-g-model-grid-search-query-l-item",
+	"json": "lui-g-json",
+	"menu-slide": "lui-g-menu-slide",
+	"search-keys-container": "lui-g-search-keys-container",
+	"search-query-menu-icon": "lui-g-search-query-menu-icon",
+	"model-grid-search-query-view": "lui-g-model-grid-search-query-view",
+	"data-item-method-menu": "lui-g-data-item-method-menu",
+	"model-grid-key": "lui-g-model-grid-key",
+	"model-grid-cell": "lui-g-model-grid-cell",
+	"model-grid-label": "lui-g-model-grid-label",
+	"react-json-wrap": "lui-g-react-json-wrap",
+	"react-json-container": "lui-g-react-json-container",
+	"dark": "lui-g-dark",
+	"light": "lui-g-light",
+	"json-editor-menu": "lui-g-json-editor-menu",
+	"vert": "lui-g-vert",
+	"model-grid-list-menu-right": "lui-g-model-grid-list-menu-right",
+	"model-grid-list-layout-button": "lui-g-model-grid-list-layout-button",
+	"methods-list-container": "lui-g-methods-list-container",
+	"overlay-label-button": "lui-g-overlay-label-button"
 };
 
 /***/ }),
