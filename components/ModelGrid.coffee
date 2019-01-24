@@ -825,6 +825,8 @@ class ModelGrid extends Component
 	
 			h Slide,
 				vert: yes
+				style:
+					transform: 'translate(0)'
 				beta: @state.show_json_view && 50 || 100
 				h MenuView,@g_props
 				h GridView,@g_props
