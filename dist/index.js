@@ -2724,6 +2724,9 @@ ModelGrid = class ModelGrid extends Component {
       });
     }))), h(Slide, {
       vert: true,
+      style: {
+        transform: 'translate(0)'
+      },
       beta: this.state.show_json_view && 50 || 100
     }, h(MenuView, this.g_props), h(GridView, this.g_props)));
   }

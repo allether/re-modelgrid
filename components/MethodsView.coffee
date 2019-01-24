@@ -44,6 +44,7 @@ class MethodsView extends Component
 			method_rendered = @state.render_method.render(@state.render_method,@state.render_method.post_body)
 		tab_props = 
 			tab_style:
+				color: @context.primary.inv[1]
 				background: @context.primary.inv[0]
 				width: '400px'
 			content: h 'div',

@@ -133,7 +133,7 @@ class DocumentMethodMenu extends Component
 					label: [
 						@props.schema.name
 						h 'span',{key: 1,className: css['model-grid-slash']},'/'
-						h 'span',{key: 2,style:{fontWeight:600,color:@context.secondary.inv[0]}},@props.data_item._label || @props.data_item._id
+						h 'span',{key: 2,style:{fontWeight:600,color:@context.primary.color[0]}},@props.data_item._label || @props.data_item._id
 					]
 				
 				h MenuTab,
