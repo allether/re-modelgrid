@@ -32,7 +32,7 @@ class JsonView extends Component
 				children[i-1] = children[i-1].slice(0,-1)
 				t = 'number'
 				children[i+1] = children[i+1].slice(1)
-			else if val == 'true' || val == 'false'
+			else if val == 'true' || val == 'false' || val == 'null' || val == 'undefined'
 				children[i-1] = children[i-1].slice(0,-1)
 				t = 'boolean'
 				children[i+1] = children[i+1].slice(1)

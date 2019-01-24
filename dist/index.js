@@ -659,7 +659,7 @@ DocumentMethodMenu = class DocumentMethodMenu extends Component {
       reveal: true,
       onClickBackdrop: this.props.onHide,
       tab_style: {
-        width: '300px'
+        width: '400px'
       },
       content: h(Input, {
         type: 'label',
@@ -1113,7 +1113,7 @@ JsonView = class JsonView extends Component {
         children[i - 1] = children[i - 1].slice(0, -1);
         t = 'number';
         children[i + 1] = children[i + 1].slice(1);
-      } else if (val === 'true' || val === 'false') {
+      } else if (val === 'true' || val === 'false' || val === 'null' || val === 'undefined') {
         children[i - 1] = children[i - 1].slice(0, -1);
         t = 'boolean';
         children[i + 1] = children[i + 1].slice(1);
@@ -1687,7 +1687,7 @@ MethodsView = class MethodsView extends Component {
     tab_props = {
       tab_style: {
         background: this.context.primary.inv[0],
-        width: '300px'
+        width: '400px'
       },
       content: h('div', {
         className: css['methods-list-container']
@@ -1727,7 +1727,7 @@ module.exports = MethodsView;
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {  // Color = require 'color'
-var AlertOverlay, Bar, Component, DIM, DIM_S, GridView, Input, Menu, MenuTab, MenuView, ModelGrid, Overlay, ReactJson, Slide, StyleContext, cn, createElement, css,
+var AlertDot, AlertOverlay, Bar, CodeEditor, Color, Component, DIM, DIM_S, GridView, Input, JsonView, Menu, MenuTab, MenuView, ModelGrid, Overlay, Slide, StyleContext, cn, createElement, css, highlight, languages, rfc6902,
   boundMethodCheck = function(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new Error('Bound instance method accessed before binding'); } };
 
 ({createElement, Component} = __webpack_require__(/*! react */ "react"));
@@ -1738,16 +1738,28 @@ global.Component = Component;
 
 Slide = __webpack_require__(/*! re-slide */ "re-slide");
 
+Color = __webpack_require__(/*! color */ "color");
+
 css = __webpack_require__(/*! ./ModelGrid.less */ "./components/ModelGrid.less");
 
 cn = __webpack_require__(/*! classnames */ "classnames");
 
-({Input, MenuTab, Menu, Bar, Overlay, AlertOverlay, StyleContext} = __webpack_require__(/*! re-lui */ "re-lui"));
+({Input, MenuTab, Menu, Bar, Overlay, AlertOverlay, StyleContext, AlertDot} = __webpack_require__(/*! re-lui */ "re-lui"));
+
+JsonView = __webpack_require__(/*! ./JsonView.coffee */ "./components/JsonView.coffee");
+
+rfc6902 = __webpack_require__(/*! rfc6902 */ "./node_modules/rfc6902/index.js");
 
 // require 'colors'
-ReactJson = __webpack_require__(/*! react-json-view */ "react-json-view");
+CodeEditor = __webpack_require__(/*! react-simple-code-editor */ "./node_modules/react-simple-code-editor/lib/index.js").default;
 
-ReactJson = ReactJson.default;
+({highlight, languages} = __webpack_require__(/*! prismjs/components/prism-core */ "./node_modules/prismjs/components/prism-core.js"));
+
+__webpack_require__(/*! prismjs/components/prism-clike */ "./node_modules/prismjs/components/prism-clike.js");
+
+__webpack_require__(/*! prismjs/components/prism-json */ "./node_modules/prismjs/components/prism-json.js");
+
+__webpack_require__(/*! prismjs/themes/prism-twilight.css */ "./node_modules/prismjs/themes/prism-twilight.css");
 
 DIM = 40;
 
@@ -1771,7 +1783,7 @@ ModelGrid = class ModelGrid extends Component {
     this.cloneQueryItem = this.cloneQueryItem.bind(this);
     this.updateQueryItem = this.updateQueryItem.bind(this);
     this.cleanQuery = this.cleanQuery.bind(this);
-    this.clearQueryItemRunError = this.clearQueryItemRunError.bind(this);
+    this.hideQueryItemRunError = this.hideQueryItemRunError.bind(this);
     this.setQueryItemRunError = this.setQueryItemRunError.bind(this);
     this.mapDataItems = this.mapDataItems.bind(this);
     this.runQuery = this.runQuery.bind(this);
@@ -1787,13 +1799,9 @@ ModelGrid = class ModelGrid extends Component {
     // getChildContext: ->
     // 	gridHeight: @base?.clientHeight - (@props.show_bar && DIM || 0)
     this.componentWillUpdate = this.componentWillUpdate.bind(this);
-    
-    // log state.data_item,state.show_json_view && state.action_query.data_item_id != state.data_item._id
     this.showJSONView = this.showJSONView.bind(this);
-    
     this.closeJSONView = this.closeJSONView.bind(this);
-    this.onJSONViewEdit = this.onJSONViewEdit.bind(this);
-    this.onJSONViewDelete = this.onJSONViewDelete.bind(this);
+    this.onEditorValueChange = this.onEditorValueChange.bind(this);
     this.baseRef = this.baseRef.bind(this);
     this.state = this.getDefaultConfig(props);
     this.g_props = {
@@ -1836,6 +1844,9 @@ ModelGrid = class ModelGrid extends Component {
         called_at: 0,
         completed_at: 0
       },
+      editor_patches: [],
+      editor_error: null,
+      editor_value: '{}',
       data_item: null,
       new_doc: {}
     };
@@ -1954,7 +1965,7 @@ ModelGrid = class ModelGrid extends Component {
   }
 
   syncQueryItem(query_item) {
-    var error, q_value;
+    var error, obj, q_value;
     if (query_item.type === 'key') {
       q_value = {};
       query_item.error = null;
@@ -1962,7 +1973,8 @@ ModelGrid = class ModelGrid extends Component {
       return query_item.value = q_value;
     } else if (query_item.type === 'json') {
       try {
-        query_item.value = JSON.parse(query_item.input_value);
+        obj = eval('(' + query_item.input_value + ')');
+        query_item.value = obj;
         return query_item.error = null;
       } catch (error1) {
         error = error1;
@@ -2121,10 +2133,10 @@ ModelGrid = class ModelGrid extends Component {
     return this.setQueryItemFilter(this.state.query_item);
   }
 
-  clearQueryItemRunError() {
+  hideQueryItemRunError() {
     boundMethodCheck(this, ModelGrid);
     return this.setState({
-      query_item_run_error: null
+      query_item_run_error_visible: false
     });
   }
 
@@ -2133,6 +2145,7 @@ ModelGrid = class ModelGrid extends Component {
     query_item.error = error.message;
     query_item.completed_at = Date.now();
     return this.setState({
+      query_item_run_error_visible: true,
       query_item_run_error: {
         error: error,
         query_item: query_item
@@ -2279,6 +2292,7 @@ ModelGrid = class ModelGrid extends Component {
   setActionMethodError(data_item, error) {
     boundMethodCheck(this, ModelGrid);
     return this.setState({
+      query_item_run_error_visible: false,
       action_error: {
         data_item: data_item,
         error: error
@@ -2289,6 +2303,7 @@ ModelGrid = class ModelGrid extends Component {
   setActionStaticError(error) {
     boundMethodCheck(this, ModelGrid);
     return this.setState({
+      query_item_run_error_visible: false,
       action_error: {
         error: error
       }
@@ -2345,22 +2360,26 @@ ModelGrid = class ModelGrid extends Component {
     }).catch(this.setActionMethodError.bind(this, this.state.data_item));
   }
 
-  updateDataItem(update) {
+  updateDataItem() {
     boundMethodCheck(this, ModelGrid);
-    if (!this.state.action_query.completed_at && this.state.action_query.called_at) {
+    if (!this.state.action_query.completed_at && this.state.action_query.called_at || !this.state.editor_patches.length) {
+      return;
+    }
+    if (this.state.editor_value_id !== this.state.data_item._id) {
       return;
     }
     this.setState({
       action_query: {
         data_item_id: this.state.data_item._id,
         data_item_label: this.state.data_item._label,
-        body: update,
+        body: this.state.editor_patches,
         action: 'update',
         called_at: Date.now()
       }
     });
-    return this.props.updateDataItem(this.state.data_item._id, update).then((doc) => {
+    return this.props.updateDataItem(this.state.editor_value_id, this.state.editor_patches).then((doc) => {
       this.log('updated data_item', doc);
+      this.state.editor_value_id = null;
       this.state.action_query.completed_at = Date.now();
       if (this.state.data_item._id === doc._id) {
         this.setState({
@@ -2388,6 +2407,7 @@ ModelGrid = class ModelGrid extends Component {
     return this.props.getDataItem(this.state.data_item._id).then((doc) => {
       this.log('got data_item', doc);
       this.state.action_query.completed_at = Date.now();
+      this.state.editor_value_id = null;
       if (this.state.data_item._id === doc._id) {
         return this.setState({
           data_item: doc
@@ -2450,7 +2470,23 @@ ModelGrid = class ModelGrid extends Component {
       state.show_json_view = false;
     }
     if (state.query_item !== this.state.query_item) {
-      return state.show_json_view = false;
+      state.show_json_view = false;
+    }
+    // log state.data_item_id,state.editor_value_id
+    if (state.data_item) {
+      if (state.data_item._id !== state.editor_value_id) {
+        if (state.data_item) {
+          state.editor_value = JSON.stringify(state.data_item, null, 4);
+          state.editor_patches = [];
+        } else {
+          state.editor_value = "{}";
+          state.editor_patches = [];
+        }
+        return state.editor_value_id = state.data_item._id;
+      }
+    } else {
+      state.editor_value = '{}';
+      return state.editor_patches = [];
     }
   }
 
@@ -2468,36 +2504,27 @@ ModelGrid = class ModelGrid extends Component {
     });
   }
 
-  onJSONViewEdit(opts) {
-    var upd_key, upd_obj;
+  onEditorValueChange(val) {
+    var editor_error, err, new_data_item, patches;
     boundMethodCheck(this, ModelGrid);
-    upd_obj = {};
-    if (opts.namespace.length) {
-      upd_key = opts.namespace.join('.') + '.' + opts.name;
-    } else {
-      upd_key = opts.name;
+    try {
+      new_data_item = JSON.parse(val);
+      patches = rfc6902.createPatch(this.state.data_item, new_data_item);
+      if (patches.length > 3) {
+        editor_error = 'patch count > 3';
+      }
+      return this.setState({
+        editor_patches: patches,
+        editor_value: val,
+        editor_error: editor_error || null
+      });
+    } catch (error1) {
+      err = error1;
+      return this.setState({
+        editor_value: val,
+        editor_error: err.message
+      });
     }
-    upd_obj = {
-      $set: {}
-    };
-    upd_obj['$set'][upd_key] = opts.new_value;
-    return this.updateDataItem(upd_obj);
-  }
-
-  onJSONViewDelete(opts) {
-    var upd_key, upd_obj;
-    boundMethodCheck(this, ModelGrid);
-    upd_obj = {};
-    if (opts.namespace.length) {
-      upd_key = opts.namespace.join('.') + '.' + opts.name;
-    } else {
-      upd_key = opts.name;
-    }
-    upd_obj = {
-      $unset: {}
-    };
-    upd_obj['$unset'][upd_key] = true;
-    return this.updateDataItem(upd_obj);
   }
 
   baseRef(slide) {
@@ -2508,7 +2535,21 @@ ModelGrid = class ModelGrid extends Component {
   // log @base
   render() {
     var overlay, ref, ref1, vert_json_bar;
+    if (!this.base) {
+      return h(Slide, {
+        ref: this.baseRef,
+        slide: false,
+        className: css['model-grid'],
+        outerChildren: overlay
+      });
+    }
     window.g = this;
+    // log @_pc
+    if (this._pc !== this.context.primary.color[0]) {
+      this._pc = this.context.primary.color[0];
+      this._pc_is_dark = !Color(this._pc).isDark();
+      this._pc_opaque = Color(this._pc).alpha(0.8).rgb().string();
+    }
     this.g_props.bounding_box = (ref = this.base) != null ? ref.getBoundingClientRect() : void 0;
     this.g_props.data = this.state.data.get(this.state.query_item._id) || [];
     this.g_props.queries = this.state.queries;
@@ -2530,10 +2571,10 @@ ModelGrid = class ModelGrid extends Component {
       overlay = h(AlertOverlay, {
         initial_visible: false,
         alert_type: 'error',
-        visible: true,
+        visible: this.state.query_item_run_error_visible,
         backdrop_color: this.context.primary.inv[2],
         message: this.state.query_item_run_error.error.message,
-        onClick: this.clearQueryItemRunError,
+        onClick: this.hideQueryItemRunError,
         style: {
           display: 'flex',
           alignItems: 'center',
@@ -2555,6 +2596,7 @@ ModelGrid = class ModelGrid extends Component {
         initial_visible: false,
         backdrop_color: this.context.primary.inv[2],
         alert_type: 'error',
+        transparent: true,
         visible: (this.state.action_error != null) || !this.state.action_query.completed_at && this.state.action_query.called_at,
         message: (ref1 = this.state.action_error) != null ? ref1.error.message : void 0,
         onClick: this.state.action_error && this.clearActionQueryError || void 0,
@@ -2565,15 +2607,14 @@ ModelGrid = class ModelGrid extends Component {
           justifyContent: 'center'
         }
       }, h(Input, {
+        className: css['overlay-label-button'],
+        big: false,
         type: 'label',
+        style: {
+          background: this._pc_opaque,
+          color: this.context.primary.inv[0]
+        },
         label: [
-          this.state.action_query.data_item_label || this.state.action_query.data_item_id,
-          h('span',
-          {
-            key: 2,
-            className: css['model-grid-slash']
-          },
-          '/'),
           h('span',
           {
             key: 1,
@@ -2582,7 +2623,14 @@ ModelGrid = class ModelGrid extends Component {
               color: this.context.primary.color[0]
             }
           },
-          this.state.action_query.action)
+          this.state.action_query.action),
+          h('span',
+          {
+            key: 2,
+            className: css['model-grid-slash']
+          },
+          '/'),
+          this.state.action_query.data_item_label || this.state.action_query.data_item_id
         ]
       }));
     }
@@ -2592,39 +2640,81 @@ ModelGrid = class ModelGrid extends Component {
       className: css['model-grid'],
       pos: !this.state.show_json_view && 1 || 0,
       vert: vert_json_bar,
-      outerStyle: {
-        transform: 'translate(0px)'
-      },
       outerChildren: overlay
     }, h(Slide, {
+      className: css['react-json-wrap'],
+      style: {
+        background: this.context.primary.inv[1]
+      },
       beta: 50,
-      className: css['react-json-wrap']
-    }, this.state.show_json_view && this.state.data_item && h(ReactJson, {
-      iconStyle: 'circle',
-      displayDataTypes: false,
-      enableClipboard: true,
-      name: false,
-      collapseStringsAfterLength: 100,
-      onEdit: this.onJSONViewEdit,
-      onAdd: this.onJSONViewEdit,
-      onDelete: this.onJSONViewDelete,
-      shouldCollapse: this.shouldCollapse,
-      theme: 'eighties',
-      src: this.state.data_item
-    }), h(Bar, {
-      big: false,
-      className: cn(css['json-editor-menu'], css[!vert_json_bar && 'vert']),
-      vert: !vert_json_bar
+      vert: true
+    }, h(Bar, {
+      big: true
     }, h(Input, {
+      style: {
+        width: '50%',
+        whiteSpace: 'nowrap'
+      },
+      type: 'label',
+      disabled: !this.state.editor_error,
+      i: this.state.editor_error && 'error' || 'error_outline',
+      label: this.state.editor_error || 'ok'
+    }), h(Input, {
       type: 'button',
-      btn_type: 'flat',
+      i: 'save',
+      style: {
+        maxWidth: 'fit-content'
+      },
+      label: String(this.state.editor_patches.length).padEnd(2),
+      disabled: !this.state.editor_patches.length || (this.state.editor_error != null),
+      onClick: this.updateDataItem
+    }, this.state.editor_patches.length > 0 && h(AlertDot)), h(Input, {
+      type: 'button',
       i: 'refresh',
+      // btn_type: 'flat'
       onClick: this.getDataItem
     }), h(Input, {
       type: 'button',
-      btn_type: 'flat',
       i: 'close',
+      btn_type: 'flat',
       onClick: this.closeJSONView
+    })), h(Slide, {
+      className: cn(css['react-json-container'], this._pc_is_dark && css['dark'] || css['light'])
+    }, this.state.show_json_view && this.state.data_item && h(CodeEditor, {
+      value: this.state.editor_value || '{}',
+      onValueChange: this.onEditorValueChange,
+      highlight: function(code) {
+        return highlight(code, languages.json);
+      },
+      padding: 13,
+      style: {
+        fontFamily: 'monor, monospace',
+        fontSize: 13
+      }
+    })), h(Slide, {
+      dim: DIM * 2,
+      vert: true,
+      scroll: true,
+      style: {
+        background: this.context.primary.inv[0]
+      }
+    }, this.state.editor_patches.map((patch, i) => {
+      return h(JsonView, {
+        key: 'patch-' + i,
+        style: {
+          width: '100%',
+          background: i % 2 === 0 && this.context.primary.inv[1],
+          padding: 13
+        },
+        json: patch,
+        trim: true,
+        colors: {
+          key: this.context.primary.color[1],
+          number: 'orange',
+          string: this.context.primary.true,
+          boolean: this.context.primary.false
+        }
+      });
     }))), h(Slide, {
       vert: true,
       style: {
@@ -2726,47 +2816,6 @@ SearchView = class SearchView extends Component {
     this.selectItem = this.selectItem.bind(this);
     this.renderQueryListItem = this.renderQueryListItem.bind(this);
     this.renderBookmarkItem = this.renderBookmarkItem.bind(this);
-    // h MenuTab,
-    // 	content: h Input,
-    // 		type: 'input'
-    // 		bar: yes
-    // 		btn_type: 'flat'
-
-    // 		label: 'query'.padStart(8)
-    // 		value: @state.query_item_value
-    // 		placeholder: @props.query_item.value
-
-    // 		onInput: @setQueryItemValue
-
-    // h MenuTab,
-    // 	content: h Bar,
-    // 		big: no
-    // 		h Input,
-    // 			label: 'save layout'.padStart(8)
-    // 			type: 'checkbox'
-    // 			select: @state.query_item_layout_keys_enabled
-    // 			checked: @state.query_item_layout_keys_enabled
-    // 			onClick: @setQueryItemLayoutKeysEnabled
-    // 			btn_type: 'flat'
-    // 		h Input,
-    // 			type: 'input'
-    // 			btn_type: 'flat'
-    // 			disabled: !@state.query_item_layout_keys_enabled
-    // 			placeholder: JSON.stringify(@props.query_item.layout_keys)
-    // 			value: @state.query_item_layout_keys
-    // 			onInput: @setQueryItemLayoutKeys
-
-    // h MenuTab,
-    // 	content: h Input,
-    // 		type: 'input'
-    // 		btn_type: 'flat'
-    // 		btn_type: 'flat'
-
-    // 		label: 'sort'.padStart(8)
-    // 		placeholder: JSON.stringify(@props.query_item.sort_keys)
-    // 		value: @state.query_item_sort_keys
-
-    // 		onInput: @setQueryItemSortKeys
     this.mapMenuSearchKeys = this.mapMenuSearchKeys.bind(this);
     this.showView = this.showView.bind(this);
     this.hideView = this.hideView.bind(this);
@@ -2989,7 +3038,7 @@ SearchView = class SearchView extends Component {
       json: query_item.value,
       trim: true,
       colors: {
-        key: !is_selected && this.context.primary.color[0] || this.context.secondary.inv[0],
+        key: !is_selected && this.context.primary.color[1] || this.context.secondary.inv[1],
         number: 'orange',
         string: this.context.primary.true,
         boolean: this.context.primary.false
@@ -3224,8 +3273,8 @@ SearchView = class SearchView extends Component {
     if (qi.type === 'json') {
       search_i = 'code';
       search_placeholder = '{query}';
-      info_label = qi.error || 'json: ok';
-      info_i = 'notifications';
+      info_label = qi.error || 'ok';
+      info_i = qi.error && 'error' || 'error_outline';
       info_type = 'label';
     } else if (qi.type === 'key') {
       search_placeholder = 'search by ' + props.keys[qi.key].label;
@@ -3462,6 +3511,25 @@ module.exports = ModelGrid;
 
 /***/ }),
 
+/***/ "./node_modules/css-loader/index.js!./node_modules/prismjs/themes/prism-twilight.css":
+/*!**********************************************************************************!*\
+  !*** ./node_modules/css-loader!./node_modules/prismjs/themes/prism-twilight.css ***!
+  \**********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(/*! ../../css-loader/lib/css-base.js */ "./node_modules/css-loader/lib/css-base.js")(false);
+// imports
+
+
+// module
+exports.push([module.i, "/**\n * prism.js Twilight theme\n * Based (more or less) on the Twilight theme originally of Textmate fame.\n * @author Remy Bach\n */\ncode[class*=\"language-\"],\npre[class*=\"language-\"] {\n\tcolor: white;\n\tbackground: none;\n\tfont-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;\n\ttext-align: left;\n\ttext-shadow: 0 -.1em .2em black;\n\twhite-space: pre;\n\tword-spacing: normal;\n\tword-break: normal;\n\tword-wrap: normal;\n\tline-height: 1.5;\n\n\t-moz-tab-size: 4;\n\t-o-tab-size: 4;\n\ttab-size: 4;\n\n\t-webkit-hyphens: none;\n\t-moz-hyphens: none;\n\t-ms-hyphens: none;\n\thyphens: none;\n}\n\npre[class*=\"language-\"],\n:not(pre) > code[class*=\"language-\"] {\n\tbackground: hsl(0, 0%, 8%); /* #141414 */\n}\n\n/* Code blocks */\npre[class*=\"language-\"] {\n\tborder-radius: .5em;\n\tborder: .3em solid hsl(0, 0%, 33%); /* #282A2B */\n\tbox-shadow: 1px 1px .5em black inset;\n\tmargin: .5em 0;\n\toverflow: auto;\n\tpadding: 1em;\n}\n\npre[class*=\"language-\"]::-moz-selection {\n\t/* Firefox */\n\tbackground: hsl(200, 4%, 16%); /* #282A2B */\n}\n\npre[class*=\"language-\"]::selection {\n\t/* Safari */\n\tbackground: hsl(200, 4%, 16%); /* #282A2B */\n}\n\n/* Text Selection colour */\npre[class*=\"language-\"]::-moz-selection, pre[class*=\"language-\"] ::-moz-selection,\ncode[class*=\"language-\"]::-moz-selection, code[class*=\"language-\"] ::-moz-selection {\n\ttext-shadow: none;\n\tbackground: hsla(0, 0%, 93%, 0.15); /* #EDEDED */\n}\n\npre[class*=\"language-\"]::selection, pre[class*=\"language-\"] ::selection,\ncode[class*=\"language-\"]::selection, code[class*=\"language-\"] ::selection {\n\ttext-shadow: none;\n\tbackground: hsla(0, 0%, 93%, 0.15); /* #EDEDED */\n}\n\n/* Inline code */\n:not(pre) > code[class*=\"language-\"] {\n\tborder-radius: .3em;\n\tborder: .13em solid hsl(0, 0%, 33%); /* #545454 */\n\tbox-shadow: 1px 1px .3em -.1em black inset;\n\tpadding: .15em .2em .05em;\n\twhite-space: normal;\n}\n\n.token.comment,\n.token.prolog,\n.token.doctype,\n.token.cdata {\n\tcolor: hsl(0, 0%, 47%); /* #777777 */\n}\n\n.token.punctuation {\n\topacity: .7;\n}\n\n.namespace {\n\topacity: .7;\n}\n\n.token.tag,\n.token.boolean,\n.token.number,\n.token.deleted {\n\tcolor: hsl(14, 58%, 55%); /* #CF6A4C */\n}\n\n.token.keyword,\n.token.property,\n.token.selector,\n.token.constant,\n.token.symbol,\n.token.builtin {\n\tcolor: hsl(53, 89%, 79%); /* #F9EE98 */\n}\n\n.token.attr-name,\n.token.attr-value,\n.token.string,\n.token.char,\n.token.operator,\n.token.entity,\n.token.url,\n.language-css .token.string,\n.style .token.string,\n.token.variable,\n.token.inserted {\n\tcolor: hsl(76, 21%, 52%); /* #8F9D6A */\n}\n\n.token.atrule {\n\tcolor: hsl(218, 22%, 55%); /* #7587A6 */\n}\n\n.token.regex,\n.token.important {\n\tcolor: hsl(42, 75%, 65%); /* #E9C062 */\n}\n\n.token.important,\n.token.bold {\n\tfont-weight: bold;\n}\n.token.italic {\n\tfont-style: italic;\n}\n\n.token.entity {\n\tcursor: help;\n}\n\npre[data-line] {\n\tpadding: 1em 0 1em 3em;\n\tposition: relative;\n}\n\n/* Markup */\n.language-markup .token.tag,\n.language-markup .token.attr-name,\n.language-markup .token.punctuation {\n\tcolor: hsl(33, 33%, 52%); /* #AC885B */\n}\n\n/* Make the tokens sit above the line highlight so the colours don't look faded. */\n.token {\n\tposition: relative;\n\tz-index: 1;\n}\n\n.line-highlight {\n\tbackground: hsla(0, 0%, 33%, 0.25); /* #545454 */\n\tbackground: linear-gradient(to right, hsla(0, 0%, 33%, .1) 70%, hsla(0, 0%, 33%, 0)); /* #545454 */\n\tborder-bottom: 1px dashed hsl(0, 0%, 33%); /* #545454 */\n\tborder-top: 1px dashed hsl(0, 0%, 33%); /* #545454 */\n\tleft: 0;\n\tline-height: inherit;\n\tmargin-top: 0.75em; /* Same as .prism’s padding-top */\n\tpadding: inherit 0;\n\tpointer-events: none;\n\tposition: absolute;\n\tright: 0;\n\twhite-space: pre;\n\tz-index: 0;\n}\n\n.line-highlight:before,\n.line-highlight[data-end]:after {\n\tbackground-color: hsl(215, 15%, 59%); /* #8794A6 */\n\tborder-radius: 999px;\n\tbox-shadow: 0 1px white;\n\tcolor: hsl(24, 20%, 95%); /* #F5F2F0 */\n\tcontent: attr(data-start);\n\tfont: bold 65%/1.5 sans-serif;\n\tleft: .6em;\n\tmin-width: 1em;\n\tpadding: 0 .5em;\n\tposition: absolute;\n\ttext-align: center;\n\ttext-shadow: none;\n\ttop: .4em;\n\tvertical-align: .3em;\n}\n\n.line-highlight[data-end]:after {\n\tbottom: .4em;\n\tcontent: attr(data-end);\n\ttop: auto;\n}\n", ""]);
+
+// exports
+
+
+/***/ }),
+
 /***/ "./node_modules/css-loader/index.js?!./node_modules/less-loader/dist/cjs.js!./components/ModelGrid.less":
 /*!**************************************************************************************************************!*\
   !*** ./node_modules/css-loader??ref--6-1!./node_modules/less-loader/dist/cjs.js!./components/ModelGrid.less ***!
@@ -3474,7 +3542,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".lui-2AHD- {\n  font-family: \"monor\";\n  font-size: 13px;\n  height: 100%;\n  width: 100%;\n}\n.lui-2AHD- ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  background-color: rgba(0, 0, 0, 0.2);\n  width: 8px;\n  height: 8px;\n}\n.lui-2AHD- ::-webkit-scrollbar-corner {\n  background-color: rgba(0, 0, 0, 0.3);\n}\n.lui-2AHD- ::-webkit-scrollbar-thumb {\n  border-radius: 0px;\n  background-color: #7F7F7F;\n  transition: background-color 0.3s ease;\n}\n.lui-2AHD- ::-webkit-scrollbar-thumb:hover {\n  background-color: #8F8F8F;\n}\n.lui-2jxDq {\n  opacity: 0.4;\n  padding: 0 4;\n}\n.lui-2NWoF {\n  opacity: 0.4;\n  padding-right: 4;\n}\n.lui-2S7gN {\n  width: 30px;\n  height: 30px;\n}\n.lui-3exNq {\n  width: 100%;\n  height: 100%;\n}\n.lui-2Oig8 {\n  opacity: 0.5;\n}\n.lui-1Wnc8 {\n  max-height: 300px;\n  height: fit-content;\n  overflow-y: scroll;\n}\n.lui-eFoi1 {\n  white-space: nowrap;\n  margin-left: 3px;\n  margin-top: 1px;\n}\n.lui-2-Riw {\n  color: red;\n  background: rgba(0, 0, 0, 0.5);\n}\n.lui-3HzB1 {\n  right: 10px;\n  position: absolute;\n}\n.lui-3lJiS {\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  padding-left: 10px;\n  font-family: \"monor\";\n  opacity: 0.8;\n}\n.lui-3lJiS:hover {\n  opacity: 1;\n}\n.ReactVirtualized__Grid__innerScrollContainer {\n  min-width: 100%;\n}\n.lui-2hSbl {\n  width: 30px !important;\n}\n.lui-22qIa {\n  position: absolute;\n  right: 0;\n  bottom: 0;\n  padding: 5px;\n  transform: scale(0.8);\n  max-width: 200px;\n  min-width: 20px;\n  min-height: 20px;\n}\n.lui-22qIa .lui-2-Riw {\n  overflow-x: scroll;\n  overflow-y: visible;\n  padding: 5px;\n}\n.lui-1dCqE {\n  position: absolute;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 12px;\n  opacity: 0.7;\n  padding: 8px;\n  padding-right: 14px;\n  right: 0;\n  top: 0;\n}\n.lui-1dCqE i {\n  font-size: 16px;\n  padding-right: 6px;\n}\n.lui-3-5T7 {\n  height: auto !important;\n  min-height: 30px;\n  font-family: \"monor\";\n}\n.lui-3-5T7 .lui-24gT1 {\n  position: relative;\n  min-height: 30px;\n  margin: 0;\n  overflow-wrap: break-word;\n  padding: 8px;\n  font-size: 11px;\n  color: grey;\n  cursor: pointer;\n  white-space: pre;\n}\n* {\n  outline: none;\n}\n.lui-1-PvV {\n  overflow: visible !important;\n}\n.lui-2hSbl {\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  font-size: 15 !important;\n  width: 30;\n  opacity: 0.2;\n  transition: opacity 0.3s;\n  cursor: pointer;\n}\n.lui-2hSbl:hover {\n  opacity: 1;\n}\n.lui-4gr2j {\n  width: auto;\n  height: 230;\n  min-width: 200;\n  overflow-y: scroll;\n}\n.lui-3K2EQ {\n  cursor: pointer;\n}\n.lui-3K2EQ i {\n  margin: 0;\n}\n.lui-P8ljS {\n  width: 400px;\n  height: 300px;\n  display: flex;\n  flex-direction: column;\n}\n.lui-1w7qC {\n  position: absolute;\n  left: 0;\n  top: 0;\n}\n.lui-2X1G6 {\n  cursor: pointer;\n}\n.lui-2X1G6 .lui-2S7gN {\n  opacity: 0.5;\n  transition: opacity 0.3s ease;\n  line-height: inherit;\n}\n.lui-2X1G6:hover .lui-2S7gN {\n  opacity: 1;\n}\n.lui-2S7gN {\n  line-height: 30px;\n}\n.lui-3vBBz {\n  position: fixed !important;\n  width: fit-content;\n  bottom: 8px;\n  left: 0px;\n  right: unset;\n}\n.lui-3vBBz.lui-bPIzo {\n  height: fit-content;\n  top: 0px;\n  right: 8px;\n  left: unset;\n}\n.lui-bVM3E {\n  display: flex;\n  cursor: pointer;\n  height: 100%;\n  align-items: center;\n  vertical-align: middle;\n  line-height: 30px;\n  overflow: hidden;\n  text-align: left;\n  white-space: nowrap;\n  padding: 0px 10px;\n}\n.lui-bVM3E .lui-2PbsQ {\n  float: left;\n}\n.lui-bVM3E input {\n  font-family: \"monor\";\n  font-size: 13px;\n  margin-left: -10px;\n  transition: background 0.3s ease;\n  width: 100%;\n  height: 30px;\n  line-height: 30px;\n  outline: none;\n}\n.lui-bVM3E input::placeholder {\n  color: inherit;\n  opacity: 0.5;\n}\n.lui-1dXoa {\n  position: relative;\n  transform: translate(0);\n}\n.lui-1dXoa .react-json-view {\n  overflow: scroll !important;\n  padding: 12px !important;\n  white-space: nowrap;\n  width: 100%;\n  height: 100%;\n  font-family: \"monor\" !important;\n}\n.lui-1dXoa .react-json-view * {\n  font-size: 13px !important;\n  vertical-align: top;\n}\n.lui-llMOW {\n  width: 100%;\n  flex-shrink: 1 !important;\n  flex-direction: row-reverse;\n}\n.lui-36sov {\n  width: 140px;\n}\n.lui-1mNiI {\n  overflow-y: scroll;\n  transform: translate(0px);\n  overflow-x: hidden;\n  display: flex;\n  flex-direction: column;\n  height: 170px;\n  width: 100%;\n  min-width: 400px;\n}\n", ""]);
+exports.push([module.i, ".lui-2AHD- {\n  font-family: \"monor\";\n  font-size: 13px;\n  transform: translate(0);\n  height: 100%;\n  width: 100%;\n}\n.lui-2AHD- ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  background-color: rgba(0, 0, 0, 0.2);\n  width: 8px;\n  height: 8px;\n}\n.lui-2AHD- ::-webkit-scrollbar-corner {\n  background-color: rgba(0, 0, 0, 0.3);\n}\n.lui-2AHD- ::-webkit-scrollbar-thumb {\n  border-radius: 0px;\n  background-color: #7F7F7F;\n  transition: background-color 0.3s ease;\n}\n.lui-2AHD- ::-webkit-scrollbar-thumb:hover {\n  background-color: #8F8F8F;\n}\n.lui-2jxDq {\n  opacity: 0.4;\n  padding: 0 4;\n}\n.lui-2NWoF {\n  opacity: 0.4;\n  padding-right: 4;\n}\n.lui-2S7gN {\n  width: 30px;\n  height: 30px;\n}\n.lui-3exNq {\n  width: 100%;\n  height: 100%;\n}\n.lui-2Oig8 {\n  opacity: 0.5;\n}\n.lui-1Wnc8 {\n  max-height: 300px;\n  height: fit-content;\n  overflow-y: scroll;\n}\n.lui-eFoi1 {\n  white-space: nowrap;\n  margin-left: 3px;\n  margin-top: 1px;\n}\n.lui-2-Riw {\n  color: red;\n  background: rgba(0, 0, 0, 0.5);\n}\n.lui-3HzB1 {\n  right: 10px;\n  position: absolute;\n}\n.lui-3lJiS {\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  padding-left: 10px;\n  font-family: \"monor\";\n  opacity: 0.8;\n}\n.lui-3lJiS:hover {\n  opacity: 1;\n}\n.ReactVirtualized__Grid__innerScrollContainer {\n  min-width: 100%;\n}\n.lui-2hSbl {\n  width: 30px !important;\n}\n.lui-22qIa {\n  position: absolute;\n  right: 0;\n  bottom: 0;\n  padding: 5px;\n  transform: scale(0.8);\n  max-width: 200px;\n  min-width: 20px;\n  min-height: 20px;\n}\n.lui-22qIa .lui-2-Riw {\n  overflow-x: scroll;\n  overflow-y: visible;\n  padding: 5px;\n}\n.lui-1dCqE {\n  position: absolute;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 12px;\n  opacity: 0.7;\n  padding: 8px;\n  padding-right: 14px;\n  right: 0;\n  top: 0;\n}\n.lui-1dCqE i {\n  font-size: 16px;\n  padding-right: 6px;\n}\n.lui-3-5T7 {\n  height: auto !important;\n  min-height: 30px;\n  font-family: \"monor\";\n}\n.lui-3-5T7 .lui-24gT1 {\n  position: relative;\n  min-height: 30px;\n  margin: 0;\n  overflow-wrap: break-word;\n  padding: 8px;\n  font-size: 11px;\n  color: grey;\n  cursor: pointer;\n  white-space: pre;\n}\n* {\n  outline: none;\n}\n.lui-1-PvV {\n  overflow: visible !important;\n}\n.lui-2hSbl {\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  font-size: 15 !important;\n  width: 30;\n  opacity: 0.2;\n  transition: opacity 0.3s;\n  cursor: pointer;\n}\n.lui-2hSbl:hover {\n  opacity: 1;\n}\n.lui-4gr2j {\n  width: auto;\n  height: 230;\n  min-width: 200;\n  overflow-y: scroll;\n}\n.lui-3K2EQ {\n  cursor: pointer;\n}\n.lui-3K2EQ i {\n  margin: 0;\n}\n.lui-P8ljS {\n  width: 400px;\n  height: 300px;\n  display: flex;\n  flex-direction: column;\n}\n.lui-1w7qC {\n  position: absolute;\n  left: 0;\n  top: 0;\n}\n.lui-2X1G6 {\n  cursor: pointer;\n}\n.lui-2X1G6 .lui-2S7gN {\n  opacity: 0.5;\n  transition: opacity 0.3s ease;\n  line-height: inherit;\n}\n.lui-2X1G6:hover .lui-2S7gN {\n  opacity: 1;\n}\n.lui-2S7gN {\n  line-height: 30px;\n}\n.lui-bVM3E {\n  display: flex;\n  cursor: pointer;\n  height: 100%;\n  align-items: center;\n  vertical-align: middle;\n  line-height: 30px;\n  overflow: hidden;\n  text-align: left;\n  white-space: nowrap;\n  padding: 0px 10px;\n}\n.lui-bVM3E .lui-2PbsQ {\n  float: left;\n}\n.lui-bVM3E input {\n  font-family: \"monor\";\n  font-size: 13px;\n  margin-left: -10px;\n  transition: background 0.3s ease;\n  width: 100%;\n  height: 30px;\n  line-height: 30px;\n  outline: none;\n}\n.lui-bVM3E input::placeholder {\n  color: inherit;\n  opacity: 0.5;\n}\n.lui-1dXoa {\n  position: relative;\n  transform: translate(0);\n}\n.lui-1a1QO {\n  overflow: scroll;\n}\n.lui-1a1QO.lui-2eAQu .number {\n  color: #ff7a00;\n}\n.lui-1a1QO.lui-2eAQu .string {\n  color: #32e03f;\n}\n.lui-1a1QO.lui-2eAQu .property {\n  color: #e7e7e7;\n}\n.lui-1a1QO.lui-2eAQu .operator,\n.lui-1a1QO.lui-2eAQu .punctuation {\n  color: #929292;\n}\n.lui-1a1QO.lui-2ukSJ .number {\n  color: #a14e03;\n}\n.lui-1a1QO.lui-2ukSJ .string {\n  color: #1c7122;\n}\n.lui-1a1QO.lui-2ukSJ .property {\n  color: #121212;\n}\n.lui-1a1QO.lui-2ukSJ .operator,\n.lui-1a1QO.lui-2ukSJ .punctuation {\n  color: #878787;\n}\n.lui-3vBBz {\n  position: fixed !important;\n  height: fit-content !important;\n  width: fit-content !important;\n  bottom: 8px;\n  margin: 0px;\n  left: 0px;\n  right: unset;\n}\n.lui-3vBBz.lui-bPIzo {\n  top: 0px;\n  right: 8px;\n  left: unset;\n}\n.lui-llMOW {\n  width: 100%;\n  flex-shrink: 1 !important;\n  flex-direction: row-reverse;\n}\n.lui-36sov {\n  width: 140px;\n}\n.lui-1mNiI {\n  overflow-y: scroll;\n  transform: translate(0px);\n  overflow-x: hidden;\n  display: flex;\n  flex-direction: column;\n  height: 170px;\n  width: 100%;\n  min-width: 400px;\n}\n.lui-3JIxs {\n  position: fixed !important;\n  margin: 12px !important;\n  left: 0 !important;\n  top: 0 !important;\n}\n.lui-3JIxs * {\n  color: inherit !important;\n}\n", ""]);
 
 // exports
 exports.locals = {
@@ -3500,14 +3568,18 @@ exports.locals = {
 	"model-grid-search-query-view": "lui-P8ljS",
 	"data-item-method-menu": "lui-1w7qC",
 	"model-grid-key": "lui-2X1G6",
-	"json-editor-menu": "lui-3vBBz",
-	"vert": "lui-bPIzo",
 	"model-grid-cell": "lui-bVM3E",
 	"model-grid-label": "lui-2PbsQ",
 	"react-json-wrap": "lui-1dXoa",
+	"react-json-container": "lui-1a1QO",
+	"dark": "lui-2eAQu",
+	"light": "lui-2ukSJ",
+	"json-editor-menu": "lui-3vBBz",
+	"vert": "lui-bPIzo",
 	"model-grid-list-menu-right": "lui-llMOW",
 	"model-grid-list-layout-button": "lui-36sov",
-	"methods-list-container": "lui-1mNiI"
+	"methods-list-container": "lui-1mNiI",
+	"overlay-label-button": "lui-3JIxs"
 };
 
 /***/ }),
@@ -3595,6 +3667,2119 @@ function toComment(sourceMap) {
 
 	return '/*# ' + data + ' */';
 }
+
+
+/***/ }),
+
+/***/ "./node_modules/prismjs/components/prism-clike.js":
+/*!********************************************************!*\
+  !*** ./node_modules/prismjs/components/prism-clike.js ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+Prism.languages.clike = {
+	'comment': [
+		{
+			pattern: /(^|[^\\])\/\*[\s\S]*?(?:\*\/|$)/,
+			lookbehind: true
+		},
+		{
+			pattern: /(^|[^\\:])\/\/.*/,
+			lookbehind: true,
+			greedy: true
+		}
+	],
+	'string': {
+		pattern: /(["'])(?:\\(?:\r\n|[\s\S])|(?!\1)[^\\\r\n])*\1/,
+		greedy: true
+	},
+	'class-name': {
+		pattern: /((?:\b(?:class|interface|extends|implements|trait|instanceof|new)\s+)|(?:catch\s+\())[\w.\\]+/i,
+		lookbehind: true,
+		inside: {
+			punctuation: /[.\\]/
+		}
+	},
+	'keyword': /\b(?:if|else|while|do|for|return|in|instanceof|function|new|try|throw|catch|finally|null|break|continue)\b/,
+	'boolean': /\b(?:true|false)\b/,
+	'function': /[a-z0-9_]+(?=\()/i,
+	'number': /\b0x[\da-f]+\b|(?:\b\d+\.?\d*|\B\.\d+)(?:e[+-]?\d+)?/i,
+	'operator': /--?|\+\+?|!=?=?|<=?|>=?|==?=?|&&?|\|\|?|\?|\*|\/|~|\^|%/,
+	'punctuation': /[{}[\];(),.:]/
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/prismjs/components/prism-core.js":
+/*!*******************************************************!*\
+  !*** ./node_modules/prismjs/components/prism-core.js ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(global) {var _self = (typeof window !== 'undefined')
+	? window   // if in browser
+	: (
+		(typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope)
+		? self // if in worker
+		: {}   // if in node js
+	);
+
+/**
+ * Prism: Lightweight, robust, elegant syntax highlighting
+ * MIT license http://www.opensource.org/licenses/mit-license.php/
+ * @author Lea Verou http://lea.verou.me
+ */
+
+var Prism = (function(){
+
+// Private helper vars
+var lang = /\blang(?:uage)?-([\w-]+)\b/i;
+var uniqueId = 0;
+
+var _ = _self.Prism = {
+	manual: _self.Prism && _self.Prism.manual,
+	disableWorkerMessageHandler: _self.Prism && _self.Prism.disableWorkerMessageHandler,
+	util: {
+		encode: function (tokens) {
+			if (tokens instanceof Token) {
+				return new Token(tokens.type, _.util.encode(tokens.content), tokens.alias);
+			} else if (_.util.type(tokens) === 'Array') {
+				return tokens.map(_.util.encode);
+			} else {
+				return tokens.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\u00a0/g, ' ');
+			}
+		},
+
+		type: function (o) {
+			return Object.prototype.toString.call(o).match(/\[object (\w+)\]/)[1];
+		},
+
+		objId: function (obj) {
+			if (!obj['__id']) {
+				Object.defineProperty(obj, '__id', { value: ++uniqueId });
+			}
+			return obj['__id'];
+		},
+
+		// Deep clone a language definition (e.g. to extend it)
+		clone: function (o, visited) {
+			var type = _.util.type(o);
+			visited = visited || {};
+
+			switch (type) {
+				case 'Object':
+					if (visited[_.util.objId(o)]) {
+						return visited[_.util.objId(o)];
+					}
+					var clone = {};
+					visited[_.util.objId(o)] = clone;
+
+					for (var key in o) {
+						if (o.hasOwnProperty(key)) {
+							clone[key] = _.util.clone(o[key], visited);
+						}
+					}
+
+					return clone;
+
+				case 'Array':
+					if (visited[_.util.objId(o)]) {
+						return visited[_.util.objId(o)];
+					}
+					var clone = [];
+					visited[_.util.objId(o)] = clone;
+
+					o.forEach(function (v, i) {
+						clone[i] = _.util.clone(v, visited);
+					});
+
+					return clone;
+			}
+
+			return o;
+		}
+	},
+
+	languages: {
+		extend: function (id, redef) {
+			var lang = _.util.clone(_.languages[id]);
+
+			for (var key in redef) {
+				lang[key] = redef[key];
+			}
+
+			return lang;
+		},
+
+		/**
+		 * Insert a token before another token in a language literal
+		 * As this needs to recreate the object (we cannot actually insert before keys in object literals),
+		 * we cannot just provide an object, we need anobject and a key.
+		 * @param inside The key (or language id) of the parent
+		 * @param before The key to insert before. If not provided, the function appends instead.
+		 * @param insert Object with the key/value pairs to insert
+		 * @param root The object that contains `inside`. If equal to Prism.languages, it can be omitted.
+		 */
+		insertBefore: function (inside, before, insert, root) {
+			root = root || _.languages;
+			var grammar = root[inside];
+
+			if (arguments.length == 2) {
+				insert = arguments[1];
+
+				for (var newToken in insert) {
+					if (insert.hasOwnProperty(newToken)) {
+						grammar[newToken] = insert[newToken];
+					}
+				}
+
+				return grammar;
+			}
+
+			var ret = {};
+
+			for (var token in grammar) {
+
+				if (grammar.hasOwnProperty(token)) {
+
+					if (token == before) {
+
+						for (var newToken in insert) {
+
+							if (insert.hasOwnProperty(newToken)) {
+								ret[newToken] = insert[newToken];
+							}
+						}
+					}
+
+					ret[token] = grammar[token];
+				}
+			}
+
+			// Update references in other language definitions
+			_.languages.DFS(_.languages, function(key, value) {
+				if (value === root[inside] && key != inside) {
+					this[key] = ret;
+				}
+			});
+
+			return root[inside] = ret;
+		},
+
+		// Traverse a language definition with Depth First Search
+		DFS: function(o, callback, type, visited) {
+			visited = visited || {};
+			for (var i in o) {
+				if (o.hasOwnProperty(i)) {
+					callback.call(o, i, o[i], type || i);
+
+					if (_.util.type(o[i]) === 'Object' && !visited[_.util.objId(o[i])]) {
+						visited[_.util.objId(o[i])] = true;
+						_.languages.DFS(o[i], callback, null, visited);
+					}
+					else if (_.util.type(o[i]) === 'Array' && !visited[_.util.objId(o[i])]) {
+						visited[_.util.objId(o[i])] = true;
+						_.languages.DFS(o[i], callback, i, visited);
+					}
+				}
+			}
+		}
+	},
+	plugins: {},
+
+	highlightAll: function(async, callback) {
+		_.highlightAllUnder(document, async, callback);
+	},
+
+	highlightAllUnder: function(container, async, callback) {
+		var env = {
+			callback: callback,
+			selector: 'code[class*="language-"], [class*="language-"] code, code[class*="lang-"], [class*="lang-"] code'
+		};
+
+		_.hooks.run("before-highlightall", env);
+
+		var elements = env.elements || container.querySelectorAll(env.selector);
+
+		for (var i=0, element; element = elements[i++];) {
+			_.highlightElement(element, async === true, env.callback);
+		}
+	},
+
+	highlightElement: function(element, async, callback) {
+		// Find language
+		var language, grammar, parent = element;
+
+		while (parent && !lang.test(parent.className)) {
+			parent = parent.parentNode;
+		}
+
+		if (parent) {
+			language = (parent.className.match(lang) || [,''])[1].toLowerCase();
+			grammar = _.languages[language];
+		}
+
+		// Set language on the element, if not present
+		element.className = element.className.replace(lang, '').replace(/\s+/g, ' ') + ' language-' + language;
+
+		if (element.parentNode) {
+			// Set language on the parent, for styling
+			parent = element.parentNode;
+
+			if (/pre/i.test(parent.nodeName)) {
+				parent.className = parent.className.replace(lang, '').replace(/\s+/g, ' ') + ' language-' + language;
+			}
+		}
+
+		var code = element.textContent;
+
+		var env = {
+			element: element,
+			language: language,
+			grammar: grammar,
+			code: code
+		};
+
+		_.hooks.run('before-sanity-check', env);
+
+		if (!env.code || !env.grammar) {
+			if (env.code) {
+				_.hooks.run('before-highlight', env);
+				env.element.textContent = env.code;
+				_.hooks.run('after-highlight', env);
+			}
+			_.hooks.run('complete', env);
+			return;
+		}
+
+		_.hooks.run('before-highlight', env);
+
+		if (async && _self.Worker) {
+			var worker = new Worker(_.filename);
+
+			worker.onmessage = function(evt) {
+				env.highlightedCode = evt.data;
+
+				_.hooks.run('before-insert', env);
+
+				env.element.innerHTML = env.highlightedCode;
+
+				callback && callback.call(env.element);
+				_.hooks.run('after-highlight', env);
+				_.hooks.run('complete', env);
+			};
+
+			worker.postMessage(JSON.stringify({
+				language: env.language,
+				code: env.code,
+				immediateClose: true
+			}));
+		}
+		else {
+			env.highlightedCode = _.highlight(env.code, env.grammar, env.language);
+
+			_.hooks.run('before-insert', env);
+
+			env.element.innerHTML = env.highlightedCode;
+
+			callback && callback.call(element);
+
+			_.hooks.run('after-highlight', env);
+			_.hooks.run('complete', env);
+		}
+	},
+
+	highlight: function (text, grammar, language) {
+		var env = {
+			code: text,
+			grammar: grammar,
+			language: language
+		};
+		_.hooks.run('before-tokenize', env);
+		env.tokens = _.tokenize(env.code, env.grammar);
+		_.hooks.run('after-tokenize', env);
+		return Token.stringify(_.util.encode(env.tokens), env.language);
+	},
+
+	matchGrammar: function (text, strarr, grammar, index, startPos, oneshot, target) {
+		var Token = _.Token;
+
+		for (var token in grammar) {
+			if(!grammar.hasOwnProperty(token) || !grammar[token]) {
+				continue;
+			}
+
+			if (token == target) {
+				return;
+			}
+
+			var patterns = grammar[token];
+			patterns = (_.util.type(patterns) === "Array") ? patterns : [patterns];
+
+			for (var j = 0; j < patterns.length; ++j) {
+				var pattern = patterns[j],
+					inside = pattern.inside,
+					lookbehind = !!pattern.lookbehind,
+					greedy = !!pattern.greedy,
+					lookbehindLength = 0,
+					alias = pattern.alias;
+
+				if (greedy && !pattern.pattern.global) {
+					// Without the global flag, lastIndex won't work
+					var flags = pattern.pattern.toString().match(/[imuy]*$/)[0];
+					pattern.pattern = RegExp(pattern.pattern.source, flags + "g");
+				}
+
+				pattern = pattern.pattern || pattern;
+
+				// Don’t cache length as it changes during the loop
+				for (var i = index, pos = startPos; i < strarr.length; pos += strarr[i].length, ++i) {
+
+					var str = strarr[i];
+
+					if (strarr.length > text.length) {
+						// Something went terribly wrong, ABORT, ABORT!
+						return;
+					}
+
+					if (str instanceof Token) {
+						continue;
+					}
+
+					if (greedy && i != strarr.length - 1) {
+						pattern.lastIndex = pos;
+						var match = pattern.exec(text);
+						if (!match) {
+							break;
+						}
+
+						var from = match.index + (lookbehind ? match[1].length : 0),
+						    to = match.index + match[0].length,
+						    k = i,
+						    p = pos;
+
+						for (var len = strarr.length; k < len && (p < to || (!strarr[k].type && !strarr[k - 1].greedy)); ++k) {
+							p += strarr[k].length;
+							// Move the index i to the element in strarr that is closest to from
+							if (from >= p) {
+								++i;
+								pos = p;
+							}
+						}
+
+						// If strarr[i] is a Token, then the match starts inside another Token, which is invalid
+						if (strarr[i] instanceof Token) {
+							continue;
+						}
+
+						// Number of tokens to delete and replace with the new match
+						delNum = k - i;
+						str = text.slice(pos, p);
+						match.index -= pos;
+					} else {
+						pattern.lastIndex = 0;
+
+						var match = pattern.exec(str),
+							delNum = 1;
+					}
+
+					if (!match) {
+						if (oneshot) {
+							break;
+						}
+
+						continue;
+					}
+
+					if(lookbehind) {
+						lookbehindLength = match[1] ? match[1].length : 0;
+					}
+
+					var from = match.index + lookbehindLength,
+					    match = match[0].slice(lookbehindLength),
+					    to = from + match.length,
+					    before = str.slice(0, from),
+					    after = str.slice(to);
+
+					var args = [i, delNum];
+
+					if (before) {
+						++i;
+						pos += before.length;
+						args.push(before);
+					}
+
+					var wrapped = new Token(token, inside? _.tokenize(match, inside) : match, alias, match, greedy);
+
+					args.push(wrapped);
+
+					if (after) {
+						args.push(after);
+					}
+
+					Array.prototype.splice.apply(strarr, args);
+
+					if (delNum != 1)
+						_.matchGrammar(text, strarr, grammar, i, pos, true, token);
+
+					if (oneshot)
+						break;
+				}
+			}
+		}
+	},
+
+	tokenize: function(text, grammar, language) {
+		var strarr = [text];
+
+		var rest = grammar.rest;
+
+		if (rest) {
+			for (var token in rest) {
+				grammar[token] = rest[token];
+			}
+
+			delete grammar.rest;
+		}
+
+		_.matchGrammar(text, strarr, grammar, 0, 0, false);
+
+		return strarr;
+	},
+
+	hooks: {
+		all: {},
+
+		add: function (name, callback) {
+			var hooks = _.hooks.all;
+
+			hooks[name] = hooks[name] || [];
+
+			hooks[name].push(callback);
+		},
+
+		run: function (name, env) {
+			var callbacks = _.hooks.all[name];
+
+			if (!callbacks || !callbacks.length) {
+				return;
+			}
+
+			for (var i=0, callback; callback = callbacks[i++];) {
+				callback(env);
+			}
+		}
+	}
+};
+
+var Token = _.Token = function(type, content, alias, matchedStr, greedy) {
+	this.type = type;
+	this.content = content;
+	this.alias = alias;
+	// Copy of the full string this token was created from
+	this.length = (matchedStr || "").length|0;
+	this.greedy = !!greedy;
+};
+
+Token.stringify = function(o, language, parent) {
+	if (typeof o == 'string') {
+		return o;
+	}
+
+	if (_.util.type(o) === 'Array') {
+		return o.map(function(element) {
+			return Token.stringify(element, language, o);
+		}).join('');
+	}
+
+	var env = {
+		type: o.type,
+		content: Token.stringify(o.content, language, parent),
+		tag: 'span',
+		classes: ['token', o.type],
+		attributes: {},
+		language: language,
+		parent: parent
+	};
+
+	if (o.alias) {
+		var aliases = _.util.type(o.alias) === 'Array' ? o.alias : [o.alias];
+		Array.prototype.push.apply(env.classes, aliases);
+	}
+
+	_.hooks.run('wrap', env);
+
+	var attributes = Object.keys(env.attributes).map(function(name) {
+		return name + '="' + (env.attributes[name] || '').replace(/"/g, '&quot;') + '"';
+	}).join(' ');
+
+	return '<' + env.tag + ' class="' + env.classes.join(' ') + '"' + (attributes ? ' ' + attributes : '') + '>' + env.content + '</' + env.tag + '>';
+
+};
+
+if (!_self.document) {
+	if (!_self.addEventListener) {
+		// in Node.js
+		return _self.Prism;
+	}
+
+	if (!_.disableWorkerMessageHandler) {
+		// In worker
+		_self.addEventListener('message', function (evt) {
+			var message = JSON.parse(evt.data),
+				lang = message.language,
+				code = message.code,
+				immediateClose = message.immediateClose;
+
+			_self.postMessage(_.highlight(code, _.languages[lang], lang));
+			if (immediateClose) {
+				_self.close();
+			}
+		}, false);
+	}
+
+	return _self.Prism;
+}
+
+//Get current script and highlight
+var script = document.currentScript || [].slice.call(document.getElementsByTagName("script")).pop();
+
+if (script) {
+	_.filename = script.src;
+
+	if (!_.manual && !script.hasAttribute('data-manual')) {
+		if(document.readyState !== "loading") {
+			if (window.requestAnimationFrame) {
+				window.requestAnimationFrame(_.highlightAll);
+			} else {
+				window.setTimeout(_.highlightAll, 16);
+			}
+		}
+		else {
+			document.addEventListener('DOMContentLoaded', _.highlightAll);
+		}
+	}
+}
+
+return _self.Prism;
+
+})();
+
+if ( true && module.exports) {
+	module.exports = Prism;
+}
+
+// hack for components to work correctly in node.js
+if (typeof global !== 'undefined') {
+	global.Prism = Prism;
+}
+
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
+
+/***/ }),
+
+/***/ "./node_modules/prismjs/components/prism-json.js":
+/*!*******************************************************!*\
+  !*** ./node_modules/prismjs/components/prism-json.js ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+Prism.languages.json = {
+	'property': /"(?:\\.|[^\\"\r\n])*"(?=\s*:)/i,
+	'string': {
+		pattern: /"(?:\\.|[^\\"\r\n])*"(?!\s*:)/,
+		greedy: true
+	},
+	'number': /\b0x[\dA-Fa-f]+\b|(?:\b\d+\.?\d*|\B\.\d+)(?:[Ee][+-]?\d+)?/,
+	'punctuation': /[{}[\]);,]/,
+	'operator': /:/g,
+	'boolean': /\b(?:true|false)\b/i,
+	'null': /\bnull\b/i
+};
+
+Prism.languages.jsonp = Prism.languages.json;
+
+
+/***/ }),
+
+/***/ "./node_modules/prismjs/themes/prism-twilight.css":
+/*!********************************************************!*\
+  !*** ./node_modules/prismjs/themes/prism-twilight.css ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+var content = __webpack_require__(/*! !../../css-loader!./prism-twilight.css */ "./node_modules/css-loader/index.js!./node_modules/prismjs/themes/prism-twilight.css");
+
+if(typeof content === 'string') content = [[module.i, content, '']];
+
+var transform;
+var insertInto;
+
+
+
+var options = {"hmr":true}
+
+options.transform = transform
+options.insertInto = undefined;
+
+var update = __webpack_require__(/*! ../../style-loader/lib/addStyles.js */ "./node_modules/style-loader/lib/addStyles.js")(content, options);
+
+if(content.locals) module.exports = content.locals;
+
+if(false) {}
+
+/***/ }),
+
+/***/ "./node_modules/react-simple-code-editor/lib/index.js":
+/*!************************************************************!*\
+  !*** ./node_modules/react-simple-code-editor/lib/index.js ***!
+  \************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(global) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _react = __webpack_require__(/*! react */ "react");
+
+var React = _interopRequireWildcard(_react);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+/* global global */
+
+var KEYCODE_ENTER = 13;
+var KEYCODE_TAB = 9;
+var KEYCODE_BACKSPACE = 8;
+var KEYCODE_Y = 89;
+var KEYCODE_Z = 90;
+var KEYCODE_M = 77;
+var KEYCODE_PARENS = 57;
+var KEYCODE_BRACKETS = 219;
+var KEYCODE_QUOTE = 222;
+var KEYCODE_BACK_QUOTE = 192;
+
+var HISTORY_LIMIT = 100;
+var HISTORY_TIME_GAP = 3000;
+
+var isWindows = 'navigator' in global && /Win/i.test(navigator.platform);
+var isMacLike = 'navigator' in global && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
+
+var className = 'npm__react-simple-code-editor__textarea';
+
+var cssText = /* CSS */'\n/**\n * Reset the text fill color so that placeholder is visible\n */\n.' + className + ':empty {\n  -webkit-text-fill-color: inherit !important;\n}\n\n/**\n * IE doesn\'t support \'-webkit-text-fill-color\'\n * So we use \'color: transparent\' to make the text transparent on IE\n * Unlike other browsers, it doesn\'t affect caret color in IE\n */\n.' + className + '-ie {\n  color: transparent !important;\n}\n\n.' + className + '-ie::selection {\n  background-color: #accef7 !important;\n  color: transparent !important;\n}\n';
+
+var Editor = function (_React$Component) {
+  _inherits(Editor, _React$Component);
+
+  function Editor() {
+    var _ref;
+
+    var _temp, _this, _ret;
+
+    _classCallCheck(this, Editor);
+
+    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+
+    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Editor.__proto__ || Object.getPrototypeOf(Editor)).call.apply(_ref, [this].concat(args))), _this), _this.state = {
+      capture: true,
+      ie: false
+    }, _this._recordCurrentState = function () {
+      var input = _this._input;
+
+      if (!input) return;
+
+      // Save current state of the input
+      var value = input.value,
+          selectionStart = input.selectionStart,
+          selectionEnd = input.selectionEnd;
+
+
+      _this._recordChange({
+        value: value,
+        selectionStart: selectionStart,
+        selectionEnd: selectionEnd
+      });
+    }, _this._getLines = function (text, position) {
+      return text.substring(0, position).split('\n');
+    }, _this._recordChange = function (record) {
+      var overwrite = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+      var _this$_history = _this._history,
+          stack = _this$_history.stack,
+          offset = _this$_history.offset;
+
+
+      if (stack.length && offset > -1) {
+        // When something updates, drop the redo operations
+        _this._history.stack = stack.slice(0, offset + 1);
+
+        // Limit the number of operations to 100
+        var count = _this._history.stack.length;
+
+        if (count > HISTORY_LIMIT) {
+          var extras = count - HISTORY_LIMIT;
+
+          _this._history.stack = stack.slice(extras, count);
+          _this._history.offset = Math.max(_this._history.offset - extras, 0);
+        }
+      }
+
+      var timestamp = Date.now();
+
+      if (overwrite) {
+        var last = _this._history.stack[_this._history.offset];
+
+        if (last && timestamp - last.timestamp < HISTORY_TIME_GAP) {
+          // A previous entry exists and was in short interval
+
+          // Match the last word in the line
+          var re = /[^a-z0-9]([a-z0-9]+)$/i;
+
+          // Get the previous line
+          var previous = _this._getLines(last.value, last.selectionStart).pop().match(re);
+
+          // Get the current line
+          var current = _this._getLines(record.value, record.selectionStart).pop().match(re);
+
+          if (previous && current && current[1].startsWith(previous[1])) {
+            // The last word of the previous line and current line match
+            // Overwrite previous entry so that undo will remove whole word
+            _this._history.stack[_this._history.offset] = _extends({}, record, { timestamp: timestamp });
+
+            return;
+          }
+        }
+      }
+
+      // Add the new operation to the stack
+      _this._history.stack.push(_extends({}, record, { timestamp: timestamp }));
+      _this._history.offset++;
+    }, _this._updateInput = function (record) {
+      var input = _this._input;
+
+      if (!input) return;
+
+      // Update values and selection state
+      input.value = record.value;
+      input.selectionStart = record.selectionStart;
+      input.selectionEnd = record.selectionEnd;
+
+      _this.props.onValueChange(record.value);
+    }, _this._applyEdits = function (record) {
+      // Save last selection state
+      var input = _this._input;
+      var last = _this._history.stack[_this._history.offset];
+
+      if (last && input) {
+        _this._history.stack[_this._history.offset] = _extends({}, last, {
+          selectionStart: input.selectionStart,
+          selectionEnd: input.selectionEnd
+        });
+      }
+
+      // Save the changes
+      _this._recordChange(record);
+      _this._updateInput(record);
+    }, _this._undoEdit = function () {
+      var _this$_history2 = _this._history,
+          stack = _this$_history2.stack,
+          offset = _this$_history2.offset;
+
+      // Get the previous edit
+
+      var record = stack[offset - 1];
+
+      if (record) {
+        // Apply the changes and update the offset
+        _this._updateInput(record);
+        _this._history.offset = Math.max(offset - 1, 0);
+      }
+    }, _this._redoEdit = function () {
+      var _this$_history3 = _this._history,
+          stack = _this$_history3.stack,
+          offset = _this$_history3.offset;
+
+      // Get the next edit
+
+      var record = stack[offset + 1];
+
+      if (record) {
+        // Apply the changes and update the offset
+        _this._updateInput(record);
+        _this._history.offset = Math.min(offset + 1, stack.length - 1);
+      }
+    }, _this._handleKeyDown = function (e) {
+      var _this$props = _this.props,
+          tabSize = _this$props.tabSize,
+          insertSpaces = _this$props.insertSpaces,
+          ignoreTabKey = _this$props.ignoreTabKey;
+      var _e$target = e.target,
+          value = _e$target.value,
+          selectionStart = _e$target.selectionStart,
+          selectionEnd = _e$target.selectionEnd;
+
+
+      var tabCharacter = (insertSpaces ? ' ' : '     ').repeat(tabSize);
+
+      if (e.keyCode === KEYCODE_TAB && !ignoreTabKey && _this.state.capture) {
+        // Prevent focus change
+        e.preventDefault();
+
+        if (e.shiftKey) {
+          // Unindent selected lines
+          var linesBeforeCaret = _this._getLines(value, selectionStart);
+          var startLine = linesBeforeCaret.length - 1;
+          var endLine = _this._getLines(value, selectionEnd).length - 1;
+          var nextValue = value.split('\n').map(function (line, i) {
+            if (i >= startLine && i <= endLine && line.startsWith(tabCharacter)) {
+              return line.substring(tabCharacter.length);
+            }
+
+            return line;
+          }).join('\n');
+
+          if (value !== nextValue) {
+            var startLineText = linesBeforeCaret[startLine];
+
+            _this._applyEdits({
+              value: nextValue,
+              // Move the start cursor if first line in selection was modified
+              // It was modified only if it started with a tab
+              selectionStart: startLineText.startsWith(tabCharacter) ? selectionStart - tabCharacter.length : selectionStart,
+              // Move the end cursor by total number of characters removed
+              selectionEnd: selectionEnd - (value.length - nextValue.length)
+            });
+          }
+        } else if (selectionStart !== selectionEnd) {
+          // Indent selected lines
+          var _linesBeforeCaret = _this._getLines(value, selectionStart);
+          var _startLine = _linesBeforeCaret.length - 1;
+          var _endLine = _this._getLines(value, selectionEnd).length - 1;
+          var _startLineText = _linesBeforeCaret[_startLine];
+
+          _this._applyEdits({
+            value: value.split('\n').map(function (line, i) {
+              if (i >= _startLine && i <= _endLine) {
+                return tabCharacter + line;
+              }
+
+              return line;
+            }).join('\n'),
+            // Move the start cursor by number of characters added in first line of selection
+            // Don't move it if it there was no text before cursor
+            selectionStart: /\S/.test(_startLineText) ? selectionStart + tabCharacter.length : selectionStart,
+            // Move the end cursor by total number of characters added
+            selectionEnd: selectionEnd + tabCharacter.length * (_endLine - _startLine + 1)
+          });
+        } else {
+          var updatedSelection = selectionStart + tabCharacter.length;
+
+          _this._applyEdits({
+            // Insert tab character at caret
+            value: value.substring(0, selectionStart) + tabCharacter + value.substring(selectionEnd),
+            // Update caret position
+            selectionStart: updatedSelection,
+            selectionEnd: updatedSelection
+          });
+        }
+      } else if (e.keyCode === KEYCODE_BACKSPACE) {
+        var hasSelection = selectionStart !== selectionEnd;
+        var textBeforeCaret = value.substring(0, selectionStart);
+
+        if (textBeforeCaret.endsWith(tabCharacter) && !hasSelection) {
+          // Prevent default delete behaviour
+          e.preventDefault();
+
+          var _updatedSelection = selectionStart - tabCharacter.length;
+
+          _this._applyEdits({
+            // Remove tab character at caret
+            value: value.substring(0, selectionStart - tabCharacter.length) + value.substring(selectionEnd),
+            // Update caret position
+            selectionStart: _updatedSelection,
+            selectionEnd: _updatedSelection
+          });
+        }
+      } else if (e.keyCode === KEYCODE_ENTER) {
+        // Ignore selections
+        if (selectionStart === selectionEnd) {
+          // Get the current line
+          var line = _this._getLines(value, selectionStart).pop();
+          var matches = line.match(/^\s+/);
+
+          if (matches && matches[0]) {
+            e.preventDefault();
+
+            // Preserve indentation on inserting a new line
+            var indent = '\n' + matches[0];
+            var _updatedSelection2 = selectionStart + indent.length;
+
+            _this._applyEdits({
+              // Insert indentation character at caret
+              value: value.substring(0, selectionStart) + indent + value.substring(selectionEnd),
+              // Update caret position
+              selectionStart: _updatedSelection2,
+              selectionEnd: _updatedSelection2
+            });
+          }
+        }
+      } else if (e.keyCode === KEYCODE_PARENS || e.keyCode === KEYCODE_BRACKETS || e.keyCode === KEYCODE_QUOTE || e.keyCode === KEYCODE_BACK_QUOTE) {
+        var chars = void 0;
+
+        if (e.keyCode === KEYCODE_PARENS && e.shiftKey) {
+          chars = ['(', ')'];
+        } else if (e.keyCode === KEYCODE_BRACKETS) {
+          if (e.shiftKey) {
+            chars = ['{', '}'];
+          } else {
+            chars = ['[', ']'];
+          }
+        } else if (e.keyCode === KEYCODE_QUOTE) {
+          if (e.shiftKey) {
+            chars = ['"', '"'];
+          } else {
+            chars = ["'", "'"];
+          }
+        } else if (e.keyCode === KEYCODE_BACK_QUOTE && !e.shiftKey) {
+          chars = ['`', '`'];
+        }
+
+        // If text is selected, wrap them in the characters
+        if (selectionStart !== selectionEnd && chars) {
+          e.preventDefault();
+
+          _this._applyEdits({
+            value: value.substring(0, selectionStart) + chars[0] + value.substring(selectionStart, selectionEnd) + chars[1] + value.substring(selectionEnd),
+            // Update caret position
+            selectionStart: selectionStart,
+            selectionEnd: selectionEnd + 2
+          });
+        }
+      } else if ((isMacLike ? // Trigger undo with ⌘+Z on Mac
+      e.metaKey && e.keyCode === KEYCODE_Z : // Trigger undo with Ctrl+Z on other platforms
+      e.ctrlKey && e.keyCode === KEYCODE_Z) && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+
+        _this._undoEdit();
+      } else if ((isMacLike ? // Trigger redo with ⌘+Shift+Z on Mac
+      e.metaKey && e.keyCode === KEYCODE_Z && e.shiftKey : isWindows ? // Trigger redo with Ctrl+Y on Windows
+      e.ctrlKey && e.keyCode === KEYCODE_Y : // Trigger redo with Ctrl+Shift+Z on other platforms
+      e.ctrlKey && e.keyCode === KEYCODE_Z && e.shiftKey) && !e.altKey) {
+        e.preventDefault();
+
+        _this._redoEdit();
+      } else if (e.keyCode === KEYCODE_M && e.ctrlKey && (isMacLike ? e.shiftKey : true)) {
+        e.preventDefault();
+
+        // Toggle capturing tab key so users can focus away
+        _this.setState(function (state) {
+          return {
+            capture: !state.capture
+          };
+        });
+      }
+    }, _this._handleChange = function (e) {
+      var _e$target2 = e.target,
+          value = _e$target2.value,
+          selectionStart = _e$target2.selectionStart,
+          selectionEnd = _e$target2.selectionEnd;
+
+
+      _this._recordChange({
+        value: value,
+        selectionStart: selectionStart,
+        selectionEnd: selectionEnd
+      }, true);
+
+      _this.props.onValueChange(value);
+    }, _this._history = {
+      stack: [],
+      offset: -1
+    }, _temp), _possibleConstructorReturn(_this, _ret);
+  }
+
+  _createClass(Editor, [{
+    key: 'componentDidMount',
+    value: function componentDidMount() {
+      if (/Trident/.test(navigator.userAgent)) {
+        // The browser is Internet Explorer
+        // eslint-disable-next-line react/no-did-mount-set-state
+        this.setState({ ie: true });
+      }
+
+      this._recordCurrentState();
+    }
+  }, {
+    key: 'render',
+    value: function render() {
+      var _this2 = this;
+
+      var _props = this.props,
+          value = _props.value,
+          style = _props.style,
+          padding = _props.padding,
+          highlight = _props.highlight,
+          autoFocus = _props.autoFocus,
+          disabled = _props.disabled,
+          form = _props.form,
+          maxLength = _props.maxLength,
+          minLength = _props.minLength,
+          name = _props.name,
+          placeholder = _props.placeholder,
+          readOnly = _props.readOnly,
+          required = _props.required,
+          onFocus = _props.onFocus,
+          onBlur = _props.onBlur,
+          onValueChange = _props.onValueChange,
+          tabSize = _props.tabSize,
+          insertSpaces = _props.insertSpaces,
+          ignoreTabKey = _props.ignoreTabKey,
+          rest = _objectWithoutProperties(_props, ['value', 'style', 'padding', 'highlight', 'autoFocus', 'disabled', 'form', 'maxLength', 'minLength', 'name', 'placeholder', 'readOnly', 'required', 'onFocus', 'onBlur', 'onValueChange', 'tabSize', 'insertSpaces', 'ignoreTabKey']);
+
+      var contentStyle = {
+        paddingTop: padding,
+        paddingRight: padding,
+        paddingBottom: padding,
+        paddingLeft: padding
+      };
+
+      var highlighted = highlight(value);
+
+      return React.createElement(
+        'div',
+        _extends({}, rest, { style: _extends({}, styles.container, style) }),
+        React.createElement('textarea', {
+          ref: function ref(c) {
+            return _this2._input = c;
+          },
+          style: _extends({}, styles.editor, styles.textarea, contentStyle),
+          className: className + ' ' + (this.state.ie ? className + '-ie' : ''),
+          value: value,
+          onChange: this._handleChange,
+          onKeyDown: this._handleKeyDown,
+          onFocus: onFocus,
+          onBlur: onBlur,
+          disabled: disabled,
+          form: form,
+          maxLength: maxLength,
+          minLength: minLength,
+          name: name,
+          placeholder: placeholder,
+          readOnly: readOnly,
+          required: required,
+          autoFocus: autoFocus,
+          autoCapitalize: 'off',
+          autoComplete: 'off',
+          autoCorrect: 'off',
+          spellCheck: false,
+          'data-gramm': false
+        }),
+        React.createElement('pre', _extends({
+          'aria-hidden': 'true',
+          style: _extends({}, styles.editor, styles.highlight, contentStyle)
+        }, typeof highlighted === 'string' ? { dangerouslySetInnerHTML: { __html: highlighted + '<br />' } } : { children: highlighted })),
+        React.createElement(
+          'style',
+          { type: 'text/css' },
+          cssText
+        )
+      );
+    }
+  }, {
+    key: 'session',
+    get: function get() {
+      return {
+        history: this._history
+      };
+    },
+    set: function set(session) {
+      this._history = session.history;
+    }
+  }]);
+
+  return Editor;
+}(React.Component);
+
+Editor.defaultProps = {
+  tabSize: 2,
+  insertSpaces: true,
+  ignoreTabKey: false,
+  padding: 0
+};
+exports.default = Editor;
+
+
+var styles = {
+  container: {
+    position: 'relative',
+    textAlign: 'left',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'keep-all',
+    boxSizing: 'border-box',
+    padding: 0
+  },
+  textarea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: '100%',
+    margin: 0,
+    border: 0,
+    resize: 'none',
+    background: 'none',
+    overflow: 'hidden',
+    color: 'inherit',
+    MozOsxFontSmoothing: 'grayscale',
+    WebkitFontSmoothing: 'antialiased',
+    WebkitTextFillColor: 'transparent'
+  },
+  highlight: {
+    position: 'relative',
+    margin: 0,
+    border: 0,
+    pointerEvents: 'none'
+  },
+  editor: {
+    boxSizing: 'inherit',
+    display: 'inherit',
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+    fontStyle: 'inherit',
+    fontVariantLigatures: 'inherit',
+    fontWeight: 'inherit',
+    letterSpacing: 'inherit',
+    lineHeight: 'inherit',
+    tabSize: 'inherit',
+    textIndent: 'inherit',
+    textRendering: 'inherit',
+    textTransform: 'inherit',
+    whiteSpace: 'inherit',
+    wordBreak: 'inherit'
+  }
+};
+//# sourceMappingURL=index.js.map
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
+
+/***/ }),
+
+/***/ "./node_modules/rfc6902/diff.js":
+/*!**************************************!*\
+  !*** ./node_modules/rfc6902/diff.js ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var equal_1 = __webpack_require__(/*! ./equal */ "./node_modules/rfc6902/equal.js");
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+function isDestructive(_a) {
+    var op = _a.op;
+    return op === 'remove' || op === 'replace' || op === 'copy' || op === 'move';
+}
+exports.isDestructive = isDestructive;
+/**
+List the keys in `minuend` that are not in `subtrahend`.
+
+A key is only considered if it is both 1) an own-property (o.hasOwnProperty(k))
+of the object, and 2) has a value that is not undefined. This is to match JSON
+semantics, where JSON object serialization drops keys with undefined values.
+
+@param minuend Object of interest
+@param subtrahend Object of comparison
+@returns Array of keys that are in `minuend` but not in `subtrahend`.
+*/
+function subtract(minuend, subtrahend) {
+    // initialize empty object; we only care about the keys, the values can be anything
+    var obj = {};
+    // build up obj with all the properties of minuend
+    for (var add_key in minuend) {
+        if (hasOwnProperty.call(minuend, add_key) && minuend[add_key] !== undefined) {
+            obj[add_key] = 1;
+        }
+    }
+    // now delete all the properties of subtrahend from obj
+    // (deleting a missing key has no effect)
+    for (var del_key in subtrahend) {
+        if (hasOwnProperty.call(subtrahend, del_key) && subtrahend[del_key] !== undefined) {
+            delete obj[del_key];
+        }
+    }
+    // finally, extract whatever keys remain in obj
+    return Object.keys(obj);
+}
+exports.subtract = subtract;
+/**
+List the keys that shared by all `objects`.
+
+The semantics of what constitutes a "key" is described in {@link subtract}.
+
+@param objects Array of objects to compare
+@returns Array of keys that are in ("own-properties" of) every object in `objects`.
+*/
+function intersection(objects) {
+    var length = objects.length;
+    // prepare empty counter to keep track of how many objects each key occurred in
+    var counter = {};
+    // go through each object and increment the counter for each key in that object
+    for (var i = 0; i < length; i++) {
+        var object = objects[i];
+        for (var key in object) {
+            if (hasOwnProperty.call(object, key) && object[key] !== undefined) {
+                counter[key] = (counter[key] || 0) + 1;
+            }
+        }
+    }
+    // now delete all keys from the counter that were not seen in every object
+    for (var key in counter) {
+        if (counter[key] < length) {
+            delete counter[key];
+        }
+    }
+    // finally, extract whatever keys remain in the counter
+    return Object.keys(counter);
+}
+exports.intersection = intersection;
+function isArrayAdd(array_operation) {
+    return array_operation.op === 'add';
+}
+function isArrayRemove(array_operation) {
+    return array_operation.op === 'remove';
+}
+function appendArrayOperation(base, operation) {
+    return {
+        // the new operation must be pushed on the end
+        operations: base.operations.concat(operation),
+        cost: base.cost + 1,
+    };
+}
+/**
+Calculate the shortest sequence of operations to get from `input` to `output`,
+using a dynamic programming implementation of the Levenshtein distance algorithm.
+
+To get from the input ABC to the output AZ we could just delete all the input
+and say "insert A, insert Z" and be done with it. That's what we do if the
+input is empty. But we can be smarter.
+
+          output
+               A   Z
+               -   -
+          [0]  1   2
+input A |  1  [0]  1
+      B |  2  [1]  1
+      C |  3   2  [2]
+
+1) start at 0,0 (+0)
+2) keep A (+0)
+3) remove B (+1)
+4) replace C with Z (+1)
+
+If the `input` (source) is empty, they'll all be in the top row, resulting in an
+array of 'add' operations.
+If the `output` (target) is empty, everything will be in the left column,
+resulting in an array of 'remove' operations.
+
+@returns A list of add/remove/replace operations.
+*/
+function diffArrays(input, output, ptr, diff) {
+    if (diff === void 0) { diff = diffAny; }
+    // set up cost matrix (very simple initialization: just a map)
+    var memo = {
+        '0,0': { operations: [], cost: 0 },
+    };
+    /**
+    Calculate the cheapest sequence of operations required to get from
+    input.slice(0, i) to output.slice(0, j).
+    There may be other valid sequences with the same cost, but none cheaper.
+  
+    @param i The row in the layout above
+    @param j The column in the layout above
+    @returns An object containing a list of operations, along with the total cost
+             of applying them (+1 for each add/remove/replace operation)
+    */
+    function dist(i, j) {
+        // memoized
+        var memo_key = i + "," + j;
+        var memoized = memo[memo_key];
+        if (memoized === undefined) {
+            if (i > 0 && j > 0 && equal_1.compare(input[i - 1], output[j - 1])) {
+                // equal (no operations => no cost)
+                memoized = dist(i - 1, j - 1);
+            }
+            else {
+                var alternatives = [];
+                if (i > 0) {
+                    // NOT topmost row
+                    var remove_base = dist(i - 1, j);
+                    var remove_operation = {
+                        op: 'remove',
+                        index: i - 1,
+                    };
+                    alternatives.push(appendArrayOperation(remove_base, remove_operation));
+                }
+                if (j > 0) {
+                    // NOT leftmost column
+                    var add_base = dist(i, j - 1);
+                    var add_operation = {
+                        op: 'add',
+                        index: i - 1,
+                        value: output[j - 1],
+                    };
+                    alternatives.push(appendArrayOperation(add_base, add_operation));
+                }
+                if (i > 0 && j > 0) {
+                    // TABLE MIDDLE
+                    // supposing we replaced it, compute the rest of the costs:
+                    var replace_base = dist(i - 1, j - 1);
+                    // okay, the general plan is to replace it, but we can be smarter,
+                    // recursing into the structure and replacing only part of it if
+                    // possible, but to do so we'll need the original value
+                    var replace_operation = {
+                        op: 'replace',
+                        index: i - 1,
+                        original: input[i - 1],
+                        value: output[j - 1],
+                    };
+                    alternatives.push(appendArrayOperation(replace_base, replace_operation));
+                }
+                // the only other case, i === 0 && j === 0, has already been memoized
+                // the meat of the algorithm:
+                // sort by cost to find the lowest one (might be several ties for lowest)
+                // [4, 6, 7, 1, 2].sort((a, b) => a - b) -> [ 1, 2, 4, 6, 7 ]
+                var best = alternatives.sort(function (a, b) { return a.cost - b.cost; })[0];
+                memoized = best;
+            }
+            memo[memo_key] = memoized;
+        }
+        return memoized;
+    }
+    // handle weird objects masquerading as Arrays that don't have proper length
+    // properties by using 0 for everything but positive numbers
+    var input_length = (isNaN(input.length) || input.length <= 0) ? 0 : input.length;
+    var output_length = (isNaN(output.length) || output.length <= 0) ? 0 : output.length;
+    var array_operations = dist(input_length, output_length).operations;
+    var padded_operations = array_operations.reduce(function (_a, array_operation) {
+        var operations = _a[0], padding = _a[1];
+        if (isArrayAdd(array_operation)) {
+            var padded_index = array_operation.index + 1 + padding;
+            var index_token = padded_index < (input_length + padding) ? String(padded_index) : '-';
+            var operation = {
+                op: array_operation.op,
+                path: ptr.add(index_token).toString(),
+                value: array_operation.value,
+            };
+            // padding++ // maybe only if array_operation.index > -1 ?
+            return [operations.concat(operation), padding + 1];
+        }
+        else if (isArrayRemove(array_operation)) {
+            var operation = {
+                op: array_operation.op,
+                path: ptr.add(String(array_operation.index + padding)).toString(),
+            };
+            // padding--
+            return [operations.concat(operation), padding - 1];
+        }
+        else { // replace
+            var replace_ptr = ptr.add(String(array_operation.index + padding));
+            var replace_operations = diff(array_operation.original, array_operation.value, replace_ptr);
+            return [operations.concat.apply(operations, replace_operations), padding];
+        }
+    }, [[], 0])[0];
+    return padded_operations;
+}
+exports.diffArrays = diffArrays;
+function diffObjects(input, output, ptr, diff) {
+    if (diff === void 0) { diff = diffAny; }
+    // if a key is in input but not output -> remove it
+    var operations = [];
+    subtract(input, output).forEach(function (key) {
+        operations.push({ op: 'remove', path: ptr.add(key).toString() });
+    });
+    // if a key is in output but not input -> add it
+    subtract(output, input).forEach(function (key) {
+        operations.push({ op: 'add', path: ptr.add(key).toString(), value: output[key] });
+    });
+    // if a key is in both, diff it recursively
+    intersection([input, output]).forEach(function (key) {
+        operations.push.apply(operations, diff(input[key], output[key], ptr.add(key)));
+    });
+    return operations;
+}
+exports.diffObjects = diffObjects;
+function diffValues(input, output, ptr) {
+    if (!equal_1.compare(input, output)) {
+        return [{ op: 'replace', path: ptr.toString(), value: output }];
+    }
+    return [];
+}
+exports.diffValues = diffValues;
+function diffAny(input, output, ptr, diff) {
+    if (diff === void 0) { diff = diffAny; }
+    var input_type = equal_1.objectType(input);
+    var output_type = equal_1.objectType(output);
+    if (input_type == 'array' && output_type == 'array') {
+        return diffArrays(input, output, ptr, diff);
+    }
+    if (input_type == 'object' && output_type == 'object') {
+        return diffObjects(input, output, ptr, diff);
+    }
+    // only pairs of arrays and objects can go down a path to produce a smaller
+    // diff; everything else must be wholesale replaced if inequal
+    return diffValues(input, output, ptr);
+}
+exports.diffAny = diffAny;
+
+
+/***/ }),
+
+/***/ "./node_modules/rfc6902/equal.js":
+/*!***************************************!*\
+  !*** ./node_modules/rfc6902/equal.js ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+function objectType(object) {
+    if (object === undefined) {
+        return 'undefined';
+    }
+    if (object === null) {
+        return 'null';
+    }
+    if (Array.isArray(object)) {
+        return 'array';
+    }
+    return typeof object;
+}
+exports.objectType = objectType;
+/**
+Evaluate `left === right`, treating `left` and `right` as ordered lists.
+
+@returns true iff `left` and `right` have identical lengths, and every element
+         of `left` is equal to the corresponding element of `right`. Equality is
+         determined recursivly, via `compare`.
+*/
+function compareArrays(left, right) {
+    var length = left.length;
+    if (length !== right.length) {
+        return false;
+    }
+    for (var i = 0; i < length; i++) {
+        if (!compare(left[i], right[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+/**
+Evaluate `left === right`, treating `left` and `right` as property maps.
+
+@returns true iff every property in `left` has a value equal to the value of the
+         corresponding property in `right`, and vice-versa, stopping as soon as
+         possible. Equality is determined recursivly, via `compare`.
+*/
+function compareObjects(left, right) {
+    var left_keys = Object.keys(left);
+    var right_keys = Object.keys(right);
+    var length = left_keys.length;
+    // quick exit if the number of keys don't match up
+    if (length !== right_keys.length) {
+        return false;
+    }
+    // we don't know for sure that Set(left_keys) is equal to Set(right_keys),
+    // much less that their values in left and right are equal, but if right
+    // contains each key in left, we know it can't have any additional keys
+    for (var i = 0; i < length; i++) {
+        var key = left_keys[i];
+        if (!hasOwnProperty.call(right, key) || !compare(left[key], right[key])) {
+            return false;
+        }
+    }
+    return true;
+}
+/**
+`compare()` returns true if `left` and `right` are materially equal
+(i.e., would produce equivalent JSON), false otherwise.
+
+> Here, "equal" means that the value at the target location and the
+> value conveyed by "value" are of the same JSON type, and that they
+> are considered equal by the following rules for that type:
+> o  strings: are considered equal if they contain the same number of
+>    Unicode characters and their code points are byte-by-byte equal.
+> o  numbers: are considered equal if their values are numerically
+>    equal.
+> o  arrays: are considered equal if they contain the same number of
+>    values, and if each value can be considered equal to the value at
+>    the corresponding position in the other array, using this list of
+>    type-specific rules.
+> o  objects: are considered equal if they contain the same number of
+>    members, and if each member can be considered equal to a member in
+>    the other object, by comparing their keys (as strings) and their
+>    values (using this list of type-specific rules).
+> o  literals (false, true, and null): are considered equal if they are
+>    the same.
+*/
+function compare(left, right) {
+    // strict equality handles literals, numbers, and strings (a sufficient but not necessary cause)
+    if (left === right) {
+        return true;
+    }
+    var left_type = objectType(left);
+    var right_type = objectType(right);
+    // check arrays
+    if (left_type == 'array' && right_type == 'array') {
+        return compareArrays(left, right);
+    }
+    // check objects
+    if (left_type == 'object' && right_type == 'object') {
+        return compareObjects(left, right);
+    }
+    // mismatched arrays & objects, etc., are always inequal
+    return false;
+}
+exports.compare = compare;
+
+
+/***/ }),
+
+/***/ "./node_modules/rfc6902/index.js":
+/*!***************************************!*\
+  !*** ./node_modules/rfc6902/index.js ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var pointer_1 = __webpack_require__(/*! ./pointer */ "./node_modules/rfc6902/pointer.js");
+var patch_1 = __webpack_require__(/*! ./patch */ "./node_modules/rfc6902/patch.js");
+var diff_1 = __webpack_require__(/*! ./diff */ "./node_modules/rfc6902/diff.js");
+/**
+Apply a 'application/json-patch+json'-type patch to an object.
+
+`patch` *must* be an array of operations.
+
+> Operation objects MUST have exactly one "op" member, whose value
+> indicates the operation to perform.  Its value MUST be one of "add",
+> "remove", "replace", "move", "copy", or "test"; other values are
+> errors.
+
+This method mutates the target object in-place.
+
+@returns list of results, one for each operation: `null` indicated success,
+         otherwise, the result will be an instance of one of the Error classes:
+         MissingError, InvalidOperationError, or TestError.
+*/
+function applyPatch(object, patch) {
+    return patch.map(function (operation) { return patch_1.apply(object, operation); });
+}
+exports.applyPatch = applyPatch;
+function wrapVoidableDiff(diff) {
+    function wrappedDiff(input, output, ptr) {
+        var custom_patch = diff(input, output, ptr);
+        // ensure an array is always returned
+        return Array.isArray(custom_patch) ? custom_patch : diff_1.diffAny(input, output, ptr, wrappedDiff);
+    }
+    return wrappedDiff;
+}
+/**
+Produce a 'application/json-patch+json'-type patch to get from one object to
+another.
+
+This does not alter `input` or `output` unless they have a property getter with
+side-effects (which is not a good idea anyway).
+
+`diff` is called on each pair of comparable non-primitive nodes in the
+`input`/`output` object trees, producing nested patches. Return `undefined`
+to fall back to default behaviour.
+
+Returns list of operations to perform on `input` to produce `output`.
+*/
+function createPatch(input, output, diff) {
+    var ptr = new pointer_1.Pointer();
+    // a new Pointer gets a default path of [''] if not specified
+    return (diff ? wrapVoidableDiff(diff) : diff_1.diffAny)(input, output, ptr);
+}
+exports.createPatch = createPatch;
+/**
+Create a test operation based on `input`'s current evaluation of the JSON
+Pointer `path`; if such a pointer cannot be resolved, returns undefined.
+*/
+function createTest(input, path) {
+    var endpoint = pointer_1.Pointer.fromJSON(path).evaluate(input);
+    if (endpoint !== undefined) {
+        return { op: 'test', path: path, value: endpoint.value };
+    }
+}
+/**
+Produce an 'application/json-patch+json'-type list of tests, to verify that
+existing values in an object are identical to the those captured at some
+checkpoint (whenever this function is called).
+
+This does not alter `input` or `output` unless they have a property getter with
+side-effects (which is not a good idea anyway).
+
+Returns list of test operations.
+*/
+function createTests(input, patch) {
+    var tests = new Array();
+    patch.filter(diff_1.isDestructive).forEach(function (operation) {
+        var pathTest = createTest(input, operation.path);
+        if (pathTest)
+            tests.push(pathTest);
+        if ('from' in operation) {
+            var fromTest = createTest(input, operation.from);
+            if (fromTest)
+                tests.push(fromTest);
+        }
+    });
+    return tests;
+}
+exports.createTests = createTests;
+
+
+/***/ }),
+
+/***/ "./node_modules/rfc6902/patch.js":
+/*!***************************************!*\
+  !*** ./node_modules/rfc6902/patch.js ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    }
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var pointer_1 = __webpack_require__(/*! ./pointer */ "./node_modules/rfc6902/pointer.js");
+var util_1 = __webpack_require__(/*! ./util */ "./node_modules/rfc6902/util.js");
+var equal_1 = __webpack_require__(/*! ./equal */ "./node_modules/rfc6902/equal.js");
+var MissingError = /** @class */ (function (_super) {
+    __extends(MissingError, _super);
+    function MissingError(path) {
+        var _this = _super.call(this, "Value required at path: " + path) || this;
+        _this.path = path;
+        _this.name = 'MissingError';
+        return _this;
+    }
+    return MissingError;
+}(Error));
+exports.MissingError = MissingError;
+var TestError = /** @class */ (function (_super) {
+    __extends(TestError, _super);
+    function TestError(actual, expected) {
+        var _this = _super.call(this, "Test failed: " + actual + " != " + expected) || this;
+        _this.actual = actual;
+        _this.expected = expected;
+        _this.name = 'TestError';
+        _this.actual = actual;
+        _this.expected = expected;
+        return _this;
+    }
+    return TestError;
+}(Error));
+exports.TestError = TestError;
+function _add(object, key, value) {
+    if (Array.isArray(object)) {
+        // `key` must be an index
+        if (key == '-') {
+            object.push(value);
+        }
+        else {
+            var index = parseInt(key, 10);
+            object.splice(index, 0, value);
+        }
+    }
+    else {
+        object[key] = value;
+    }
+}
+function _remove(object, key) {
+    if (Array.isArray(object)) {
+        // '-' syntax doesn't make sense when removing
+        var index = parseInt(key, 10);
+        object.splice(index, 1);
+    }
+    else {
+        // not sure what the proper behavior is when path = ''
+        delete object[key];
+    }
+}
+/**
+>  o  If the target location specifies an array index, a new value is
+>     inserted into the array at the specified index.
+>  o  If the target location specifies an object member that does not
+>     already exist, a new member is added to the object.
+>  o  If the target location specifies an object member that does exist,
+>     that member's value is replaced.
+*/
+function add(object, operation) {
+    var endpoint = pointer_1.Pointer.fromJSON(operation.path).evaluate(object);
+    // it's not exactly a "MissingError" in the same way that `remove` is -- more like a MissingParent, or something
+    if (endpoint.parent === undefined) {
+        return new MissingError(operation.path);
+    }
+    _add(endpoint.parent, endpoint.key, operation.value);
+    return null;
+}
+exports.add = add;
+/**
+> The "remove" operation removes the value at the target location.
+> The target location MUST exist for the operation to be successful.
+*/
+function remove(object, operation) {
+    // endpoint has parent, key, and value properties
+    var endpoint = pointer_1.Pointer.fromJSON(operation.path).evaluate(object);
+    if (endpoint.value === undefined) {
+        return new MissingError(operation.path);
+    }
+    // not sure what the proper behavior is when path = ''
+    _remove(endpoint.parent, endpoint.key);
+    return null;
+}
+exports.remove = remove;
+/**
+> The "replace" operation replaces the value at the target location
+> with a new value.  The operation object MUST contain a "value" member
+> whose content specifies the replacement value.
+> The target location MUST exist for the operation to be successful.
+
+> This operation is functionally identical to a "remove" operation for
+> a value, followed immediately by an "add" operation at the same
+> location with the replacement value.
+
+Even more simply, it's like the add operation with an existence check.
+*/
+function replace(object, operation) {
+    var endpoint = pointer_1.Pointer.fromJSON(operation.path).evaluate(object);
+    if (endpoint.parent === null) {
+        return new MissingError(operation.path);
+    }
+    // this existence check treats arrays as a special case
+    if (Array.isArray(endpoint.parent)) {
+        if (parseInt(endpoint.key, 10) >= endpoint.parent.length) {
+            return new MissingError(operation.path);
+        }
+    }
+    else if (endpoint.value === undefined) {
+        return new MissingError(operation.path);
+    }
+    endpoint.parent[endpoint.key] = operation.value;
+    return null;
+}
+exports.replace = replace;
+/**
+> The "move" operation removes the value at a specified location and
+> adds it to the target location.
+> The operation object MUST contain a "from" member, which is a string
+> containing a JSON Pointer value that references the location in the
+> target document to move the value from.
+> This operation is functionally identical to a "remove" operation on
+> the "from" location, followed immediately by an "add" operation at
+> the target location with the value that was just removed.
+
+> The "from" location MUST NOT be a proper prefix of the "path"
+> location; i.e., a location cannot be moved into one of its children.
+
+TODO: throw if the check described in the previous paragraph fails.
+*/
+function move(object, operation) {
+    var from_endpoint = pointer_1.Pointer.fromJSON(operation.from).evaluate(object);
+    if (from_endpoint.value === undefined) {
+        return new MissingError(operation.from);
+    }
+    var endpoint = pointer_1.Pointer.fromJSON(operation.path).evaluate(object);
+    if (endpoint.parent === undefined) {
+        return new MissingError(operation.path);
+    }
+    _remove(from_endpoint.parent, from_endpoint.key);
+    _add(endpoint.parent, endpoint.key, from_endpoint.value);
+    return null;
+}
+exports.move = move;
+/**
+> The "copy" operation copies the value at a specified location to the
+> target location.
+> The operation object MUST contain a "from" member, which is a string
+> containing a JSON Pointer value that references the location in the
+> target document to copy the value from.
+> The "from" location MUST exist for the operation to be successful.
+
+> This operation is functionally identical to an "add" operation at the
+> target location using the value specified in the "from" member.
+
+Alternatively, it's like 'move' without the 'remove'.
+*/
+function copy(object, operation) {
+    var from_endpoint = pointer_1.Pointer.fromJSON(operation.from).evaluate(object);
+    if (from_endpoint.value === undefined) {
+        return new MissingError(operation.from);
+    }
+    var endpoint = pointer_1.Pointer.fromJSON(operation.path).evaluate(object);
+    if (endpoint.parent === undefined) {
+        return new MissingError(operation.path);
+    }
+    _add(endpoint.parent, endpoint.key, util_1.clone(from_endpoint.value));
+    return null;
+}
+exports.copy = copy;
+/**
+> The "test" operation tests that a value at the target location is
+> equal to a specified value.
+> The operation object MUST contain a "value" member that conveys the
+> value to be compared to the target location's value.
+> The target location MUST be equal to the "value" value for the
+> operation to be considered successful.
+*/
+function test(object, operation) {
+    var endpoint = pointer_1.Pointer.fromJSON(operation.path).evaluate(object);
+    var result = equal_1.compare(endpoint.value, operation.value);
+    if (!result) {
+        return new TestError(endpoint.value, operation.value);
+    }
+    return null;
+}
+exports.test = test;
+var InvalidOperationError = /** @class */ (function (_super) {
+    __extends(InvalidOperationError, _super);
+    function InvalidOperationError(operation) {
+        var _this = _super.call(this, "Invalid operation: " + operation.op) || this;
+        _this.operation = operation;
+        _this.name = 'InvalidOperationError';
+        return _this;
+    }
+    return InvalidOperationError;
+}(Error));
+exports.InvalidOperationError = InvalidOperationError;
+/**
+Switch on `operation.op`, applying the corresponding patch function for each
+case to `object`.
+*/
+function apply(object, operation) {
+    // not sure why TypeScript can't infer typesafety of:
+    //   {add, remove, replace, move, copy, test}[operation.op](object, operation)
+    // (seems like a bug)
+    switch (operation.op) {
+        case 'add': return add(object, operation);
+        case 'remove': return remove(object, operation);
+        case 'replace': return replace(object, operation);
+        case 'move': return move(object, operation);
+        case 'copy': return copy(object, operation);
+        case 'test': return test(object, operation);
+    }
+    return new InvalidOperationError(operation);
+}
+exports.apply = apply;
+
+
+/***/ }),
+
+/***/ "./node_modules/rfc6902/pointer.js":
+/*!*****************************************!*\
+  !*** ./node_modules/rfc6902/pointer.js ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+Unescape token part of a JSON Pointer string
+
+`token` should *not* contain any '/' characters.
+
+> Evaluation of each reference token begins by decoding any escaped
+> character sequence.  This is performed by first transforming any
+> occurrence of the sequence '~1' to '/', and then transforming any
+> occurrence of the sequence '~0' to '~'.  By performing the
+> substitutions in this order, an implementation avoids the error of
+> turning '~01' first into '~1' and then into '/', which would be
+> incorrect (the string '~01' correctly becomes '~1' after
+> transformation).
+
+Here's my take:
+
+~1 is unescaped with higher priority than ~0 because it is a lower-order escape character.
+I say "lower order" because '/' needs escaping due to the JSON Pointer serialization technique.
+Whereas, '~' is escaped because escaping '/' uses the '~' character.
+*/
+function unescape(token) {
+    return token.replace(/~1/g, '/').replace(/~0/g, '~');
+}
+/** Escape token part of a JSON Pointer string
+
+> '~' needs to be encoded as '~0' and '/'
+> needs to be encoded as '~1' when these characters appear in a
+> reference token.
+
+This is the exact inverse of `unescape()`, so the reverse replacements must take place in reverse order.
+*/
+function escape(token) {
+    return token.replace(/~/g, '~0').replace(/\//g, '~1');
+}
+/**
+JSON Pointer representation
+*/
+var Pointer = /** @class */ (function () {
+    function Pointer(tokens) {
+        if (tokens === void 0) { tokens = ['']; }
+        this.tokens = tokens;
+    }
+    /**
+    `path` *must* be a properly escaped string.
+    */
+    Pointer.fromJSON = function (path) {
+        var tokens = path.split('/').map(unescape);
+        if (tokens[0] !== '')
+            throw new Error("Invalid JSON Pointer: " + path);
+        return new Pointer(tokens);
+    };
+    Pointer.prototype.toString = function () {
+        return this.tokens.map(escape).join('/');
+    };
+    /**
+    Returns an object with 'parent', 'key', and 'value' properties.
+    In the special case that this Pointer's path == "",
+    this object will be {parent: null, key: '', value: object}.
+    Otherwise, parent and key will have the property such that parent[key] == value.
+    */
+    Pointer.prototype.evaluate = function (object) {
+        var parent = null;
+        var key = '';
+        var value = object;
+        for (var i = 1, l = this.tokens.length; i < l; i++) {
+            parent = value;
+            key = this.tokens[i];
+            // not sure if this the best way to handle non-existant paths...
+            value = (parent || {})[key];
+        }
+        return { parent: parent, key: key, value: value };
+    };
+    Pointer.prototype.get = function (object) {
+        return this.evaluate(object).value;
+    };
+    Pointer.prototype.set = function (object, value) {
+        var cursor = object;
+        for (var i = 1, l = this.tokens.length - 1, token = this.tokens[i]; i < l; i++) {
+            // not sure if this the best way to handle non-existant paths...
+            cursor = (cursor || {})[token];
+        }
+        if (cursor) {
+            cursor[this.tokens[this.tokens.length - 1]] = value;
+        }
+    };
+    Pointer.prototype.push = function (token) {
+        // mutable
+        this.tokens.push(token);
+    };
+    /**
+    `token` should be a String. It'll be coerced to one anyway.
+  
+    immutable (shallowly)
+    */
+    Pointer.prototype.add = function (token) {
+        var tokens = this.tokens.concat(String(token));
+        return new Pointer(tokens);
+    };
+    return Pointer;
+}());
+exports.Pointer = Pointer;
+
+
+/***/ }),
+
+/***/ "./node_modules/rfc6902/util.js":
+/*!**************************************!*\
+  !*** ./node_modules/rfc6902/util.js ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+/**
+Recursively copy a value.
+
+@param source - should be a JavaScript primitive, Array, or (plain old) Object.
+@returns copy of source where every Array and Object have been recursively
+         reconstructed from their constituent elements
+*/
+function clone(source) {
+    // loose-equality checking for null is faster than strict checking for each of null/undefined/true/false
+    // checking null first, then calling typeof, is faster than vice-versa
+    if (source == null || typeof source != 'object') {
+        // short-circuiting is faster than a single return
+        return source;
+    }
+    // x.constructor == Array is the fastest way to check if x is an Array
+    if (source.constructor == Array) {
+        // construction via imperative for-loop is faster than source.map(arrayVsObject)
+        var length_1 = source.length;
+        // setting the Array length during construction is faster than just `[]` or `new Array()`
+        var arrayTarget = new Array(length_1);
+        for (var i = 0; i < length_1; i++) {
+            arrayTarget[i] = clone(source[i]);
+        }
+        return arrayTarget;
+    }
+    // Object
+    var objectTarget = {};
+    // declaring the variable (with const) inside the loop is faster
+    for (var key in source) {
+        // hasOwnProperty costs a bit of performance, but it's semantically necessary
+        // using a global helper is MUCH faster than calling source.hasOwnProperty(key)
+        if (hasOwnProperty.call(source, key)) {
+            objectTarget[key] = clone(source[key]);
+        }
+    }
+    return objectTarget;
+}
+exports.clone = clone;
 
 
 /***/ }),
@@ -4132,6 +6317,17 @@ module.exports = require("classnames");
 
 /***/ }),
 
+/***/ "color":
+/*!************************!*\
+  !*** external "color" ***!
+  \************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("color");
+
+/***/ }),
+
 /***/ "re-lui":
 /*!*************************!*\
   !*** external "re-lui" ***!
@@ -4162,17 +6358,6 @@ module.exports = require("re-slide");
 /***/ (function(module, exports) {
 
 module.exports = require("react");
-
-/***/ }),
-
-/***/ "react-json-view":
-/*!**********************************!*\
-  !*** external "react-json-view" ***!
-  \**********************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-module.exports = require("react-json-view");
 
 /***/ }),
 

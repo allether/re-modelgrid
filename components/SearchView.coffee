@@ -195,7 +195,7 @@ class SearchView extends Component
 						json: query_item.value
 						trim: yes
 						colors:
-							key: !is_selected && @context.primary.color[0] || @context.secondary.inv[0]
+							key: !is_selected && @context.primary.color[1] || @context.secondary.inv[1]
 							number: 'orange'
 							string: @context.primary.true
 							boolean: @context.primary.false
@@ -301,49 +301,6 @@ class SearchView extends Component
 					value: @state.query_item_label || ''
 					placeholder: 'max '+MAX_CHAR+' char'
 					label: 'label'
-
-			# h MenuTab,
-			# 	content: h Input,
-			# 		type: 'input'
-			# 		bar: yes
-			# 		btn_type: 'flat'
-
-			# 		label: 'query'.padStart(8)
-			# 		value: @state.query_item_value
-			# 		placeholder: @props.query_item.value
-
-			# 		onInput: @setQueryItemValue
-
-			# h MenuTab,
-			# 	content: h Bar,
-			# 		big: no
-			# 		h Input,
-			# 			label: 'save layout'.padStart(8)
-			# 			type: 'checkbox'
-			# 			select: @state.query_item_layout_keys_enabled
-			# 			checked: @state.query_item_layout_keys_enabled
-			# 			onClick: @setQueryItemLayoutKeysEnabled
-			# 			btn_type: 'flat'
-			# 		h Input,
-			# 			type: 'input'
-			# 			btn_type: 'flat'
-			# 			disabled: !@state.query_item_layout_keys_enabled
-			# 			placeholder: JSON.stringify(@props.query_item.layout_keys)
-			# 			value: @state.query_item_layout_keys
-			# 			onInput: @setQueryItemLayoutKeys
-					
-					
-			# h MenuTab,
-			# 	content: h Input,
-			# 		type: 'input'
-			# 		btn_type: 'flat'
-			# 		btn_type: 'flat'
-					
-			# 		label: 'sort'.padStart(8)
-			# 		placeholder: JSON.stringify(@props.query_item.sort_keys)
-			# 		value: @state.query_item_sort_keys
-					
-			# 		onInput: @setQueryItemSortKeys
 		]
 
 
@@ -425,8 +382,8 @@ class SearchView extends Component
 		if qi.type == 'json'
 			search_i = 'code'
 			search_placeholder = '{query}'
-			info_label = qi.error || 'json: ok'
-			info_i = 'notifications'
+			info_label = qi.error || 'ok'
+			info_i = qi.error && 'error' || 'error_outline'
 			info_type = 'label'
 		else if qi.type == 'key'
 			search_placeholder =  'search by '+props.keys[qi.key].label
@@ -490,6 +447,7 @@ class SearchView extends Component
 		if query_item_is_loading
 			bar_style = 
 				background: qi.error && @context.secondary.false || @context.secondary.color[2]
+
 
 
 		search_input = h Input,

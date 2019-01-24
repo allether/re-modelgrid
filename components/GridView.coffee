@@ -127,7 +127,7 @@ class DocumentMethodMenu extends Component
 				reveal: yes
 				onClickBackdrop: @props.onHide
 				tab_style:
-					width: '300px'
+					width: '400px'
 				content: h Input,
 					type: 'label'
 					label: [

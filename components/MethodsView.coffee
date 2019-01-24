@@ -45,7 +45,7 @@ class MethodsView extends Component
 		tab_props = 
 			tab_style:
 				background: @context.primary.inv[0]
-				width: '300px'
+				width: '400px'
 			content: h 'div',
 				className: css['methods-list-container']
 				h Bar,

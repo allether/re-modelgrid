@@ -45,7 +45,8 @@ class Demo extends Component
 					style:
 						background: @state.background
 						color: @state.color
-					h ModelGridExample
+					h ModelGridExample,
+						key: 1
 				h Slide,
 					beta: 70
 					h Style,
@@ -53,7 +54,8 @@ class Demo extends Component
 						secondary: @state.secondary2
 						darken_factor: .88
 						onSetStyle: @onSetStyle2
-						h ModelGridExample					
+						h ModelGridExample,
+							key: 2				
 
 
 
@@ -161,7 +163,7 @@ class ModelGridExample extends Component
 							setTimeout ()=>
 								for d,i in demo_models.data[@state.selected_model_index]
 									if d._id == doc_id
-										Object.assign d,updates
+										Object.assign d,{"TEST":"this is a fake update"},updates
 										return resolve(d)
 								reject(new Error 'not found')
 							,500

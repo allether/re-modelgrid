@@ -3,13 +3,21 @@
 global.h = createElement
 global.Component = Component
 Slide = require 're-slide'
+Color = require 'color'
 css = require './ModelGrid.less'
 cn = require 'classnames'
-{Input,MenuTab,Menu,Bar,Overlay,AlertOverlay,StyleContext} = require 're-lui'
+{Input,MenuTab,Menu,Bar,Overlay,AlertOverlay,StyleContext,AlertDot} = require 're-lui'
+JsonView = require './JsonView.coffee'
+
+
+rfc6902 = require('rfc6902')
 
 # require 'colors'
-ReactJson = require 'react-json-view'
-ReactJson = ReactJson.default
+CodeEditor = require('react-simple-code-editor').default
+{ highlight, languages } = require 'prismjs/components/prism-core'
+require 'prismjs/components/prism-clike'
+require 'prismjs/components/prism-json'
+require 'prismjs/themes/prism-twilight.css'
 
 DIM = 40
 DIM_S = 30
@@ -60,6 +68,11 @@ class ModelGrid extends Component
 			data_item_id: null
 			called_at: 0
 			completed_at: 0
+
+
+		editor_patches: []
+		editor_error: null
+		editor_value: '{}'
 	
 		data_item: null
 		
@@ -166,7 +179,8 @@ class ModelGrid extends Component
 			query_item.value = q_value
 		else if query_item.type == 'json'
 			try
-				query_item.value = JSON.parse(query_item.input_value)
+				obj = eval('('+query_item.input_value+')')
+				query_item.value = obj
 				query_item.error = null
 			catch error
 				query_item.error = error.message
@@ -301,14 +315,15 @@ class ModelGrid extends Component
 		@setQueryItemFilter(@state.query_item)
 
 
-	clearQueryItemRunError: =>
+	hideQueryItemRunError: =>
 		@setState
-			query_item_run_error: null
+			query_item_run_error_visible: false
 	
 	setQueryItemRunError: (query_item,error)=>
 		query_item.error = error.message
 		query_item.completed_at = Date.now()
 		@setState
+			query_item_run_error_visible: yes
 			query_item_run_error:
 				error: error
 				query_item: query_item
@@ -440,13 +455,16 @@ class ModelGrid extends Component
 
 	setActionMethodError: (data_item,error)=>
 		@setState
+			query_item_run_error_visible: false
 			action_error:
 				data_item: data_item
 				error: error
 	setActionStaticError: (error)=>
 		@setState
+			query_item_run_error_visible: false
 			action_error: 
 				error: error
+			
 
 	clearActionQueryError: =>
 		@setState
@@ -487,21 +505,25 @@ class ModelGrid extends Component
 			@runQuery()
 		.catch @setActionMethodError.bind(@,@state.data_item)
 
-	updateDataItem: (update)=>
+	updateDataItem: ()=>
 	
-		if !@state.action_query.completed_at && @state.action_query.called_at
+		if !@state.action_query.completed_at && @state.action_query.called_at || !@state.editor_patches.length
+			return
+		
+		if @state.editor_value_id != @state.data_item._id
 			return
 
 		@setState
 			action_query:
 				data_item_id: @state.data_item._id
 				data_item_label: @state.data_item._label
-				body: update
+				body: @state.editor_patches
 				action: 'update'
 				called_at: Date.now()
 
-		@props.updateDataItem(@state.data_item._id,update).then (doc)=>
+		@props.updateDataItem(@state.editor_value_id,@state.editor_patches).then (doc)=>
 			@log 'updated data_item',doc
+			@state.editor_value_id = null
 			@state.action_query.completed_at = Date.now()
 			if @state.data_item._id == doc._id
 				@setState
@@ -525,6 +547,7 @@ class ModelGrid extends Component
 		@props.getDataItem(@state.data_item._id).then (doc)=>
 			@log 'got data_item',doc
 			@state.action_query.completed_at = Date.now()
+			@state.editor_value_id = null
 			if @state.data_item._id == doc._id
 				@setState
 					data_item: doc
@@ -582,46 +605,51 @@ class ModelGrid extends Component
 		if state.query_item != @state.query_item
 			state.show_json_view = false
 
+		# log state.data_item_id,state.editor_value_id
+		if state.data_item
+			if state.data_item._id != state.editor_value_id
+				if state.data_item
+					state.editor_value = JSON.stringify(state.data_item,null,4)
+					state.editor_patches = []
+				else
+					state.editor_value = "{}"
+					state.editor_patches = []
 
-		
-		# log state.data_item,state.show_json_view && state.action_query.data_item_id != state.data_item._id
-	
+				state.editor_value_id = state.data_item._id
+		else
+			state.editor_value = '{}'
+			state.editor_patches = []
+
+
+			
 
 	showJSONView: ()=>
 		@setState 
 			show_json_view: yes	
-		# 
+
+
 	
 	closeJSONView: =>
 		@setState show_json_view: no
 
-	onJSONViewEdit: (opts)=>
-		upd_obj = {}
-		if opts.namespace.length
-			upd_key = opts.namespace.join('.')+'.'+opts.name
-		else
-			upd_key = opts.name
-		
-		upd_obj = 
-			$set:{}
-		
-		upd_obj['$set'][upd_key] = opts.new_value
-		@updateDataItem upd_obj
 
 
 
-	onJSONViewDelete: (opts)=>
-		upd_obj = {}
-		if opts.namespace.length
-			upd_key = opts.namespace.join('.')+'.'+opts.name
-		else
-			upd_key = opts.name
-		
-		upd_obj = 
-			$unset:{}
+	onEditorValueChange: (val)=>
+		try
+			new_data_item = JSON.parse(val)
+			patches = rfc6902.createPatch(@state.data_item,new_data_item)
+			if patches.length > 3
+				editor_error = 'patch count > 3'
+			@setState
+				editor_patches: patches
+				editor_value: val
+				editor_error: editor_error || null
+		catch err
+			@setState
+				editor_value: val
+				editor_error: err.message
 
-		upd_obj['$unset'][upd_key] = true
-		@updateDataItem upd_obj
 
 	
 	baseRef: (slide)=>
@@ -629,7 +657,21 @@ class ModelGrid extends Component
 		# log @base
 
 	render: ->
+		if !@base
+			return h Slide,
+				ref: @baseRef
+				slide:  no
+				className: css['model-grid']
+				outerChildren: overlay
 		window.g = @
+
+		# log @_pc
+		if @_pc != @context.primary.color[0]
+			@_pc = @context.primary.color[0]
+			@_pc_is_dark = !Color(@_pc).isDark()
+			@_pc_opaque = Color(@_pc).alpha(0.8).rgb().string()
+
+
 		
 		@g_props.bounding_box = @base?.getBoundingClientRect()
 		@g_props.data = @state.data.get(@state.query_item._id) || []
@@ -649,14 +691,16 @@ class ModelGrid extends Component
 		@g_props.filter = @props.filter
 		
 		vert_json_bar = if (@base && @base.clientHeight > @base.clientWidth) then true else false
+
+
 		if @state.query_item_run_error
 			overlay = h AlertOverlay,
 				initial_visible: no
 				alert_type: 'error'
-				visible: yes
+				visible: @state.query_item_run_error_visible
 				backdrop_color: @context.primary.inv[2]
 				message: @state.query_item_run_error.error.message
-				onClick: @clearQueryItemRunError
+				onClick: @hideQueryItemRunError
 				style:
 					display: 'flex'
 					alignItems: 'center'
@@ -677,6 +721,7 @@ class ModelGrid extends Component
 				initial_visible: no
 				backdrop_color: @context.primary.inv[2]
 				alert_type: 'error'
+				transparent: yes
 				visible: @state.action_error? || !@state.action_query.completed_at && @state.action_query.called_at
 				message: @state.action_error?.error.message
 				onClick: @state.action_error && @clearActionQueryError || undefined
@@ -686,52 +731,95 @@ class ModelGrid extends Component
 					alignItems: 'center'
 					justifyContent: 'center'
 				h Input,
+					className: css['overlay-label-button']
+					big: no
 					type: 'label'
+					style:
+						background: @_pc_opaque
+						color: @context.primary.inv[0]
 					label: [
-						@state.action_query.data_item_label || @state.action_query.data_item_id
-						h 'span',{key:2,className: css['model-grid-slash']},'/'
 						h 'span',{key:1,style:{fontWeight:600,color:@context.primary.color[0]}},@state.action_query.action
+						h 'span',{key:2,className: css['model-grid-slash']},'/'
+						@state.action_query.data_item_label || @state.action_query.data_item_id
 					]
-
+	
 		
-		h Slide,
+		return h Slide,
 			ref: @baseRef
-			slide:yes
+			slide: yes
 			className: css['model-grid']
 			pos: !@state.show_json_view && 1 || 0
 			vert: vert_json_bar
-			outerStyle:
-				transform: 'translate(0px)'
 			outerChildren: overlay
 			h Slide,
-				beta: 50
 				className: css['react-json-wrap']
-				@state.show_json_view && @state.data_item && h ReactJson,
-					iconStyle: 'circle'
-					displayDataTypes: false
-					enableClipboard: yes
-					name: false
-					collapseStringsAfterLength: 100
-					onEdit:@onJSONViewEdit
-					onAdd:@onJSONViewEdit
-					onDelete:@onJSONViewDelete
-					shouldCollapse:@shouldCollapse
-					theme: 'eighties'
-					src: @state.data_item
+				style:
+					background: @context.primary.inv[1]
+				beta: 50
+				vert: yes
 				h Bar,
-					big: no
-					className: cn css['json-editor-menu'],css[!vert_json_bar && 'vert']
-					vert: !vert_json_bar
+					big: yes
+					h Input,
+						style:
+							width: '50%'
+							whiteSpace: 'nowrap'
+						type: 'label'
+						disabled: !@state.editor_error
+						i: @state.editor_error && 'error' || 'error_outline'
+						label: @state.editor_error || 'ok'
 					h Input,
 						type: 'button'
-						btn_type: 'flat'
+						i : 'save'
+						style:
+							maxWidth: 'fit-content'
+						label: String(@state.editor_patches.length).padEnd(2)
+						disabled: !@state.editor_patches.length || @state.editor_error?
+						onClick: @updateDataItem
+						@state.editor_patches.length > 0 && h AlertDot
+					h Input,
+						type: 'button'
 						i : 'refresh'
+						# btn_type: 'flat'
 						onClick: @getDataItem
 					h Input,
 						type: 'button'
-						btn_type: 'flat'
 						i : 'close'
+						btn_type: 'flat'
 						onClick: @closeJSONView
+				
+				h Slide,
+					className: cn css['react-json-container'],@_pc_is_dark && css['dark'] || css['light']
+					@state.show_json_view && @state.data_item && h CodeEditor,
+						value: @state.editor_value || '{}'
+						onValueChange: @onEditorValueChange
+						highlight: (code)->
+							return highlight(code,languages.json)
+						padding: 13
+						style:
+							fontFamily: 'monor, monospace'
+							fontSize: 13
+				h Slide,
+					dim: DIM*2
+					vert: yes
+					scroll: yes
+					style:
+						background: @context.primary.inv[0]
+					@state.editor_patches.map (patch,i)=>
+						h JsonView,
+							key: 'patch-'+i
+							style:
+								width: '100%'
+								background: i%2 == 0 && @context.primary.inv[1]
+								padding: 13
+							json: patch
+							trim: yes
+							colors:
+								key: @context.primary.color[1]
+								number: 'orange'
+								string: @context.primary.true
+								boolean: @context.primary.false
+
+	
 			h Slide,
 				vert: yes
 				style:
