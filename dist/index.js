@@ -1806,11 +1806,6 @@ ModelGrid = class ModelGrid extends Component {
     // log 'DID MOUNT'
     // @forceUpdate()
     this.componentWillUpdate = this.componentWillUpdate.bind(this);
-    // log @base.clientHeight,@props.schema.name
-
-    // split_vert = if (@base && @base.clientHeight > @base.clientWidth) then true else false
-    // if @state.split_vert != split_vert
-    // 	state.split_vert = split_vert
     this.showJSONView = this.showJSONView.bind(this);
     this.closeJSONView = this.closeJSONView.bind(this);
     this.onEditorValueChange = this.onEditorValueChange.bind(this);
@@ -1908,13 +1903,8 @@ ModelGrid = class ModelGrid extends Component {
 
   resetQueryItemLabel(query_item) {
     var is_key, j, key, keys, len;
-    // log 'reset label'
     keys = Object.keys(query_item.value);
     query_item.label = void 0;
-    // if @props.filter
-    // 	filter_keys = Object.keys(@props.filter.query_value)
-    // else
-    // 	filter_keys = []
     is_key = true;
     for (j = 0, len = keys.length; j < len; j++) {
       key = keys[j];
@@ -2048,7 +2038,6 @@ ModelGrid = class ModelGrid extends Component {
     if (query_item.label) {
       this.resetQueryItemLabel(query_item);
     }
-    // log schema
     Object.assign(query_item, schema);
     this.decideQueryItemType(query_item);
     
@@ -2265,10 +2254,7 @@ ModelGrid = class ModelGrid extends Component {
     } else {
       prom = this.props.runStaticMethod(this.props.schema, method);
     }
-    
-    // log prom
     return prom.then((method_res) => {
-      // log 'ran method',@state.data_item._label,'/',method.name,
       this.state.action_query.completed_at = Date.now();
       return this.runQuery();
     }).catch(this.setActionStaticError);
@@ -2277,7 +2263,6 @@ ModelGrid = class ModelGrid extends Component {
   runDataItemMethod(method) {
     var prom;
     boundMethodCheck(this, ModelGrid);
-    // log 'run data_item method',method
     this.setState({
       action_query: {
         data_item_id: this.state.data_item._id,
@@ -2291,9 +2276,7 @@ ModelGrid = class ModelGrid extends Component {
     } else {
       prom = this.props.runDataItemMethod(this.props.schema, this.state.data_item, method);
     }
-    // log prom
     return prom.then((data_item) => {
-      // log 'ran method',@state.data_item._label,'/',method.name,
       this.state.action_query.completed_at = Date.now();
       this.setState({
         data_item: Object.assign({}, data_item)
@@ -2360,7 +2343,6 @@ ModelGrid = class ModelGrid extends Component {
         called_at: Date.now()
       }
     });
-    // data_item = @state.data_item
     return this.props.deleteDataItem(this.state.data_item._id).then((deleted_doc_id) => {
       // @log 'deleted data_item',deleted_doc_id
       this.state.action_query.completed_at = Date.now();
@@ -2455,7 +2437,6 @@ ModelGrid = class ModelGrid extends Component {
       new_doc: this.state.new_doc
     });
     if (this.state.run_query_once) {
-      // log 'RUN MODELGRID QUERY',@props.schema.name
       this.runQuery();
     }
     if (typeof (base = this.props).onSchemaStateUpdated === "function") {
@@ -2467,7 +2448,6 @@ ModelGrid = class ModelGrid extends Component {
     }
     split_vert = (this.base && this.base.clientHeight > this.base.clientWidth) ? true : false;
     if (split_vert !== this.state.split_vert) {
-      // log 'UPDATE MODELGRID SPLIT',@props.schema.name,@base.clientHeight,@base.clientWidth,split_vert
       return this.setState({
         split_vert: split_vert
       });
@@ -2496,7 +2476,6 @@ ModelGrid = class ModelGrid extends Component {
     if (state.query_item !== this.state.query_item) {
       state.show_json_view = false;
     }
-    // log state.data_item_id,state.editor_value_id
     if (state.data_item) {
       if (state.data_item._id !== state.editor_value_id) {
         if (state.data_item) {
@@ -2565,11 +2544,9 @@ ModelGrid = class ModelGrid extends Component {
     }
   }
 
-  // log @base
   render() {
     var overlay, ref, ref1, style;
     window[this.props.schema.name + '_grid'] = this;
-    // log @_pc
     if (this._pc !== this.context.primary.color[0]) {
       this._pc = this.context.primary.color[0];
       this._pc_is_dark = !Color(this._pc).isDark();
@@ -2661,7 +2638,6 @@ ModelGrid = class ModelGrid extends Component {
     style = {};
     style.visiblity = this.state.is_visible && 'visible' || 'hidden';
     style.transform = 'translate(0px)';
-    log('RENDER MODELGRID', this.props.schema.name, this.state.split_vert);
     return h(Slide, {
       ref: this.baseRef,
       slide: true,
