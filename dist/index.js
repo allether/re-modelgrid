@@ -869,7 +869,8 @@ GridView = class GridView extends Component {
       if (is_key) {
         return null;
       }
-      g_opts.style.width = '100%';
+      
+      // g_opts.style.width = '100%'
       return h('div', {
         style: Object.assign(g_style, g_opts.style),
         key: g_opts.key,
