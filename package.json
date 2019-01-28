@@ -28,7 +28,7 @@
     "normalize.css": "^8.0.1",
     "prismjs": "^1.15.0",
     "raw-loader": "^0.5.1",
-    "re-lui": "^0.4.10",
+    "re-lui": "^0.4.12",
     "re-slide": "^1.0.7",
     "react": "^16.7.0",
     "react-dom": "^16.7.0",

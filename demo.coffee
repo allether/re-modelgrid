@@ -189,7 +189,7 @@ class ModelGridExample extends Component
 							,500
 
 					runQuery: (query)=>
-						log 'runQuery',query.limit,query.skip
+						# log 'runQuery',query.limit,query.skip
 						new Promise (resolve,reject)=>
 							setTimeout ()=>
 								if query.input_value == '{}'

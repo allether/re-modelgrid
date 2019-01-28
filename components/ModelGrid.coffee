@@ -766,12 +766,14 @@ class ModelGrid extends Component
 							width: '50%'
 							whiteSpace: 'nowrap'
 						type: 'label'
+						btn_type: 'primary'
 						disabled: !@state.editor_error
 						i: @state.editor_error && 'error' || 'error_outline'
 						label: @state.editor_error || 'ok'
 					h Input,
 						type: 'button'
 						i : 'save'
+						btn_type: 'primary'
 						style:
 							maxWidth: 'fit-content'
 						label: String(@state.editor_patches.length).padEnd(2)
@@ -781,7 +783,7 @@ class ModelGrid extends Component
 					h Input,
 						type: 'button'
 						i : 'refresh'
-						# btn_type: 'flat'
+						btn_type: 'flat'
 						onClick: @getDataItem
 					h Input,
 						type: 'button'

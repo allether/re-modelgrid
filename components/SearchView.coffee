@@ -1,5 +1,5 @@
 Slide = require 're-slide'
-{Input,MenuTab,Menu,Bar,SquareLoader,StyleContext} = require 're-lui'
+{AlertDot,Input,MenuTab,Menu,Bar,SquareLoader,StyleContext} = require 're-lui'
 css = require './ModelGrid.less'
 cn = require 'classnames'
 JsonView = require './JsonView.coffee'
@@ -19,9 +19,11 @@ class SearchView extends Component
 			query_item: props.query_item
 			show_info_options: no
 			query_item_label: null
+			clicked_run_query_at: 0
 	
 	onFocus: =>
-
+		if @state.run_query_interval
+			@toggleQueryInterval()
 		if @props.query_item.called_at && @props.reveal
 			@props.cloneQueryItemAndSet(label: false,@props.query_item)
 			
@@ -356,6 +358,23 @@ class SearchView extends Component
 		if !el
 			return
 		@_search = el._input
+
+	toggleQueryInterval: =>	
+		if @state.run_query_interval
+			clearInterval @state.run_query_interval
+			@setState
+				run_query_interval: undefined
+		else
+			q_i = setInterval @props.runQuery,3000
+			@setState
+				run_query_interval: q_i
+	onRunQuery: =>
+		# if Date.now() - @state.clicked_run_query_at < 300
+		# 	@toggleQueryInterval()
+		# @setState
+		# 	clicked_run_query_at: Date.now()
+		@props.runQuery()
+
 	render: ->
 		props = @props
 		state = @state
@@ -464,7 +483,7 @@ class SearchView extends Component
 				paddingLeft: 0
 				background: 'none'
 				# color: qi.type == 'json' && @context.secondary.color[2] || @context.primary.color[0]
-				width: SEARCH_BAR_WIDTH - 40
+				width: SEARCH_BAR_WIDTH - 40 - 40
 			value: qi.input_value
 			bar_style: bar_style
 			onInput: @setSearchValue
@@ -474,6 +493,15 @@ class SearchView extends Component
 			placeholder: search_placeholder
 			search_input_label_value
 
+		refresh_query_button = h Input,
+			type: 'button'
+			btn_type: 'flat'
+			i_type: query_item_is_loading && 'primary' || 'flat'
+			i: 'play_arrow'
+			onClick: @onRunQuery
+			outer_props:
+				onDoubleClick: @toggleQueryInterval
+			@state.run_query_interval && h AlertDot
 
 
 
@@ -523,6 +551,7 @@ class SearchView extends Component
 		search_placeholder = '#tag | {json} | key'
 
 		
+
 
 		if qi.called_at && !qi.label
 			info_options = @renderSaveForm()
@@ -575,6 +604,7 @@ class SearchView extends Component
 				style:
 					transition: 'background 0.3s ease'
 					background: props.reveal && @context.primary.inv[1] || @context.primary.inv[0]
+				refresh_query_button
 				search_i
 				search_input
 			force_split_y: 1

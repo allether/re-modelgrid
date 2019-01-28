@@ -676,7 +676,7 @@ DocumentMethodMenu = class DocumentMethodMenu extends Component {
             key: 2,
             style: {
               fontWeight: 600,
-              color: this.context.secondary.inv[0]
+              color: this.context.primary.color[0]
             }
           },
           this.props.data_item._label || this.props.data_item._id)
@@ -1690,6 +1690,7 @@ MethodsView = class MethodsView extends Component {
     }
     tab_props = {
       tab_style: {
+        color: this.context.primary.inv[1],
         background: this.context.primary.inv[0],
         width: '400px'
       },
@@ -2662,12 +2663,14 @@ ModelGrid = class ModelGrid extends Component {
         whiteSpace: 'nowrap'
       },
       type: 'label',
+      btn_type: 'primary',
       disabled: !this.state.editor_error,
       i: this.state.editor_error && 'error' || 'error_outline',
       label: this.state.editor_error || 'ok'
     }), h(Input, {
       type: 'button',
       i: 'save',
+      btn_type: 'primary',
       style: {
         maxWidth: 'fit-content'
       },
@@ -2677,7 +2680,7 @@ ModelGrid = class ModelGrid extends Component {
     }, this.state.editor_patches.length > 0 && h(AlertDot)), h(Input, {
       type: 'button',
       i: 'refresh',
-      // btn_type: 'flat'
+      btn_type: 'flat',
       onClick: this.getDataItem
     }), h(Input, {
       type: 'button',
@@ -2784,12 +2787,12 @@ if(false) {}
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-var Bar, CellMeasurer, CellMeasurerCache, Input, JsonView, List, MAX_CHAR, Menu, MenuTab, SEARCH_BAR_WIDTH, SearchView, Slide, SquareLoader, StyleContext, cn, css,
+var AlertDot, Bar, CellMeasurer, CellMeasurerCache, Input, JsonView, List, MAX_CHAR, Menu, MenuTab, SEARCH_BAR_WIDTH, SearchView, Slide, SquareLoader, StyleContext, cn, css,
   boundMethodCheck = function(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new Error('Bound instance method accessed before binding'); } };
 
 Slide = __webpack_require__(/*! re-slide */ "re-slide");
 
-({Input, MenuTab, Menu, Bar, SquareLoader, StyleContext} = __webpack_require__(/*! re-lui */ "re-lui"));
+({AlertDot, Input, MenuTab, Menu, Bar, SquareLoader, StyleContext} = __webpack_require__(/*! re-lui */ "re-lui"));
 
 css = __webpack_require__(/*! ./ModelGrid.less */ "./components/ModelGrid.less");
 
@@ -2830,16 +2833,22 @@ SearchView = class SearchView extends Component {
     this.hideInfoOptions = this.hideInfoOptions.bind(this);
     this.onKeyDown = this.onKeyDown.bind(this);
     this.searchRef = this.searchRef.bind(this);
+    this.toggleQueryInterval = this.toggleQueryInterval.bind(this);
+    this.onRunQuery = this.onRunQuery.bind(this);
     window.sq = this;
     this.state = {
       query_item: props.query_item,
       show_info_options: false,
-      query_item_label: null
+      query_item_label: null,
+      clicked_run_query_at: 0
     };
   }
 
   onFocus() {
     boundMethodCheck(this, SearchView);
+    if (this.state.run_query_interval) {
+      this.toggleQueryInterval();
+    }
     if (this.props.query_item.called_at && this.props.reveal) {
       this.props.cloneQueryItemAndSet({
         label: false
@@ -3251,8 +3260,33 @@ SearchView = class SearchView extends Component {
     return this._search = el._input;
   }
 
+  toggleQueryInterval() {
+    var q_i;
+    boundMethodCheck(this, SearchView);
+    if (this.state.run_query_interval) {
+      clearInterval(this.state.run_query_interval);
+      return this.setState({
+        run_query_interval: void 0
+      });
+    } else {
+      q_i = setInterval(this.props.runQuery, 3000);
+      return this.setState({
+        run_query_interval: q_i
+      });
+    }
+  }
+
+  onRunQuery() {
+    boundMethodCheck(this, SearchView);
+    // if Date.now() - @state.clicked_run_query_at < 300
+    // 	@toggleQueryInterval()
+    // @setState
+    // 	clicked_run_query_at: Date.now()
+    return this.props.runQuery();
+  }
+
   render() {
-    var bar_style, info_bar, info_btn_type, info_fn, info_i, info_label, info_options, info_type, l_q_i, l_q_l, pad_label, props, qi, query_item_is_loading, query_list, query_tab_height, search_i, search_input, search_input_label, search_input_label_value, search_placeholder, state, suggest;
+    var bar_style, info_bar, info_btn_type, info_fn, info_i, info_label, info_options, info_type, l_q_i, l_q_l, pad_label, props, qi, query_item_is_loading, query_list, query_tab_height, refresh_query_button, search_i, search_input, search_input_label, search_input_label_value, search_placeholder, state, suggest;
     props = this.props;
     state = this.state;
     qi = props.query_item;
@@ -3376,7 +3410,7 @@ SearchView = class SearchView extends Component {
         paddingLeft: 0,
         background: 'none',
         // color: qi.type == 'json' && @context.secondary.color[2] || @context.primary.color[0]
-        width: SEARCH_BAR_WIDTH - 40
+        width: SEARCH_BAR_WIDTH - 40 - 40
       },
       value: qi.input_value,
       bar_style: bar_style,
@@ -3386,6 +3420,16 @@ SearchView = class SearchView extends Component {
       onClick: search_input_label && props.onClick,
       placeholder: search_placeholder
     }, search_input_label_value);
+    refresh_query_button = h(Input, {
+      type: 'button',
+      btn_type: 'flat',
+      i_type: query_item_is_loading && 'primary' || 'flat',
+      i: 'play_arrow',
+      onClick: this.onRunQuery,
+      outer_props: {
+        onDoubleClick: this.toggleQueryInterval
+      }
+    }, this.state.run_query_interval && h(AlertDot));
     search_i = h(Slide, {
       vert: true,
       width: 40,
@@ -3477,7 +3521,7 @@ SearchView = class SearchView extends Component {
           transition: 'background 0.3s ease',
           background: props.reveal && this.context.primary.inv[1] || this.context.primary.inv[0]
         }
-      }, search_i, search_input),
+      }, refresh_query_button, search_i, search_input),
       force_split_y: 1,
       force_bar_dir_y: 1,
       split_y: 1
