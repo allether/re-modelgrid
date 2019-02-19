@@ -15,62 +15,38 @@ class MenuView extends Component
 		@state = @getDefaultState()
 	
 	getDefaultState: ->
-		menu_backdrop: false
-		# selected_layout_index: 0
-		# selected_filter_index: 0
 		show_search_query_helper: no
 		show_new_layout_form: false
 		pin_menu_name: null
-		menu_backdrop: false
 		show_search_query_helper: no
 		search_query_value: null
 		search_value: null
-		
 
 
-	
+
+
 	componentWillUpdate: (props,state)->
 		if props.schema.name != @props.schema.name
 			Object.assign state,@getDefaultState()
 			# log @state
-			
 
-	# mapMenuFilterButtons: (filter,i)=>
-	# 	h MenuTab,
-	# 		key: i
-	# 		content: h Input,
-	# 			# onClick: @togglePinMenu.bind(@,'layout')
-	# 			onClick: @props.onSelectFilter.bind(null,filter)
-	# 			type: 'button'
-	# 			label: filter.label
 
 	
-
 
 	togglePinMenu: (pin_menu_name,toggle)=>
 		@setState
 			show_search_query_helper: no
 			show_new_layout_form: false
 			pin_menu_name: pin_menu_name
-			menu_backdrop: toggle
 		if !pin_menu_name && !toggle
 			@props.runQuery()
 
 
 
 
-
-	
-	
-	
-
-
-	
-	
-	
-
 	getPinMenuBoolean: (pin_menu_name,bool)->
 		if @state.pin_menu_name == pin_menu_name then true else (if bool then false else undefined)
+
 
 
 

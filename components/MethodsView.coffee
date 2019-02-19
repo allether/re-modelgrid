@@ -15,6 +15,9 @@ class MethodsView extends Component
 		else
 			@props.runDataItemMethod(method)
 
+	onMethodRender: (method)=>
+		@props.renderDataItemMethod(method)
+
 	hideMethodRender: =>
 		@setState
 			render_method: null
@@ -41,7 +44,8 @@ class MethodsView extends Component
 		method_tabs = @props.methods.map @mapMethods
 		if @state.render_method
 			@state.render_method.post_body = @state.render_method.post_body || {}
-			method_rendered = @state.render_method.render(@state.render_method,@state.render_method.post_body)
+			method_rendered = @onMethodRender(@state.render_method)
+		
 		tab_props = 
 			tab_style:
 				color: @context.primary.inv[1]
@@ -63,9 +67,9 @@ class MethodsView extends Component
 			h MenuTab,tab_props,method_rendered
 		else
 			h MenuTab,tab_props
-			
+
+
 
 
 MethodsView.contextType = StyleContext
-
 module.exports = MethodsView

@@ -168,6 +168,7 @@ class DocumentMethodMenu extends Component
 				h MethodsView,
 					methods: @props.methods || @props.schema.methods || []
 					runDataItemMethod: @props.runDataItemMethod
+					renderDataItemMethod: @props.renderDataItemMethod
 					data_item: @props.data_item
 
 

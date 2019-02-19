@@ -44,6 +44,7 @@ class ModelGrid extends Component
 			runDataItemMethod: @runDataItemMethod
 			runStaticMethod: @runStaticMethod
 			updateSelectedDocument: @updateSelectedDocument
+			renderDataItemMethod: @renderDataItemMethod
 
 	log: =>
 		console.log('%c [modelgrid]','color:yellow',arguments[0]||'',arguments[1]||'',arguments[2]||'',arguments[3]||'',arguments[4]||'',arguments[5]||'')
@@ -182,8 +183,6 @@ class ModelGrid extends Component
 			catch error
 				query_item.error = error.message
 
-
-		
 
 	
 	findQueryItemBookmark: (query_item)->
@@ -444,6 +443,12 @@ class ModelGrid extends Component
 				data_item: Object.assign {},data_item
 			@runQuery()
 		.catch @setActionMethodError.bind(@,@state.data_item)
+
+	renderDataItemMethod: (method)=>
+		if method.render
+			return method.render(@props.schema,@state.data_item,method)
+		else
+			return @props.renderDataItemMethod(@props.schema,@state.data_item,method)
 
 	setActionMethodError: (data_item,error)=>
 		@setState
@@ -768,7 +773,7 @@ class ModelGrid extends Component
 						type: 'label'
 						btn_type: 'primary'
 						disabled: !@state.editor_error
-						i: @state.editor_error && 'error' || 'error_outline'
+						i: @state.editor_error && 'error' || 'check'
 						label: @state.editor_error || 'ok'
 					h Input,
 						type: 'button'

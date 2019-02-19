@@ -715,6 +715,7 @@ DocumentMethodMenu = class DocumentMethodMenu extends Component {
     })), h(MethodsView, {
       methods: this.props.methods || this.props.schema.methods || [],
       runDataItemMethod: this.props.runDataItemMethod,
+      renderDataItemMethod: this.props.renderDataItemMethod,
       data_item: this.props.data_item
     })));
   }
@@ -1410,28 +1411,15 @@ MenuView = class MenuView extends Component {
   constructor(props) {
     super(props);
     // log @state
-
-    // mapMenuFilterButtons: (filter,i)=>
-    // 	h MenuTab,
-    // 		key: i
-    // 		content: h Input,
-    // 			# onClick: @togglePinMenu.bind(@,'layout')
-    // 			onClick: @props.onSelectFilter.bind(null,filter)
-    // 			type: 'button'
-    // 			label: filter.label
     this.togglePinMenu = this.togglePinMenu.bind(this);
     this.state = this.getDefaultState();
   }
 
   getDefaultState() {
     return {
-      menu_backdrop: false,
-      // selected_layout_index: 0
-      // selected_filter_index: 0
       show_search_query_helper: false,
       show_new_layout_form: false,
       pin_menu_name: null,
-      menu_backdrop: false,
       show_search_query_helper: false,
       search_query_value: null,
       search_value: null
@@ -1449,8 +1437,7 @@ MenuView = class MenuView extends Component {
     this.setState({
       show_search_query_helper: false,
       show_new_layout_form: false,
-      pin_menu_name: pin_menu_name,
-      menu_backdrop: toggle
+      pin_menu_name: pin_menu_name
     });
     if (!pin_menu_name && !toggle) {
       return this.props.runQuery();
@@ -1634,6 +1621,7 @@ MethodsView = class MethodsView extends Component {
   constructor(props) {
     super(props);
     this.onMethodClick = this.onMethodClick.bind(this);
+    this.onMethodRender = this.onMethodRender.bind(this);
     this.hideMethodRender = this.hideMethodRender.bind(this);
     this.mapMethods = this.mapMethods.bind(this);
     this.state = {
@@ -1650,6 +1638,11 @@ MethodsView = class MethodsView extends Component {
     } else {
       return this.props.runDataItemMethod(method);
     }
+  }
+
+  onMethodRender(method) {
+    boundMethodCheck(this, MethodsView);
+    return this.props.renderDataItemMethod(method);
   }
 
   hideMethodRender() {
@@ -1687,7 +1680,7 @@ MethodsView = class MethodsView extends Component {
     method_tabs = this.props.methods.map(this.mapMethods);
     if (this.state.render_method) {
       this.state.render_method.post_body = this.state.render_method.post_body || {};
-      method_rendered = this.state.render_method.render(this.state.render_method, this.state.render_method.post_body);
+      method_rendered = this.onMethodRender(this.state.render_method);
     }
     tab_props = {
       tab_style: {
@@ -1795,6 +1788,7 @@ ModelGrid = class ModelGrid extends Component {
     this.runQuery = this.runQuery.bind(this);
     this.runStaticMethod = this.runStaticMethod.bind(this);
     this.runDataItemMethod = this.runDataItemMethod.bind(this);
+    this.renderDataItemMethod = this.renderDataItemMethod.bind(this);
     this.setActionMethodError = this.setActionMethodError.bind(this);
     this.setActionStaticError = this.setActionStaticError.bind(this);
     this.clearActionQueryError = this.clearActionQueryError.bind(this);
@@ -1827,7 +1821,8 @@ ModelGrid = class ModelGrid extends Component {
       runQuery: this.runQuery,
       runDataItemMethod: this.runDataItemMethod,
       runStaticMethod: this.runStaticMethod,
-      updateSelectedDocument: this.updateSelectedDocument
+      updateSelectedDocument: this.updateSelectedDocument,
+      renderDataItemMethod: this.renderDataItemMethod
     };
   }
 
@@ -2287,6 +2282,15 @@ ModelGrid = class ModelGrid extends Component {
     }).catch(this.setActionMethodError.bind(this, this.state.data_item));
   }
 
+  renderDataItemMethod(method) {
+    boundMethodCheck(this, ModelGrid);
+    if (method.render) {
+      return method.render(this.props.schema, this.state.data_item, method);
+    } else {
+      return this.props.renderDataItemMethod(this.props.schema, this.state.data_item, method);
+    }
+  }
+
   setActionMethodError(data_item, error) {
     boundMethodCheck(this, ModelGrid);
     return this.setState({
@@ -2666,7 +2670,7 @@ ModelGrid = class ModelGrid extends Component {
       type: 'label',
       btn_type: 'primary',
       disabled: !this.state.editor_error,
-      i: this.state.editor_error && 'error' || 'error_outline',
+      i: this.state.editor_error && 'error' || 'check',
       label: this.state.editor_error || 'ok'
     }), h(Input, {
       type: 'button',

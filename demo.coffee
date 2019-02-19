@@ -6,6 +6,8 @@ global.h = createElement
 ModelGrid = require './components/ModelGrid.coffee'
 Slide = require 're-slide'
 {Style,Input,MenuTab,Menu,Bar,StyleContext} = require 're-lui'
+require 'normalize.css'
+require 're-lui/dist/lui-mid.css'
 adler = require 'adler-32'
 demo_models = require './demo-models.coffee'
 
