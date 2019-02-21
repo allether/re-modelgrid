@@ -1,4 +1,5 @@
 {Input,MenuTab,Menu,Bar,Overlay} = require 're-lui'
+Slide = require 're-slide'
 onStaticFn = (schema,method)->
 	return new Promise (resolve,reject)=>
 		setTimeout ()=>
@@ -79,7 +80,7 @@ user_model =
 	keys:
 		_id:
 			label: 'ID'
-			col_width: 70
+			col_width: 170
 			indexed: yes
 			can_edit: no
 			placeholder: '-'
@@ -150,60 +151,66 @@ user_model =
 	methods: [
 		{
 			label: 'Some User Method'
-			name: 'user-method'
+			name: 'user-method1'
 			fn: onMethodFn
 		},
 		{
 			label: 'Some User Method'
-			name: 'user-method'
+			name: 'user-method2'
 			fn: onMethodFn
 		},
 		{
 			label: 'Some User Method'
-			name: 'user-method'
+			name: 'user-method3'
 			fn: onMethodFn
 		},
 		{
 			label: 'Some User Method'
-			name: 'user-method'
+			name: 'user-method4'
 			fn: onMethodFn
 		},
 		{
 			label: 'Some User Method'
-			name: 'user-method'
+			name: 'user-method5'
 			fn: onMethodFn
 		},
 		{
 			label: 'Some User Method'
-			name: 'user-method'
+			name: 'user-method6'
 			fn: onMethodFn
 		},
 		{
 			label: 'Some User Method'
-			name: 'user-method'
+			name: 'user-method7'
 			fn: onMethodFn
 		},
 		{
 			label: 'Some User Method'
-			name: 'user-method'
+			name: 'user-method8'
 			fn: onMethodFn
 		},
 		{
 			label: 'Rank User'
-			name: 'set-rank'
-			render: ->
-				[
-					h MenuTab,
-						content: h Input,
-							type: 'number'
-							label: 'rank'
-							placeholder: '[0-10]'
-					h MenuTab,
-						content: h Input,
-							btn_type: 'primary'
-							type: 'button'
-							label: 'submit'
-				]		
+			name: 'setRank'
+			render: (schema,data_item,exec,res)->
+				# log res
+				h Slide,
+					center: yes
+					vert: yes
+					
+					h Input,
+						type: 'number'
+						label: 'rank'
+						placeholder: '[0-10]'
+					h Input,
+						btn_type: 'primary'
+						onClick: exec
+						type: 'button'
+						label: 'submit'
+					h Input,
+						type: 'text'
+						value: JSON.stringify(res?.method_res) || ''
+						placeholder: 'method response'
 		}
 	]
 

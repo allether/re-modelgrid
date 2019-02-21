@@ -1,74 +1,100 @@
 {Input,MenuTab,Menu,Bar,StyleContext} = require 're-lui'
+Slide = require 're-slide'
 css = require './ModelGrid.less'
 MAX_CHAR = 31
+
+
+
 
 class MethodsView extends Component
 	constructor: (props)->
 		super(props)
 		@state = 
 			render_method: null
+			method_res: null
+	onRenderMethodRes: (res)=>
+		@setState
+			method_res: res
+
 	onMethodClick: (method)=>
-		
 		if method.render
 			@setState
 				render_method: method
 		else
 			@props.runDataItemMethod(method)
 
-	onMethodRender: (method)=>
-		@props.renderDataItemMethod(method)
-
+	
 	hideMethodRender: =>
+		log 'hide'
 		@setState
 			render_method: null
+			method_res: null
+
 
 	mapMethods: (method,i)=>
-		
+		# log @state.render_method
 		if @state.render_method?
 			if @state.render_method != method
 				return null
-		h MenuTab,
-			key: i
-			onClickBackdrop: @hideMethodRender
-			show_backdrop: @state.render_method == method && yes || no
-			backdrop_color: @context.primary.inv[3]
-			content: h Input,
-				onClick: @onMethodClick.bind(@,method)
-				type: @state.render_method == method && 'label' || 'button'
-				select:  @state.render_method == method
-				btn_type: 'flat'
-				i: method.icon || (method.render && 'subject' || 'play_arrow')
-				label: method.label
-			
+	
+		h Input,
+			key: method.name
+			onClick: @onMethodClick.bind(@,method)
+			type: 'button'
+			btn_type: 'flat'
+			i: method.icon || (method.render && 'subject' || 'play_arrow')
+			label: method.label
+
+	confirmDelete: =>
+		@setState
+			confirm_delete: yes
+
+	hideConfirmDelete: =>
+		@setState
+			confirm_delete: no
+	
 	render: ->
-		method_tabs = @props.methods.map @mapMethods
+
 		if @state.render_method
-			@state.render_method.post_body = @state.render_method.post_body || {}
-			method_rendered = @onMethodRender(@state.render_method)
-		
-		tab_props = 
-			tab_style:
-				color: @context.primary.inv[1]
-				background: @context.primary.inv[0]
-				width: '400px'
-			content: h 'div',
-				className: css['methods-list-container']
+			return h Slide,
+				vert: yes
 				h Bar,
-					style:
-						width: '100%'
+					vert: no
+					big: yes
+					h Input,
+						type: 'button'
+						i: 'close'
+						onClick: @hideMethodRender
+					h Input,
+						label: @state.render_method.label
+						type: 'label'
+				h 'div',
+					className: css['methods-list-render-view']
+					@state.render_method && @props.renderDataItemMethod(@state.render_method,@onRenderMethodRes,@state.method_res)
+
+		h Slide,
+			vert: yes
+			h Bar,
+				vert: yes
+				big: yes
+				h Bar,
+					vert: no
+					big: yes
+					h Input,
+						type: 'button'
+						i: 'code'
+						onClick: @props.showJSONView
+						label: 'edit'
+					h Input,
+						type: 'button'
+						i: 'delete'
+						# label: 'delete'
+			h 'div',
+				className: css['data-item-method-menu']
+				h Bar,
 					vert: yes
-					method_tabs
-			reveal: @state.render_method && yes || no
-			onClickBackdrop: @hideMethodRender
-			backdrop_color: @context.primary.inv[3]
-			show_backdrop: @state.render_method && yes || no
-		# method_tabs.push h 'span',{},props.methods.length+' methods'
-		if method_rendered
-			h MenuTab,tab_props,method_rendered
-		else
-			h MenuTab,tab_props
-
-
+					big: no
+					@props.schema.methods.map @mapMethods
 
 
 MethodsView.contextType = StyleContext

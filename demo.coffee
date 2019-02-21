@@ -1,13 +1,16 @@
+require 'normalize.css'
+require 're-slide/dist/re-slide.css'
+require 're-lui/dist/lui-mid.css'
 window.log = console.log.bind(console)
 {createElement,Component} = require 'react'
 global.Component = Component
 global.h = createElement
 {render} = require 'react-dom'
 ModelGrid = require './components/ModelGrid.coffee'
+
 Slide = require 're-slide'
 {Style,Input,MenuTab,Menu,Bar,StyleContext} = require 're-lui'
-require 'normalize.css'
-require 're-lui/dist/lui-mid.css'
+
 adler = require 'adler-32'
 demo_models = require './demo-models.coffee'
 
@@ -155,7 +158,10 @@ class ModelGridExample extends Component
 					runDataItemMethod: (schema,data_item,method)=>
 						return new Promise (resolve,reject)=>
 							setTimeout ()=>
-								reject(new Error 'test error -'+method.label)
+								resolve
+									data_item: data_item
+									method_res:
+										test_response: 200
 							,1000
 					
 					updateDataItem: (doc_id,updates)=>

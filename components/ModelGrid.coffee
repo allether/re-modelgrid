@@ -19,8 +19,8 @@ require 'prismjs/components/prism-clike'
 require 'prismjs/components/prism-json'
 require 'prismjs/themes/prism-twilight.css'
 
-DIM = 40
-DIM_S = 30
+global.DIM2 = 40
+global.DIM = 30
 MenuView = require './MenuView.coffee'
 GridView = require './GridView.coffee'
 
@@ -424,7 +424,8 @@ class ModelGrid extends Component
 			@runQuery()
 		.catch @setActionStaticError
 
-	runDataItemMethod: (method)=>
+
+	runDataItemMethod: (method,callback)=>
 		@setState
 			action_query:
 				data_item_id: @state.data_item._id
@@ -432,23 +433,29 @@ class ModelGrid extends Component
 				action: method.name
 				called_at: Date.now()
 		
+
 		if method.fn
 			prom = method.fn(@props.schema,@state.data_item,method)
 		else
 			prom = @props.runDataItemMethod(@props.schema,@state.data_item,method)
 		
-		prom.then (data_item)=>
+
+		prom.then (res)=>
 			@state.action_query.completed_at = Date.now()
 			@setState
-				data_item: Object.assign {},data_item
+				data_item: Object.assign {},res.data_item
 			@runQuery()
+			callback?(res)
 		.catch @setActionMethodError.bind(@,@state.data_item)
 
-	renderDataItemMethod: (method)=>
-		if method.render
-			return method.render(@props.schema,@state.data_item,method)
-		else
-			return @props.renderDataItemMethod(@props.schema,@state.data_item,method)
+
+
+	renderDataItemMethod: (method,get_method_res_callback,method_res)=>
+		# log get_method_res_callback
+		method_exec = @runDataItemMethod.bind(@,method,get_method_res_callback)
+		return method.render(@props.schema,@state.data_item,method_exec,method_res)
+
+
 
 	setActionMethodError: (data_item,error)=>
 		@setState
@@ -456,6 +463,8 @@ class ModelGrid extends Component
 			action_error:
 				data_item: data_item
 				error: error
+
+		return false
 	setActionStaticError: (error)=>
 		@setState
 			query_item_run_error_visible: false
@@ -809,7 +818,7 @@ class ModelGrid extends Component
 							height: 'fit-content'
 							fontSize: 13
 				h Slide,
-					dim: DIM
+					dim: DIM2
 					vert: yes
 					scroll: yes
 					style:

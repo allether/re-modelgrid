@@ -69,110 +69,17 @@ class InputCell extends Component
 InputCell.contextType = StyleContext
 
 
-class DocumentMethodMenu extends Component
-	constructor: (props)->
-		super(props)
-		@state =
-			confirm_delete: no
-
-	runDataItemMethod: (method)=>
-		@props.runDataItemMethod(@props.data_item,method)
-	
-
-	mapMenuMethodsButtons: (method,i)=>
-		if method.render
-			method_content = h MenuTab,
-				content: method.render(@props.data_item)
-
-		h MenuTab,
-			key: i
-			vert: yes
-			content: h Input,
-				onClick: @props.runDataItemMethod.bind(method)
-				type: 'button'
-				i: method.render && 'subject' || 'play_arrow'
-				label: [
-					method.label
-					h 'span',{className: css['model-grid-opaque']},String(method.name).padStart(MAX_CHAR)
-				]
-			method_content
-	
-	showMenu: =>
-		@setState show_menu: yes
-	
-	hideMenu: =>
-		@setState show_menu: no
-
-	confirmDelete: =>
-		@setState
-			confirm_delete: yes
-
-	hideConfirmDelete: =>
-		@setState
-			confirm_delete: no
-
-	render: ->
-		h Menu,
-			vert: no
-			force_split_x: 1
-			force_split_y: 1
-			big: no
-			hover_reveal_enabled: no
-			backdrop_color: @context.primary.inv[3]
-			enable_backdrop: yes
-			className: css['data-item-method-menu']
-			h MenuTab,
-				vert: yes
-				show_backdrop: yes
-				reveal: yes
-				onClickBackdrop: @props.onHide
-				tab_style:
-					width: '400px'
-				content: h Input,
-					type: 'label'
-					label: [
-						@props.schema.name
-						h 'span',{key: 1,className: css['model-grid-slash']},'/'
-						h 'span',{key: 2,style:{fontWeight:600,color:@context.primary.color[0]}},@props.data_item._label || @props.data_item._id
-					]
-				
-				h MenuTab,
-					content: h Input,
-						type: 'button'
-						i: 'code'
-						onClick: @props.showJSONView
-						label: 'edit JSON'
-				
-				h MenuTab,
-					key: 'del'
-					vert: yes
-					reveal: @state.confirm_delete
-					show_backdrop: @state.confirm_delete
-					onClick: @confirmDelete
-					onClickBackdrop: @hideConfirmDelete
-					content: h Input,
-						type: 'button'
-						i: 'delete'
-						label: 'delete'
-					
-					h MenuTab,
-						content: h Input,
-							i: 'delete'
-							type: 'button'
-							style:
-								background: @context.primary.warn
-								color: 'white'
-							label: 'confirm'
-							onClick: @props.deleteDataItem
-				
-				h MethodsView,
-					methods: @props.methods || @props.schema.methods || []
-					runDataItemMethod: @props.runDataItemMethod
-					renderDataItemMethod: @props.renderDataItemMethod
-					data_item: @props.data_item
 
 
-DocumentMethodMenu.contextType = StyleContext
+
+
+
+
+
+
+
+
+
 
 
 
@@ -197,8 +104,9 @@ class GridView extends Component
 	gridRef: (el)=>
 		@_grid = el		
 	
+
 	baseRef: (el)=>
-		@base = el
+		@base = el?._outer
 
 
 	toggleSortKey: (key)=>
@@ -384,21 +292,22 @@ class GridView extends Component
 		if g_k != state.grid_key
 			state.grid_key = g_k
 			state.force_update_grid = true
-
-		if state.grid_w != @base.clientWidth || state.grid_h != @base.clientHeight
-			state.grid_w = @base.clientWidth
-			state.grid_h = @base.clientHeight
+		if @base
+			if state.grid_w != @base.clientWidth || state.grid_h != @base.clientHeight
+				state.grid_w = @base.clientWidth
+				state.grid_h = @base.clientHeight
 
 
 
 
 	componentDidUpdate: ->
-		if @state.grid_w != @base.clientWidth || @state.grid_h != @base.clientHeight
-			log 'update grid size',@props.schema.name,@base.clientHeight,@base.clientWidth
-			return @setState
-				force_update_grid: false
-				grid_w: @base.clientWidth
-				grid_h: @base.clientHeight
+		if @base 
+			if @state.grid_w != @base.clientWidth || @state.grid_h != @base.clientHeight
+				# log 'update grid size',@props.schema.name,@base.clientHeight,@base.clientWidth
+				return @setState
+					force_update_grid: false
+					grid_w: @base.clientWidth
+					grid_h: @base.clientHeight
 
 
 		if (@state.force_update_grid) && @_grid
@@ -411,39 +320,53 @@ class GridView extends Component
 		@state.grid_key = @getGridKey(@props)
 		@forceUpdate()
 
+
 	onShowMenu: =>
 		@setState
 			scroll_to_data_item: true
-	
+
+
 	rowHeight: (r_opts)=>
 		if r_opts.index == 0
 			return 30
 		else
 			return @props.row_height
-		# return 30
+		
 	
 	render: ->
 		schema = @props.schema
 		data = @props.data
 		query_item = @props.query_item
 
+		# method_menu = null
+
 		if @state.show_method_menu
-			method_menu = h DocumentMethodMenu,
-				g_opts: @state.data_item_g_opts
-				methods: @props.methods
-				onHide: @hideMethodMenu
-				showJSONView: @props.showJSONView
-				deleteDataItem: @props.deleteDataItem
-				runDataItemMethod: @props.runDataItemMethod
+			item_label = h Input,
+				type: 'label'
+				big: no
+				btn_type: 'flat'
+				className: css['grid-item-label']
+				label: [
+					@props.schema.name
+					h 'span',{key: 1,className: css['model-grid-slash']},'/'
+					h 'span',{key: 2,style:{fontWeight:600,color:@context.primary.color[0]}},@props.data_item._label || @props.data_item._id
+				]
+
+			method_menu = h MethodsView,
 				data_item: @props.data_item
+				showJSONView: @props.showJSONView
 				schema: @props.schema
+				renderDataItemMethod: @props.renderDataItemMethod
+				runDataItemMethod: @props.runDataItemMethod
+
+
 
 
 		
 		grid = h MultiGrid,
 			key: @props.query_item._id
 			styleTopRightGrid:
-				background:  @context.primary.inv[1]
+				background: @context.primary.inv[1]
 			className: css['model-grid-list']
 			ref: @gridRef
 			onScroll: @onScroll
@@ -456,14 +379,35 @@ class GridView extends Component
 			width:@state.grid_w
 			rowHeight: @rowHeight
 			rowCount:data.length+1
-			
+		
+		
+		overlay = h Overlay,
+			visible: @state.show_method_menu
+			backdrop_color: @context.primary.inv[1]
+			onClick: @hideMethodMenu
+			h 'div',
+				className: css['vert-left-bar']
+				style:
+					background: @context.primary.color[1]
+			item_label
 
-		h 'div',
-			className: css['model-grid-wrap']
-			ref: @baseRef
-			method_menu || null
-			grid || null
 
+		h Slide,
+			slide: yes
+			vert: no
+			pos: if @state.show_method_menu then 0 else 1
+			h Slide,
+				vert: yes
+				style:
+					overflow: 'visible'
+				dim: DIM2*8
+				method_menu || null
+			h Slide,
+				beta: 100
+				className: css['model-grid-wrap']
+				ref: @baseRef
+				grid || null
+				overlay
 			
 			
 GridView.contextType = StyleContext

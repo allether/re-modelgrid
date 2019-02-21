@@ -174,7 +174,7 @@ class MenuView extends Component
 
 		# BASE SLIDE
 		h Slide,
-			dim: 40
+			dim: DIM2
 			vert : no
 			className: css['menu-slide']
 			h Menu,
