@@ -32,7 +32,6 @@ class MethodsView extends Component
 
 
 	mapMethods: (method,i)=>
-		# log @state.render_method
 		if @state.render_method?
 			if @state.render_method != method
 				return null
@@ -94,7 +93,7 @@ class MethodsView extends Component
 				h Bar,
 					vert: yes
 					big: no
-					@props.schema.methods.map @mapMethods
+					@props.schema.methods?.map @mapMethods
 
 
 MethodsView.contextType = StyleContext
