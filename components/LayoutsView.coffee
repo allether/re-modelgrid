@@ -126,12 +126,11 @@ class LayoutsView extends Component
 			force_bar_dir_x: -1
 			force_split_y: 1
 			force_bar_dir_y: 1
-
-			onClick: @props.onClick
 			onClickBackdrop: @props.onHide
 			reveal: @props.reveal
 			show_backdrop: @props.reveal
 			content: h Input,
+				onClick: @props.onClick
 				type: 'button'
 				btn_type: 'flat'
 				i: 'view_week'

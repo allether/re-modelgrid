@@ -901,6 +901,7 @@ GridView = class GridView extends Component {
         data_item: this.props.data_item,
         showJSONView: this.props.showJSONView,
         schema: this.props.schema,
+        onDelete: this.props.deleteDataItem,
         renderDataItemMethod: this.props.renderDataItemMethod,
         runDataItemMethod: this.props.runDataItemMethod
       });
@@ -1231,11 +1232,11 @@ LayoutsView = class LayoutsView extends Component {
       force_bar_dir_x: -1,
       force_split_y: 1,
       force_bar_dir_y: 1,
-      onClick: this.props.onClick,
       onClickBackdrop: this.props.onHide,
       reveal: this.props.reveal,
       show_backdrop: this.props.reveal,
       content: h(Input, {
+        onClick: this.props.onClick,
         type: 'button',
         btn_type: 'flat',
         i: 'view_week',
@@ -1540,7 +1541,6 @@ MethodsView = class MethodsView extends Component {
 
   hideMethodRender() {
     boundMethodCheck(this, MethodsView);
-    log('hide');
     return this.setState({
       render_method: null,
       method_res: null
@@ -1553,6 +1553,9 @@ MethodsView = class MethodsView extends Component {
       if (this.state.render_method !== method) {
         return null;
       }
+    }
+    if (method.isVisible && !method.isVisible(this.props.data_item)) {
+      return null;
     }
     return h(Input, {
       key: method.name,
@@ -1610,9 +1613,10 @@ MethodsView = class MethodsView extends Component {
       i: 'code',
       onClick: this.props.showJSONView,
       label: 'edit'
-    }), h(Input, {
+    }), this.props.onDelete && h(Input, {
       type: 'button',
-      i: 'delete'
+      i: 'delete',
+      onClick: this.props.onDelete
     // label: 'delete'
     }))), h('div', {
       className: css['data-item-method-menu']

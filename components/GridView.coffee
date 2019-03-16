@@ -356,6 +356,7 @@ class GridView extends Component
 				data_item: @props.data_item
 				showJSONView: @props.showJSONView
 				schema: @props.schema
+				onDelete: @props.deleteDataItem
 				renderDataItemMethod: @props.renderDataItemMethod
 				runDataItemMethod: @props.runDataItemMethod
 

@@ -1,5 +1,12 @@
 var webpack = require("webpack");
 var path = require("path");
+var MiniCssExtractPlugin = require('mini-css-extract-plugin');
+
+var extract_css = new MiniCssExtractPlugin({
+	filename: "re-modelgrid.css",
+	chunkFilename: "re-modelgrid-[id].css"
+})
+
 var cfg = {
 	devtool: 'source-map',
 	module: {
@@ -27,6 +34,7 @@ var cfg = {
 		publicPath: '/',
 		filename: "index.js",
 		libraryTarget: 'commonjs2'
-	}
+	},
+	plugins:[extract_css]
 }
 module.exports = cfg;

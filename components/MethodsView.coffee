@@ -25,7 +25,6 @@ class MethodsView extends Component
 
 	
 	hideMethodRender: =>
-		log 'hide'
 		@setState
 			render_method: null
 			method_res: null
@@ -35,6 +34,8 @@ class MethodsView extends Component
 		if @state.render_method?
 			if @state.render_method != method
 				return null
+		if method.isVisible && !method.isVisible(@props.data_item)
+			return null
 	
 		h Input,
 			key: method.name
@@ -84,10 +85,11 @@ class MethodsView extends Component
 						i: 'code'
 						onClick: @props.showJSONView
 						label: 'edit'
-					h Input,
+					@props.onDelete && h Input,
 						type: 'button'
 						i: 'delete'
-						# label: 'delete'
+						onClick: @props.onDelete
+
 			h 'div',
 				className: css['data-item-method-menu']
 				h Bar,
