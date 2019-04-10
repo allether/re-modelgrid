@@ -17,7 +17,10 @@ class MethodsView extends Component
 			method_res: res
 
 	onMethodClick: (method)=>
-		if method.render
+		# log method
+		if method.run
+			return method.run(method,@props.data_item)
+		else if method.render
 			@setState
 				render_method: method
 		else
@@ -42,7 +45,7 @@ class MethodsView extends Component
 			onClick: @onMethodClick.bind(@,method)
 			type: 'button'
 			btn_type: 'flat'
-			i: method.icon || (method.render && 'subject' || 'play_arrow')
+			i: method.icon || (method.run && 'settings') || (method.render && 'subject' || 'play_arrow')
 			label: method.label || method.name
 
 	confirmDelete: =>

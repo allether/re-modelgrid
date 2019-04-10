@@ -405,51 +405,67 @@ class ModelGrid extends Component
 			run_query_once: false
 
 
-	runStaticMethod: (method)=>
-		@setState
-			action_query:
-				data_item_id: '~'
-				data_item_label: @props.schema.name
-				action: method.name
-				called_at: Date.now()
-		
-		if method.fn
-			prom = method.fn(@props.schema,method)
-		else
-			prom = @props.runStaticMethod(@props.schema,method)
-		
-		
-		prom.then (method_res)=>
-			@state.action_query.completed_at = Date.now()
-			@runQuery()
-		.catch @setActionStaticError
+	runStaticMethod: (method,callback)=>
+		try
+			@setState
+				action_query:
+					data_item_id: '~'
+					data_item_label: @props.schema.name
+					action: method.name
+					called_at: Date.now()
+			
+			if method.run
+				prom = method.run(@props.schema,method)
+			else
+				prom = @props.runStaticMethod(@props.schema,method)
+			
+			if prom?.then
+				prom.then (method_res)=>
+					@state.action_query.completed_at = Date.now()
+					@runQuery()
+					callback?(method_res)
+				.catch
+			else
+				@state.action_query.completed_at = Date.now()
+				@setState
+					data_item: Object.assign {},res.data_item
+				@runQuery()
+				callback?(res)
+
+		catch error
+			@setActionStaticError(@state.data_item,error)
 
 
 	runDataItemMethod: (method,callback)=>
-		if methods.run
-			return method.run(method)
-
-		@setState
-			action_query:
-				data_item_id: @state.data_item._id
-				data_item_label: @state.data_item._label	
-				action: method.name
-				called_at: Date.now()
-		
-
-		if method.fn
-			prom = method.fn(@props.schema,@state.data_item,method)
-		else
-			prom = @props.runDataItemMethod(@props.schema,@state.data_item,method)
-		
-
-		prom.then (res)=>
-			@state.action_query.completed_at = Date.now()
+		try
 			@setState
-				data_item: Object.assign {},res.data_item
-			@runQuery()
-			callback?(res)
-		.catch @setActionMethodError.bind(@,@state.data_item)
+				action_query:
+					data_item_id: @state.data_item._id
+					data_item_label: @state.data_item._label	
+					action: method.name
+					called_at: Date.now()
+			
+			if method.run
+				prom = method.run(@props.schema,@state.data_item,method)
+			else
+				prom = @props.runDataItemMethod(@props.schema,@state.data_item,method)
+			
+			if prom?.then
+				prom.then (res)=>
+					@state.action_query.completed_at = Date.now()
+					@setState
+						data_item: Object.assign {},res.data_item
+					@runQuery()
+					callback?(res)
+				.catch @setActionMethodError.bind(@,@state.data_item)
+			else
+				@state.action_query.completed_at = Date.now()
+				@setState
+					data_item: Object.assign {},res.data_item
+				@runQuery()
+				callback?(res)
+		catch error
+			@setActionMethodError(@state.data_item,error)
 
 
 

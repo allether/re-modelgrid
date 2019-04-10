@@ -1680,7 +1680,10 @@ MethodsView = class MethodsView extends Component {
 
   onMethodClick(method) {
     boundMethodCheck(this, MethodsView);
-    if (method.render) {
+    log(method);
+    if (method.run) {
+      return method.run(method);
+    } else if (method.render) {
       return this.setState({
         render_method: method
       });
@@ -1712,7 +1715,7 @@ MethodsView = class MethodsView extends Component {
       onClick: this.onMethodClick.bind(this, method),
       type: 'button',
       btn_type: 'flat',
-      i: method.icon || (method.render && 'subject' || 'play_arrow'),
+      i: method.icon || (method.run && 'settings') || (method.render && 'subject' || 'play_arrow'),
       label: method.label || method.name
     });
   }
@@ -2325,6 +2328,9 @@ ModelGrid = class ModelGrid extends Component {
   runDataItemMethod(method, callback) {
     var prom;
     boundMethodCheck(this, ModelGrid);
+    if (methods.run) {
+      return method.run(method);
+    }
     this.setState({
       action_query: {
         data_item_id: this.state.data_item._id,
