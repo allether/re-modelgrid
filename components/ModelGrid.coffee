@@ -426,6 +426,9 @@ class ModelGrid extends Component
 
 
 	runDataItemMethod: (method,callback)=>
+		if methods.run
+			return method.run(method)
+
 		@setState
 			action_query:
 				data_item_id: @state.data_item._id
@@ -594,6 +597,13 @@ class ModelGrid extends Component
 		if split_vert != @state.split_vert
 			@setState
 				split_vert: split_vert
+
+		if @state.show_json_view != state.show_json_view
+			@forceUpdate()
+
+		if props.run_query_item != @props.run_query_item
+			@log "RUN PROPS QUERY ITEM"
+			@cloneQueryItemAndSet(@props.run_query_item,@state.query_item,true)
 
 	# getChildContext: ->
 	# 	gridHeight: @base?.clientHeight - (@props.show_bar && DIM || 0)
@@ -765,7 +775,7 @@ class ModelGrid extends Component
 			style: Object.assign style,@props.style
 			className: css['model-grid']
 			pos: !@state.show_json_view && 1 || 0
-			vert: @state.split_vert
+			vert: no
 			outerChildren: overlay
 			h Slide,
 				className: css['react-json-wrap']
@@ -797,12 +807,12 @@ class ModelGrid extends Component
 					h Input,
 						type: 'button'
 						i : 'refresh'
-						btn_type: 'flat'
+						# btn_type: 'primary'
 						onClick: @getDataItem
 					h Input,
 						type: 'button'
 						i : 'close'
-						btn_type: 'flat'
+						# btn_type: 'primary'
 						onClick: @closeJSONView
 				
 				h Slide,

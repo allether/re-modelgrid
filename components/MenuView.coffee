@@ -110,10 +110,16 @@ class MenuView extends Component
 				type: 'button'
 				btn_type: 'flat'
 				i: 'more_vert'
-			h MethodsView,
-				data_item: @props.data_item
-				methods: schema.statics
-				runDataItemMethod: @props.runStaticMethod
+			h 'div',
+				className: css['model-grid-statics-view']
+				style:
+					background: @context.primary.inv[0]
+				h MethodsView,
+					data_item: @props.data_item
+					methods: schema.statics
+					renderDataItemMethod: @props.renderDataItemMethod
+					runDataItemMethod: @props.runDataItemMethod
+
 
 
 		# ADD NEW DOCUMENT TAB / VIEW

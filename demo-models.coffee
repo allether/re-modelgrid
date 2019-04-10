@@ -75,7 +75,7 @@ user_model =
 		query_value:
 			project: 'My Project'
 	
-	keys_array: ['project','_name','_id','_age']
+	keys_array: ['project','_name','_name2','_name3','_name4','_name5','_name6','_id','_age']
 	
 	keys:
 		_id:
@@ -88,6 +88,61 @@ user_model =
 				alert('_id edit '+val)
 		_name:
 			label: 'Name'
+			form_render:yes
+			form_required: no
+			can_edit: yes
+			indexed: true
+			type: String
+			col_width: 150
+			placeholder: '-'
+			onEdit: (val)->
+				alert('_name edit '+val)
+		_name2:
+			label: 'Name2'
+			form_render:yes
+			form_required: no
+			can_edit: yes
+			indexed: true
+			type: String
+			col_width: 150
+			placeholder: '-'
+			onEdit: (val)->
+				alert('_name edit '+val)
+		_name3:
+			label: 'Name3'
+			form_render:yes
+			form_required: no
+			can_edit: yes
+			indexed: true
+			type: String
+			col_width: 150
+			placeholder: '-'
+			onEdit: (val)->
+				alert('_name edit '+val)
+		_name4:
+			label: 'Name4'
+			form_render:yes
+			form_required: no
+			can_edit: yes
+			indexed: true
+			type: String
+			col_width: 150
+			placeholder: '-'
+			onEdit: (val)->
+				alert('_name edit '+val)
+		_name5:
+			label: 'Name5'
+			form_render:yes
+			form_required: no
+			can_edit: yes
+			indexed: true
+			type: String
+			col_width: 150
+			placeholder: '-'
+			onEdit: (val)->
+				alert('_name edit '+val)
+		_name6:
+			label: 'Nam6'
 			form_render:yes
 			form_required: no
 			can_edit: yes

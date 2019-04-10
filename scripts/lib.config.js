@@ -1,11 +1,14 @@
 var webpack = require("webpack");
-var path = require("path");
+var path = require('path');
+var fs = require('fs');
+
 var MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 var extract_css = new MiniCssExtractPlugin({
 	filename: "re-modelgrid.css",
 	chunkFilename: "re-modelgrid-[id].css"
 })
+
 
 var cfg = {
 	devtool: 'source-map',
@@ -18,7 +21,7 @@ var cfg = {
 			    // importLoaders: 1,
 			    localIdentName: 'lui-g-[local]'
 			  }},'less-loader'] },
-			{ test: /\.(css)$/, exclude: /^(https?:)?\/\//, use: ['style-loader','css-loader'] },
+			{ test: /\.(css)$/, exclude: /^(https?:)?\/\//, use: [{loader: MiniCssExtractPlugin.loader},'css-loader'] },
 			{ test: /\.(woff|woff2|eot|ttf|png)$/,loader: 'url-loader?limit=65000' }
 		]
 	},
@@ -30,9 +33,7 @@ var cfg = {
 	},
 	externals: ["re-lui","react-dom","react","classnames","color","re-slide","react-json-view","react-virtualized/dist/commonjs/MultiGrid","react-virtualized/dist/commonjs/List","react-virtualized/dist/commonjs/CellMeasurer"],
 	output: {
-		path: path.join(__dirname,'..','/dist'),
-		publicPath: '/',
-		filename: "index.js",
+		filename: "re-modelgrid.js",
 		libraryTarget: 'commonjs2'
 	},
 	plugins:[extract_css]

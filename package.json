@@ -2,7 +2,7 @@
   "name": "re-modelgrid",
   "version": "0.1.1",
   "description": "simple database explorer react component",
-  "main": "./dist/index.js",
+  "main": "./dist/re-modelgrid.js",
   "scripts": {
     "dev": "NODE_ENV=development webpack-dev-server --config ./scripts/demo.config.js --rogress --mode development",
     "prod": "NODE_ENV=production webpack --config ./scripts/lib.config.js --progress --mode development && NODE_ENV=production webpack --config ./scripts/demo.config.js --progress --mode production",
@@ -42,6 +42,7 @@
     "webpack-dev-server": "^3.1.14"
   },
   "peerDependencies": {
+    "react-beautiful-dnd": "^10.1.0",
     "classnames": "^2.2.6",
     "react-virtualized": "^9.21.0",
     "color": "^3.0.0",
@@ -51,5 +52,8 @@
     "re-lui": "*",
     "react": "^16.7.0",
     "react-dom": "^16.7.0"
+  },
+  "dependencies": {
+    
   }
 }

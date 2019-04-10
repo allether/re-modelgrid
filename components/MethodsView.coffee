@@ -43,7 +43,7 @@ class MethodsView extends Component
 			type: 'button'
 			btn_type: 'flat'
 			i: method.icon || (method.render && 'subject' || 'play_arrow')
-			label: method.label
+			label: method.label || method.name
 
 	confirmDelete: =>
 		@setState
@@ -74,7 +74,7 @@ class MethodsView extends Component
 
 		h Slide,
 			vert: yes
-			h Bar,
+			@props.render_edit_bar && (h Bar,
 				vert: yes
 				big: yes
 				h Bar,
@@ -89,13 +89,14 @@ class MethodsView extends Component
 						type: 'button'
 						i: 'delete'
 						onClick: @props.onDelete
+			) || null
 
-			h 'div',
+			@props.methods && h 'div',
 				className: css['data-item-method-menu']
 				h Bar,
 					vert: yes
 					big: no
-					@props.schema.methods?.map @mapMethods
+					@props.methods.map @mapMethods
 
 
 MethodsView.contextType = StyleContext

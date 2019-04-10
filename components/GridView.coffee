@@ -292,8 +292,10 @@ class GridView extends Component
 		if g_k != state.grid_key
 			state.grid_key = g_k
 			state.force_update_grid = true
+		# log @base
 		if @base
 			if state.grid_w != @base.clientWidth || state.grid_h != @base.clientHeight
+				log 'resize grid'
 				state.grid_w = @base.clientWidth
 				state.grid_h = @base.clientHeight
 
@@ -301,7 +303,8 @@ class GridView extends Component
 
 
 	componentDidUpdate: ->
-		if @base 
+		# log "UPDATED",@base.clientWidth
+		if @base
 			if @state.grid_w != @base.clientWidth || @state.grid_h != @base.clientHeight
 				# log 'update grid size',@props.schema.name,@base.clientHeight,@base.clientWidth
 				return @setState
@@ -354,8 +357,9 @@ class GridView extends Component
 
 			method_menu = h MethodsView,
 				data_item: @props.data_item
+				render_edit_bar: yes
 				showJSONView: @props.showJSONView
-				schema: @props.schema
+				methods: @props.schema.methods
 				onDelete: @props.deleteDataItem
 				renderDataItemMethod: @props.renderDataItemMethod
 				runDataItemMethod: @props.runDataItemMethod
