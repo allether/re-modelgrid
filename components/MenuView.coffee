@@ -33,11 +33,14 @@ class MenuView extends Component
 
 	
 
-	togglePinMenu: (pin_menu_name,toggle)=>
+	togglePinMenu: (pin_menu_name,toggle,dont_run_query)=>
 		@setState
 			show_search_query_helper: no
 			show_new_layout_form: false
 			pin_menu_name: pin_menu_name
+
+		if dont_run_query == true
+			return
 		if !pin_menu_name && !toggle
 			@props.runQuery()
 
@@ -140,7 +143,8 @@ class MenuView extends Component
 		search_tab = h SearchView,
 			reveal: @getPinMenuBoolean('search',true)
 			onClick: @togglePinMenu.bind(@,'search',true)
-			onHide: @togglePinMenu.bind(@,null,false)
+			onHide: (dont_run_query)=>
+				@togglePinMenu(null,false,dont_run_query)
 
 	
 			updateQueryItemAndSet: props.updateQueryItemAndSet

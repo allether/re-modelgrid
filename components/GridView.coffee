@@ -75,7 +75,10 @@ InputCell.contextType = StyleContext
 
 
 
+# class ScrollValue extends Component
+# 	render: ->
 
+# 		@props.value.substring(0,max_l-2)+'..'
 
 
 
@@ -247,6 +250,10 @@ class GridView extends Component
 			max_l = Math.floor( (key.col_width- CELL_PAD*2) / CHAR_W)
 			if v_w > key.col_width
 				value = value.substring(0,max_l-2)+'..'
+				# value = h ScrollValue,
+				# 	max_l: max_l
+				# 	value: value
+				
 
 
 		# log is_key

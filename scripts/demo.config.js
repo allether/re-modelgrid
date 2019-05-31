@@ -20,9 +20,7 @@ var cfg = {
 	},
 	resolve: {
 		extensions: [ '.js', '.coffee' ],
-		// alias:{
-		// 	're-lui':path.join(__dirname,'..','..','/re-lui')
-		// }
+		
 	},
 	output: {
 		path: path.join(__dirname,'..','/dist'),

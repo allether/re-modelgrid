@@ -32,10 +32,10 @@ class SearchView extends Component
 	onSearchEnter: =>
 		if !@props.query_item.called_at && @props.query_item.type == 'bookmark'
 			if @props.query_item.match_label
-				@setSearchValue(target:value:'#'+@props.query_item.match_label)
-
+				@createOrUpdateQueryItem
+					input_value: '#'+@props.query_item.match_label
 		@_cell_cache.clearAll()
-		@props.onHide()
+		setTimeout @props.onHide,0
 
 
 	buildCache: ->
@@ -138,6 +138,9 @@ class SearchView extends Component
 
 	selectItem: (query_item)=>
 		@props.setQueryItem(query_item,true)
+		@props.onHide(true)
+
+
 
 
 
@@ -281,9 +284,6 @@ class SearchView extends Component
 					type: 'button'
 					i: 'remove_circle'
 					onClick: @unsaveQueryItem
-					# onEntr: @saveQueryItem
-					# value: @state.query_item_label
-					# placeholder: 'max '+MAX_CHAR+' char'
 					style:
 						background: @context.primary.warn
 						color: 'white'
@@ -323,10 +323,12 @@ class SearchView extends Component
 				focus: if key_name == @props.query_item.key then false else undefined
 				btn_type: key_name == @props.query_item.key && 'primary' || 'default'
 				type: 'button'
-				label: [
-					h 'span',{key:'label'},key.label.padEnd(10)
-					h 'span',{key:'key',className: (css['model-grid-label-float-right']+' '+css['model-grid-opaque'])},String(key_name)
-				]
+				label: h 'div',
+					style:
+						width: '100%'
+					h 'span',{},key.label.padEnd(10)
+					h 'span',{className: (css['model-grid-label-float-right']+' '+css['model-grid-opaque'])},String(key_name)
+				
 
 	renderKeysView: ->
 		h Bar,

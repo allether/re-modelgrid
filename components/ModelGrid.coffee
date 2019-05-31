@@ -40,6 +40,7 @@ GridView = require './GridView.coffee'
 class ModelGrid extends Component
 	constructor: (props)->
 		super(props)
+		window._grid = @
 		@state = @getDefaultConfig(props)
 		@g_props = 
 			selectDataItem: @selectDataItem
@@ -79,7 +80,7 @@ class ModelGrid extends Component
 		bookmarks: [] 	# array <query_item_id>
 	
 		query_item: @createQueryItem
-			key: '_id'
+			key: props.schema.default_key || '_id'
 			type: 'key'
 		action_query:
 			data_item_id: null
@@ -122,8 +123,9 @@ class ModelGrid extends Component
 
 	setQueryItem: (query_item,run_query_once)=>
 		query_item.skip = 0
+		# log run_query_once
 		@setState
-			run_query_once: run_query_once
+			run_query_once: run_query_once || false
 			query_item: query_item
 
 
@@ -140,7 +142,7 @@ class ModelGrid extends Component
 
 		if is_key	
 			query_item.type = 'key'
-			query_item.input_value = query_item.value[query_item.key]
+			query_item.input_value = query_item.input_value
 		else
 			query_item.type = 'json'
 			query_item.input_value = JSON.stringify(query_item.value)
@@ -160,7 +162,7 @@ class ModelGrid extends Component
 
 	createQueryItem: (query_item)->
 		sort_keys: query_item?.sort_keys || {}
-		layout_keys: query_item?.layout_keys || ['_id']
+		layout_keys: query_item?.layout_keys || [@props.schema.default_key || '_id']
 		key: query_item?.key || props.schema.keys_array[0]
 		label: query_item?.label
 		min_date: query_item?.min_date || Date.now() - xDays(365*2)
@@ -189,7 +191,7 @@ class ModelGrid extends Component
 		if query_item.type == 'key'
 			q_value = {}
 			query_item.error = null
-			q_value[query_item.key || query_item.key] = query_item.input_value
+			q_value[query_item.key || query_item.key] = '//'+query_item.input_value+'//ig'
 			query_item.value = q_value
 		else if query_item.type == 'json'
 			try
@@ -228,6 +230,8 @@ class ModelGrid extends Component
 
 
 	cloneQueryItemAndSet: (schema,query_item,run_query_once)=>
+
+		log run_query_once
 		query_item = @cloneQueryItem(schema,query_item)
 
 		@mapQueryItems()
@@ -286,7 +290,7 @@ class ModelGrid extends Component
 		if found_query
 			return @setState
 				query_item: found_query
-				run_query_once: yes
+				# run_query_once: no
 		
 		# set value (check for errors etc)
 		@syncQueryItem(query_item)
@@ -301,7 +305,7 @@ class ModelGrid extends Component
 				@state.query_item.value = {}
 				@state.query_item.input_value = '{}'
 		if @state.query_item.layout_keys.length == 0
-			@state.query_item.layout_keys[0] = '_id'
+			@state.query_item.layout_keys[0] = '_label'
 
 		@state.query_item.hidden_layout_keys = []
 
@@ -380,9 +384,15 @@ class ModelGrid extends Component
 		@state.query_item.call_count = @state.query_item.call_count || 0
 		@state.query_item.call_count += 1
 
+		# if run_all
+		
+
+		
 		if run_next == true
 			@state.query_item.skip += @state.query_item.limit
+			@state.query_item.limit = 100
 		else
+			@state.query_item.limit += @state.query_item.skip
 			@state.query_item.skip = 0
 			@state.query_item.end_reached = false
 
@@ -634,18 +644,21 @@ class ModelGrid extends Component
 		for q in @state.queries
 			if q.called_at && !q.completed_at
 				q.called_at = q.completed_at = 0
-		# log 'mount and run query'
+
 		@runQuery()
 		
 
 
 	componentDidUpdate: (props,state)->
+		@state.scroll_to_index = -1
+		@state.queries = @state.queries.slice(0,30)
 		save_state = Object.assign {},
 			queries: @state.queries
 			query_item: @state.query_item
 			data_item: @state.data_item
 			show_json_view: @state.show_json_view
 			new_doc: @state.new_doc
+			bookmarks: @state.bookmarks
 		
 		if @state.run_query_once
 			@runQuery()
@@ -687,18 +700,17 @@ class ModelGrid extends Component
 				for data_item,i in data
 					if data_item._id == state.data_item._id
 						state.scroll_to_index = i
-						# log 'FOUND INDEX'
 						break
 
 	componentWillUpdate: (props,state)=>
-		# log props.schema_state_id,state.schema_state_id
-		# if state.scroll_to_index < 0 && state.data_item
-		# 	@setScrollIndex(state)
+		
 
 		if props.schema_state_id != state.schema_state_id
 			state.schema_state_id = props.schema_state_id
 			Object.assign state,@getDefaultConfig(props)
 			Object.assign state,props.schema_state
+
+			# log 'NEW ID'
 			if state.data_item
 				@props.onSelectDataItem?(state.data_item)
 			state.run_query_once = true
@@ -727,8 +739,6 @@ class ModelGrid extends Component
 			state.editor_value = '{}'
 			state.editor_patches = []
 
-
-			
 
 	showJSONView: ()=>
 		@setState 
