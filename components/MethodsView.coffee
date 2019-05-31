@@ -18,9 +18,7 @@ class MethodsView extends Component
 
 	onMethodClick: (method)=>
 		# log method
-		if method.run
-			return method.run(method,@props.data_item)
-		else if method.render
+		if method.render
 			@setState
 				render_method: method
 		else
@@ -41,7 +39,7 @@ class MethodsView extends Component
 			return null
 	
 		h Input,
-			key: method.name
+			key: i
 			onClick: @onMethodClick.bind(@,method)
 			type: 'button'
 			btn_type: 'flat'

@@ -69,7 +69,7 @@ class MenuView extends Component
 
 
 		# LEFT MENU OPTIONS
-		left_menu_schema = Object.assign {},common_menu_schema,
+		left_menu_props = Object.assign {},common_menu_schema,
 			key: 'left-menu'
 			className: css['model-grid-list-menu-left']
 			force_split_y: 1
@@ -78,7 +78,7 @@ class MenuView extends Component
 
 
 		# RIGHT MENU OPTIONS
-		right_menu_schema = Object.assign {},common_menu_schema,
+		right_menu_props = Object.assign {},common_menu_schema,
 			key: 'right-menu'
 			className: css['model-grid-list-menu-right']
 
@@ -115,10 +115,9 @@ class MenuView extends Component
 				style:
 					background: @context.primary.inv[0]
 				h MethodsView,
-					data_item: @props.data_item
 					methods: schema.statics
-					renderDataItemMethod: @props.renderDataItemMethod
-					runDataItemMethod: @props.runDataItemMethod
+					renderDataItemMethod: @props.renderStaticMethod
+					runDataItemMethod: @props.runStaticMethod
 
 
 
@@ -162,7 +161,7 @@ class MenuView extends Component
 			query_item: props.query_item
 
 
-		# # LAYOUTS TAB / VIEW
+
 		layouts_tab = h LayoutsView,
 			reveal: @getPinMenuBoolean('layouts',true)
 			onClick: @togglePinMenu.bind(@,'layouts',true)
@@ -177,21 +176,21 @@ class MenuView extends Component
 			keys: schema.keys
 			query_item: props.query_item
 
-
 		# BASE SLIDE
 		h Slide,
 			dim: DIM2
 			vert : no
 			className: css['menu-slide']
 			h Menu,
-				left_menu_schema
+				left_menu_props
 				model_statics_tab
 				model_title_tab
 				new_doc_tab
 				search_tab
 			h Menu,
-				right_menu_schema
+				right_menu_props
 				layouts_tab
+				
 				
 
 				

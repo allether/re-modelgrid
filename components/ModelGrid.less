@@ -24,6 +24,47 @@
 	}
 }
 
+.calendar-day-key{
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.calendar-week-month-title{
+	display: flex;
+	align-items: flex-start;
+	flex-direction: column;
+	justify-content: flex-end;
+	width: 100%;
+	height: 100%;
+}
+.calendar-week-row{
+	display: flex;
+	align-items: stretch;
+	justify-content: stretch;
+}
+.calendar-week-day{
+	font-family: @monofont;
+	// font-size: @fontsize*1.5;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+}
+.calendar-week-day-date-full{
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%,-50%);
+}
+
+.calendar-week-day-date-full{
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%,-50%);
+}
+
 .model-grid-wrap{
 	transform: translate(0);
 	display: flex;
@@ -96,6 +137,8 @@
 .model-grid-cell-method-button{
 	width: 30px !important;
 }
+
+
 
 .search-query-item-label2{
 	position: absolute;
@@ -260,7 +303,11 @@
 	margin: @padding-size;
 }
 
-
+.model-grid-cell-selected{
+	// border-top: 1px dotted red;
+	// border-bottom: 1px dotted red;
+	// border-right: 1px dotted red;
+}
 .model-grid-cell{
 	display: flex;
 	cursor: pointer;

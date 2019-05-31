@@ -44,7 +44,10 @@ class Demo extends Component
 			h Slide,
 				vert:yes
 				beta: 100
-				Slide: no
+				style:
+					height: '100%'
+					width: '100%'
+				slide: no
 				h Slide,
 					beta: 30
 					style:

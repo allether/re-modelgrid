@@ -33,11 +33,10 @@ class SearchView extends Component
 		if !@props.query_item.called_at && @props.query_item.type == 'bookmark'
 			if @props.query_item.match_label
 				@setSearchValue(target:value:'#'+@props.query_item.match_label)
-		# @state.force_update_grid = true
-		# @state.force_render_grid = true
+
 		@_cell_cache.clearAll()
 		@props.onHide()
-		# @props.runQuery()
+
 
 	buildCache: ->
 		

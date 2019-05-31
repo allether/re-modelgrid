@@ -66,6 +66,7 @@ class InputCell extends Component
 				borderColor: @context.secondary.inv[0]
 				background: (@state.focus || @state.hover) && @context.secondary.color[0] || @context.secondary.color[1]
 			btn_type: 'primary'
+
 InputCell.contextType = StyleContext
 
 
@@ -170,8 +171,12 @@ class GridView extends Component
 		is_key = g_opts.rowIndex == 0
 		g_style = {}
 		
+
 		if !is_key && @props.data_item
 			is_selected = @props.data_item._id == data[g_opts.rowIndex-1]._id
+
+		if !is_key && !data[g_opts.rowIndex-1]
+			return null
 		
 		if g_opts.rowIndex % 2 == 0
 			alt_cell = true
@@ -180,16 +185,29 @@ class GridView extends Component
 			g_style.color = @context.secondary.inv[0]
 
 
-		if schema.rowColor && doc
-			g_style.background = schema.rowColor(schema,doc,g_opts.rowIndex)
-		
+
 
 		if !g_style.background && alt_cell
 			g_style.background = @context.primary.inv[1]
+		else
+			g_style.background = @context.primary.inv[0]
 
 
 		if g_opts.rowIndex != 0 && is_selected
 			g_style.background = @context.secondary.color[1]
+	
+
+		if schema.rowColor && doc
+			r_color = schema.rowColor(schema,doc,g_opts.rowIndex)
+			g_style.background = r_color[0]
+			g_style.color = r_color[1]
+
+	
+
+		if is_selected && schema.rowColorSelect
+			r_color = schema.rowColorSelect(schema,doc,g_opts.rowIndex)
+			g_style.background = r_color[0]
+			g_style.color = r_color[1]
 		
 
 		if g_opts.columnIndex == 0
@@ -205,7 +223,7 @@ class GridView extends Component
 				key: g_opts.key
 				onClick: !is_selected && @props.selectDataItem.bind(null,data[g_opts.rowIndex-1]) || undefined
 				h 'div',
-					className: cn css['model-grid-cell'],css['model-grid-cell-method-button'],'material-icons'
+					className: cn css['model-grid-cell'],css['model-grid-cell-method-button'],'material-icons',(is_selected && css['model-grid-cell-selected'])
 					onClick: @showMethodMenu.bind(@,g_opts)
 					'more_horiz'
 		else
@@ -246,7 +264,7 @@ class GridView extends Component
 				arrow_color = @context.secondary.true
 			g_style.color = arrow_color
 			return h 'div',
-				className: (css['model-grid-cell']+' '+css['model-grid-key'])
+				className: (css['model-grid-cell']+' '+css['model-grid-key']+' '+(is_selected && css['model-grid-cell-selected'] || ''))
 				style: Object.assign g_style,g_opts.style
 				key: g_opts.key
 				onClick: key.indexed && @toggleSortKey.bind(null,key_name) || undefined
@@ -260,7 +278,7 @@ class GridView extends Component
 			key: g_opts.key
 			h 'div',
 				onMouseDown: !is_selected && @props.selectDataItem.bind(null,data[g_opts.rowIndex-1]) || undefined
-				className: css['model-grid-cell']
+				className: css['model-grid-cell']+' '+(is_selected && css['model-grid-cell-selected'] || '')
 				key.render && key.render(schema,data[g_opts.rowIndex-1]) || value
 
 		# return h 'div',
@@ -364,9 +382,7 @@ class GridView extends Component
 				renderDataItemMethod: @props.renderDataItemMethod
 				runDataItemMethod: @props.runDataItemMethod
 
-
-
-
+		# log 'SCROLL TO',@props.scroll_to_index
 		
 		grid = h MultiGrid,
 			key: @props.query_item._id
@@ -380,6 +396,8 @@ class GridView extends Component
 			columnCount: query_item.layout_keys.length + 1 || 0
 			fixedColumnCount:0
 			fixedRowCount:1
+			scrollToRow: @props.scroll_to_index
+			scrollToAlignment: 'center'
 			height: @state.grid_h
 			width:@state.grid_w
 			rowHeight: @rowHeight

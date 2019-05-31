@@ -80,6 +80,7 @@ user_model =
 	keys:
 		_id:
 			label: 'ID'
+			requires: ['project']
 			col_width: 170
 			indexed: yes
 			can_edit: no
