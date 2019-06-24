@@ -146,7 +146,8 @@ class LayoutsView extends Component
 			@state.unused_keys.splice e.destination.index,0,e.draggableId
 			@setKeyIndex(e.draggableId,-1)
 
-
+	# dropContextRef: (ctx)->
+	# 	log ctx
 
 
 	getActiveListStyle: (dragging)->
@@ -156,7 +157,7 @@ class LayoutsView extends Component
 
 	getItemStyle: (box,index,snapshot,style)=>
 
-		# log style
+		# log box
 		
 			
 		if box == 'drop-in'
@@ -178,116 +179,70 @@ class LayoutsView extends Component
 				c = @context.primary.color[0]
 
 
-		
+
 		Object.assign {},style,
 			height: DIM
-			left: style.left - @_rect?.left || 0
-			top: style.top - @_rect?.top || 0
+			left: (style.left + DIM2*3) || 0
+			top: (style.top - DIM2*3) || 0
 			background: bg
 			color: c
-
-	# onScroll: (e)=>
-	# 	@_scroll_top = e.target.scrollTop
-		# log @_scroll_top
-	containerRef: (el)=>
-		@_rect = el?.getBoundingClientRect()
-		# log @_rect
-
-	renderForm: ->
-		
-		h 'div',
-			className: css['methods-list-container-scroll-wrap']
-			ref: @containerRef
-			h 'div',
-				className: css['methods-list-container-scroll']
-				# onScroll: @onScroll
-				h 'div',
-					className: css['methods-list-container']
-					style:
-						background: @context.primary.inv[0]
-					h DragDropContext,
-						onDragEnd: @onDragEnd
-						h Droppable,
-							droppableId: 'drop-in'
-							(provided, snapshot)=>
-								
-								props = Object.assign {},provided.droppableProps,
-									ref: provided.innerRef
-									className: css['methods-list-container-box']
-									style: @getActiveListStyle(snapshot.isDraggingOver)
-								h 'div',props,
-									@props.query_item.layout_keys.map (key_name,i)=>
-										h Draggable,
-											key: key_name
-											draggableId: key_name
-											index: i
-											(provided,snapshot)=>
-												item_props = Object.assign {ref: provided.innerRef},provided.draggableProps,provided.dragHandleProps,
-													className: css['methods-list-container-item']
-													style: @getItemStyle('drop-in',i,snapshot,provided.draggableProps.style)
-													
-												h 'div',item_props,@props.keys[key_name].label 
-									provided.placeholder
-
-						h Droppable,
-							droppableId: 'drop-out'
-							isDropDisabled: @props.query_item.layout_keys.length <= 1
-							(provided, snapshot)=>
-								# log provided,snapshot
-								props = Object.assign {},provided.droppableProps,
-									ref: provided.innerRef
-									className: css['methods-list-container-box']
-									style: @getListStyle(snapshot.isDraggingOver)
-								h 'div',props,
-									@state.unused_keys.map (key_name,i)=>
-										h Draggable,
-											key: key_name
-											draggableId: key_name
-											index: i
-											(provided,snapshot)=>
-												item_props = Object.assign {ref: provided.innerRef},provided.draggableProps,provided.dragHandleProps,
-													className: css['methods-list-container-item']
-													style: @getItemStyle('drop-out',i,snapshot,provided.draggableProps.style)
-												h 'div',item_props,@props.keys[key_name].label 
-
-									provided.placeholder
-					
-
-
-	
 
 
 	render: ->
 
-		tab_options = 
-			vert: yes
-			big: no
-			force_split_x: -1
-			force_bar_dir_x: -1
-			force_split_y: 1
-			force_bar_dir_y: 1
-			onClickBackdrop: @props.onHide
-			reveal: @props.reveal
-			show_backdrop: @props.reveal
-			content: h Input,
-				onClick: @props.onClick
-				type: 'button'
-				btn_type: 'flat'
-				i: 'view_week'
-				label: [
-					h 'span',{key:1,className: css['model-grid-slash']},'/'
-					String(@props.query_item.layout_keys.length).padStart(2)
-				]
+		h 'div',
+			className: css['layouts-list-container']
+			# ref: @containerRef
+			style:
+				background: @context.primary.inv[0]
+			h DragDropContext,
+				# ref: @dropContextRef
+				onDragEnd: @onDragEnd
+				h Droppable,
+					droppableId: 'drop-in'
+					(provided, snapshot)=>
+						
+						props = Object.assign {},provided.droppableProps,
+							ref: provided.innerRef
+							className: css['methods-list-container-box']
+							style: @getActiveListStyle(snapshot.isDraggingOver)
+						h 'div',props,
+							@props.query_item.layout_keys.map (key_name,i)=>
+								h Draggable,
+									key: key_name
+									draggableId: key_name
+									index: i
+									(provided,snapshot)=>
+										item_props = Object.assign {ref: provided.innerRef},provided.draggableProps,provided.dragHandleProps,
+											className: css['methods-list-container-item']
+											style: @getItemStyle('drop-in',i,snapshot,provided.draggableProps.style)
+											
+										h 'div',item_props,@props.keys[key_name].label 
+							provided.placeholder
 
-		if @props.reveal
-			form_tab = @renderForm()
+				h Droppable,
+					droppableId: 'drop-out'
+					isDropDisabled: @props.query_item.layout_keys.length <= 1
+					(provided, snapshot)=>
+						# log provided,snapshot
+						props = Object.assign {},provided.droppableProps,
+							ref: provided.innerRef
+							className: css['methods-list-container-box']
+							style: @getListStyle(snapshot.isDraggingOver)
+						h 'div',props,
+							@state.unused_keys.map (key_name,i)=>
+								h Draggable,
+									key: key_name
+									draggableId: key_name
+									index: i
+									(provided,snapshot)=>
+										item_props = Object.assign {ref: provided.innerRef},provided.draggableProps,provided.dragHandleProps,
+											className: css['methods-list-container-item']
+											style: @getItemStyle('drop-out',i,snapshot,provided.draggableProps.style)
+										h 'div',item_props,@props.keys[key_name].label 
 
-		h MenuTab,
-			tab_options
-			form_tab
-			
-			
-			
+							provided.placeholder
+					
 				
 			
 LayoutsView.contextType = StyleContext

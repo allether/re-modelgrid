@@ -58,6 +58,10 @@ class ModelGrid extends Component
 			runStaticMethod: @runStaticMethod
 			updateSelectedDocument: @updateSelectedDocument
 			renderDataItemMethod: @renderDataItemMethod
+			showLayoutsView: @showLayoutsView
+			hideRightView: @hideRightView
+			showBookmarksView: @showBookmarksView
+			setBookmarkQueryItem: @setBookmarkQueryItem
 
 	log: =>
 		console.log('%c [modelgrid]','color:yellow',arguments[0]||'',arguments[1]||'',arguments[2]||'',arguments[3]||'',arguments[4]||'',arguments[5]||'')
@@ -76,6 +80,8 @@ class ModelGrid extends Component
 		is_visible: false
 
 		scroll_to_index: -1
+
+		key_col_widths: {}
 		
 		bookmarks: [] 	# array <query_item_id>
 	
@@ -92,18 +98,18 @@ class ModelGrid extends Component
 		editor_error: null
 		editor_value: '{}'
 	
-		data_item: null
+		data_item: @props.data_item
 		
 		new_doc: {}
 
 
 
+
 	selectDataItem: (item)=>
-		# log item._id,@state.data_item
-		if !@state.data_item || @state.data_item._id != item._id
-			@setState
-				data_item: Object.assign {},item
-			@props.onSelectDataItem?(item)
+		# if !@state.data_item || @state.data_item._id != item._id
+		# 	@setState
+		# 		data_item: Object.assign {},item
+		@props.onSelectDataItem(item)
 
 
 
@@ -231,7 +237,7 @@ class ModelGrid extends Component
 
 	cloneQueryItemAndSet: (schema,query_item,run_query_once)=>
 
-		log run_query_once
+		# log run_query_once
 		query_item = @cloneQueryItem(schema,query_item)
 
 		@mapQueryItems()
@@ -612,7 +618,7 @@ class ModelGrid extends Component
 		.catch @setActionMethodError.bind(@,@state.data_item)
 
 	getDataItem: ()=>
-		log @state.action_query
+		# log @state.action_query
 
 		if !@state.action_query.completed_at && @state.action_query.called_at
 			return
@@ -630,8 +636,9 @@ class ModelGrid extends Component
 			@state.action_query.completed_at = Date.now()
 			@state.editor_value_id = null
 			if @state.data_item._id == doc._id
-				@setState
-					data_item: doc
+				@props.onSelectDataItem(doc)
+				# @setState
+				# 	data_item: doc
 		
 		.catch @setActionMethodError.bind(@,@state.data_item)
 
@@ -653,6 +660,7 @@ class ModelGrid extends Component
 		@state.scroll_to_index = -1
 		@state.queries = @state.queries.slice(0,30)
 		save_state = Object.assign {},
+			key_col_widths: @state.key_col_widths
 			queries: @state.queries
 			query_item: @state.query_item
 			data_item: @state.data_item
@@ -703,16 +711,17 @@ class ModelGrid extends Component
 						break
 
 	componentWillUpdate: (props,state)=>
+		state.data_item = props.data_item
 		
-
+		# log state.data_item
 		if props.schema_state_id != state.schema_state_id
 			state.schema_state_id = props.schema_state_id
 			Object.assign state,@getDefaultConfig(props)
 			Object.assign state,props.schema_state
 
 			# log 'NEW ID'
-			if state.data_item
-				@props.onSelectDataItem?(state.data_item)
+			# if state.data_item
+			# 	@props.onSelectDataItem?(state.data_item)
 			state.run_query_once = true
 
 
@@ -740,6 +749,7 @@ class ModelGrid extends Component
 			state.editor_patches = []
 
 
+
 	showJSONView: ()=>
 		@setState 
 			show_json_view: yes	
@@ -748,6 +758,29 @@ class ModelGrid extends Component
 	
 	closeJSONView: =>
 		@setState show_json_view: no
+
+	setBookmarkQueryItem: (query_item)=>
+		@setState
+			show_bookmarks_view: no
+		@setQueryItem query_item
+
+	showBookmarksView: =>
+		@setState
+			show_bookmarks_view: yes
+			show_layouts_view: no
+
+	hideRightView: =>
+		@runQuery()
+		@setState
+			show_bookmarks_view: no
+			show_layouts_view: no
+
+
+
+	showLayoutsView: =>
+		@setState
+			show_bookmarks_view: no
+			show_layouts_view: yes
 
 
 
@@ -808,55 +841,12 @@ class ModelGrid extends Component
 		@g_props.queries_updated_at = @state.queries_updated_at
 		@g_props.methods = @props.methods
 		@g_props.filter = @props.filter
-		
+		@g_props.show_layouts_view = @state.show_layouts_view
+		@g_props.show_bookmarks_view = @state.show_bookmarks_view
+		@g_props.key_col_widths = @state.key_col_widths
 
+		# log @state.bookmarks
 
-		# if @state.query_item_run_error
-		# 	overlay = h AlertOverlay,
-		# 		alert_type: 'error'
-		# 		visible: @state.query_item_run_error_visible
-		# 		backdrop_color: @context.primary.inv[2]
-		# 		message: @state.query_item_run_error.error.message
-		# 		onClick: @hideQueryItemRunError
-		# 		style:
-		# 			display: 'flex'
-		# 			alignItems: 'center'
-		# 			justifyContent: 'center'
-		# 		h Input,
-		# 			label: 'errored query value'
-		# 			type: 'textarea'
-		# 			btn_type: 'flat'
-		# 			select: no
-		# 			hover: no
-		# 			bar: yes
-		# 			is_valid: no
-		# 			value: JSON.stringify(@state.query_item_run_error.query_item.value,4,4)
-		
-		# else
-		# 	overlay = h AlertOverlay,
-		# 		initial_visible: no
-		# 		backdrop_color: @context.primary.inv[2]
-		# 		alert_type: 'error'
-		# 		visible: @state.action_error? || !@state.action_query.completed_at && @state.action_query.called_at
-		# 		message: @state.action_error?.error.message
-		# 		onClick: @state.action_error && @clearActionQueryError || undefined
-		# 		style:
-		# 			display: 'flex'
-		# 			alignItems: 'center'
-		# 			justifyContent: 'center'
-		# 		h Input,
-		# 			className: css['overlay-label-button']
-		# 			big: no
-		# 			type: 'label'
-		# 			style:
-		# 				background: @_pc_opaque
-		# 				color: @context.primary.inv[0]
-		# 			label: [
-		# 				h 'span',{key:1,style:{fontWeight:600,color:@context.primary.color[0]}},@state.action_query.action
-		# 				h 'span',{key:2,className: css['model-grid-slash']},'/'
-		# 				@state.action_query.data_item_label || @state.action_query.data_item_id
-		# 			]
-		
 
 		style = {}
 		style.visiblity = @state.is_visible && 'visible' || 'hidden'
@@ -872,7 +862,7 @@ class ModelGrid extends Component
 			className: css['model-grid']
 			pos: !@state.show_json_view && 1 || 0
 			vert: no
-			# outerChildren: overlay
+			
 			h Slide,
 				className: css['react-json-wrap']
 				style:

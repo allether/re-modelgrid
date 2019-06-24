@@ -1,7 +1,7 @@
 SearchView = require './SearchView.coffee'
 CreateDocView = require './CreateDocView.coffee'
 BookmarksView = require './BookmarksView.coffee'
-LayoutsView = require './LayoutsView.coffee'
+
 Slide = require 're-slide'
 {Input,MenuTab,Menu,Bar,StyleContext} = require 're-lui'
 css = require './ModelGrid.less'
@@ -165,20 +165,34 @@ class MenuView extends Component
 			query_item: props.query_item
 
 
+		# layouts
+		layouts_tab = h Input,
+			onClick: @props.showLayoutsView
+			type: 'button'
+			select: @props.show_layouts_view
+			style:
+				flexGrow: 0
+			btn_type: 'flat'
+			i: 'view_week'
+			label: [
+				h 'span',{key:1,className: css['model-grid-slash']},'/'
+				String(@props.query_item.layout_keys.length).padStart(2)
+			]
+		bookmarks_tab = h Input,
+			onClick: @props.showBookmarksView
+			type: 'button'
+			select: @props.show_bookmarks_view
+			style:
+				flexGrow: 0
+			btn_type: 'flat'
+			i: 'bookmark'
+			label: [
+				h 'span',{key:1,className: css['model-grid-slash']},'/'
+				String(@props.bookmarks.length).padStart(2)
+			]
 
-		layouts_tab = h LayoutsView,
-			reveal: @getPinMenuBoolean('layouts',true)
-			onClick: @togglePinMenu.bind(@,'layouts',true)
-			onHide: @togglePinMenu.bind(@,null,false)
-			keys_array: schema.keys_array
-			runQuery: props.runQuery
-			updateQueryItemAndSet: props.updateQueryItemAndSet
-			updateQueryItem: props.updateQueryItem
-			cloneQueryItemAndSet: props.cloneQueryItemAndSet
-			cloneQueryItem: props.cloneQueryItem
-			setQueryItem: props.setQueryItem
-			keys: schema.keys
-			query_item: props.query_item
+
+
 
 		# BASE SLIDE
 		h Slide,
@@ -194,6 +208,8 @@ class MenuView extends Component
 			h Menu,
 				right_menu_props
 				layouts_tab
+				bookmarks_tab
+				
 				
 				
 
