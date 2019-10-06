@@ -356,8 +356,8 @@ class GridView extends Component
 		g_style = {}
 		
 
-		if !is_key && @props.data_item
-			is_selected = @props.data_item._id == data[g_opts.rowIndex-1]._id
+		if !is_key && @props.data_item_id
+			is_selected = @props.data_item_id == data[g_opts.rowIndex-1]._id
 
 		if !is_key && !data[g_opts.rowIndex-1]
 			return null
@@ -411,7 +411,7 @@ class GridView extends Component
 				h 'div',
 					className: cn css['model-grid-cell'],css['model-grid-cell-method-button'],'material-icons',(is_selected && css['model-grid-cell-selected'])
 					onClick: @showMethodMenu.bind(@,g_opts)
-					'more_horiz'
+					is_selected && 'arrow_forward' || 'more_horiz'
 		else
 			key_name = @props.query_item.layout_keys[g_opts.columnIndex-1]
 			key = schema.keys[key_name]
@@ -636,6 +636,7 @@ class GridView extends Component
 				runDataItemMethod: @props.runDataItemMethod
 
 
+	
 
 		grid = h MultiGrid,
 			key: @props.query_item._id

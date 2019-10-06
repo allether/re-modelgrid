@@ -23,12 +23,14 @@ global.xDays = (howmany)->
 	
 rfc6902 = require('rfc6902')
 
+
 # require 'colors'
 CodeEditor = require('react-simple-code-editor').default
 { highlight, languages } = require 'prismjs/components/prism-core'
 require 'prismjs/components/prism-clike'
 require 'prismjs/components/prism-json'
 require 'prismjs/themes/prism-twilight.css'
+
 
 global.DIM2 = 40
 global.DIM = 30
@@ -107,8 +109,8 @@ class ModelGrid extends Component
 
 	selectDataItem: (item)=>
 		# if !@state.data_item || @state.data_item._id != item._id
-		# 	@setState
-		# 		data_item: Object.assign {},item
+		@setState
+			data_item: Object.assign {},item
 		@props.onSelectDataItem(item)
 
 
@@ -637,8 +639,8 @@ class ModelGrid extends Component
 			@state.editor_value_id = null
 			if @state.data_item._id == doc._id
 				@props.onSelectDataItem(doc)
-				# @setState
-				# 	data_item: doc
+				@setState
+					data_item: doc
 		
 		.catch @setActionMethodError.bind(@,@state.data_item)
 
@@ -711,9 +713,12 @@ class ModelGrid extends Component
 						break
 
 	componentWillUpdate: (props,state)=>
-		state.data_item = props.data_item
+		# state.data_item = props.data_item
+		if !props.data_item_id
+			state.data_item = null
+
+	
 		
-		# log state.data_item
 		if props.schema_state_id != state.schema_state_id
 			state.schema_state_id = props.schema_state_id
 			Object.assign state,@getDefaultConfig(props)
@@ -722,17 +727,25 @@ class ModelGrid extends Component
 			# log 'NEW ID'
 			# if state.data_item
 			# 	@props.onSelectDataItem?(state.data_item)
+
+			# log 'RUN QUERY ONCE'
 			state.run_query_once = true
 
+		if props.query_state_id != @props.query_state_id
+			state.run_query_once = true
 
 			
 
 		if state.queries_updated_at != @state.queries_updated_at
 			@mapQueryItems(props,state)
+		
 		if !state.data_item
 			state.show_json_view = false
+		
 		if state.query_item != @state.query_item
 			state.show_json_view = false
+
+
 
 		if state.data_item
 			if state.data_item._id != state.editor_value_id
@@ -832,6 +845,7 @@ class ModelGrid extends Component
 		@g_props.query_map = @state.query_map
 		@g_props.query_item = @state.query_item
 		@g_props.data_item = @state.data_item
+		@g_props.data_item_id = @props.data_item_id
 		@g_props.new_doc = @state.new_doc
 		@g_props.action_query = @state.action_query
 		@g_props.schema = @props.schema

@@ -179,11 +179,10 @@ class LayoutsView extends Component
 				c = @context.primary.color[0]
 
 
-
 		Object.assign {},style,
 			height: DIM
 			left: (style.left + DIM2*3) || 0
-			top: (style.top - DIM2*3) || 0
+			top: (style.top - DIM2 - 64) || 0
 			background: bg
 			color: c
 
@@ -208,6 +207,8 @@ class LayoutsView extends Component
 							style: @getActiveListStyle(snapshot.isDraggingOver)
 						h 'div',props,
 							@props.query_item.layout_keys.map (key_name,i)=>
+								if !@props.keys[key_name]
+									return null
 								h Draggable,
 									key: key_name
 									draggableId: key_name
@@ -231,6 +232,8 @@ class LayoutsView extends Component
 							style: @getListStyle(snapshot.isDraggingOver)
 						h 'div',props,
 							@state.unused_keys.map (key_name,i)=>
+								if !@props.keys[key_name]
+									return null
 								h Draggable,
 									key: key_name
 									draggableId: key_name
