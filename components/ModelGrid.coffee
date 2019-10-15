@@ -660,7 +660,7 @@ class ModelGrid extends Component
 
 	componentDidUpdate: (props,state)->
 		@state.scroll_to_index = -1
-		@state.queries = @state.queries.slice(0,30)
+		@state.queries = @state.queries.slice(0,5)
 		save_state = Object.assign {},
 			key_col_widths: @state.key_col_widths
 			queries: @state.queries
