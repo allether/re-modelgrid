@@ -10,6 +10,8 @@ MethodsView = require './MethodsView.coffee'
 LayoutsView = require './LayoutsView.coffee'
 BookmarksView = require './BookmarksView.coffee'
 
+_ = require 'lodash'
+
 CHAR_W = 7.8
 CELL_PAD = 10
 MAX_CHAR = 32
@@ -235,20 +237,24 @@ class GridView extends Component
 
 
 	toggleSortKey: (key,dir)=>
-		keys = Object.assign {},@props.query_item.sort_keys
+
+		@props.query_item.sort_keys = @props.query_item.sort_keys || []
+		keys = [].concat(@props.query_item.sort_keys)
+
+
+		found_key = _.find keys,key:key
 		
-		if dir == 0
-			keys[key] = undefined
-		else if dir == -1
-			if keys[key] == -1
-				keys[key] = undefined
-			else
-				keys[key] = -1
+		if found_key
+			keys.splice(keys.indexOf(found_key),1)
+			keys.push found_key
 		else
-			if keys[key] == 1
-				keys[key] = undefined
-			else
-				keys[key] = 1
+			if dir == -1 || dir == 1
+				n_key = 
+					key: key
+					dir: dir
+		
+			keys.push n_key
+
 
 		
 		if @props.query_item.called_at
@@ -354,6 +360,16 @@ class GridView extends Component
 		doc = data[g_opts.rowIndex-1]
 		is_key = g_opts.rowIndex == 0
 		g_style = {}
+
+		if g_opts.rowIndex == 0 && g_opts.columnIndex == 0
+			return h 'div',
+				key: g_opts.key
+				style: g_opts.style
+				h 'div',
+					className: cn css['model-grid-cell'],css['model-grid-cell-method-button'],'material-icons'
+					onClick: @props.onClearQuerySortKeys
+					'clear'
+
 		
 
 		if !is_key && @props.data_item_id
@@ -428,6 +444,10 @@ class GridView extends Component
 				
 		
 		if is_key
+			sort_key_index = _.findIndex @props.query_item.sort_keys,key:key_name
+			if sort_key_index >= 0
+				sort_key = @props.query_item.sort_keys[sort_key_index]
+
 			if is_selected && key.can_edit
 				value = h InputCell,
 					value: value
@@ -442,17 +462,18 @@ class GridView extends Component
 				g_style.background = @context.primary.inv[2]
 
 			if key.indexed
+
 				sort_opts = h 'div',
 					className: css['model-grid-key-toggle']
 					h 'i',
 						style:
-							color: @props.query_item.sort_keys[key_name] == 1 && @context.secondary.false || @context.primary.color[2]
+							color: (sort_key && sort_key.dir == 1 && @context.secondary.false) || @context.primary.color[2]
 						onClick: @toggleSortKey.bind(null,key_name,1)
 						className: 'material-icons'
 						'keyboard_arrow_up'
 					h 'i',
 						style:
-							color: @props.query_item.sort_keys[key_name] == -1 && @context.secondary.true || @context.primary.color[2]
+							color: (sort_key && sort_key.dir == -1 && @context.secondary.true) || @context.primary.color[2]
 						onClick: @toggleSortKey.bind(null,key_name,-1)
 						className: 'material-icons'
 						'keyboard_arrow_down'
@@ -486,19 +507,33 @@ class GridView extends Component
 				className: 'material-icons '+css['model-grid-key-resize']
 				'last_page'
 
-			if @props.query_item.sort_keys[key_name] == 1
+			
+
+			if sort_key
+				sort_index_label = h 'div',
+					className: css['model-grid-label']
+					style:
+						paddingLeft: 5
+						fontSize: 11
+						lineHeight: 11
+						color: @context.primary.inv[5]
+					"("+sort_key_index+")"
+
+
+			if sort_key && sort_key.dir == 1
 				g_style.color = @context.secondary.false
-			else if @props.query_item.sort_keys[key_name] == -1
+			else if sort_key && sort_key.dir == -1
 				g_style.color = @context.secondary.true
 			else
 				g_style.color = @context.primary.color[2]
 
 		
 			return h 'div',
-				className: css['model-grid-cell']+' '+css['model-grid-key']
+				className: css['model-grid-cell']
 				style: Object.assign g_style,g_opts.style
 				key: g_opts.key
 				key_label
+				sort_index_label
 				sort_opts
 				resize_bar
 

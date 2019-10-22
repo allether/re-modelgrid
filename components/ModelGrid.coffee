@@ -63,11 +63,17 @@ class ModelGrid extends Component
 			showLayoutsView: @showLayoutsView
 			hideRightView: @hideRightView
 			showBookmarksView: @showBookmarksView
+			onClearQuerySortKeys: @onClearQuerySortKeys
 			setBookmarkQueryItem: @setBookmarkQueryItem
 
 	log: =>
 		console.log('%c [modelgrid]','color:yellow',arguments[0]||'',arguments[1]||'',arguments[2]||'',arguments[3]||'',arguments[4]||'',arguments[5]||'')
 
+
+
+	onClearQuerySortKeys: =>
+		@state.query_item.sort_keys = []
+		@runQuery()
 
 
 	getDefaultConfig: (props)=>
@@ -169,7 +175,7 @@ class ModelGrid extends Component
 		
 
 	createQueryItem: (query_item)->
-		sort_keys: query_item?.sort_keys || {}
+		sort_keys: query_item?.sort_keys || []
 		layout_keys: query_item?.layout_keys || [@props.schema.default_key || '_id']
 		key: query_item?.key || props.schema.keys_array[0]
 		label: query_item?.label
@@ -324,10 +330,10 @@ class ModelGrid extends Component
 		@state.query_item.required_keys = @props.schema.required_keys
 
 		# log @state.query_item
-		if @state.query_item.sort_keys
-			for key,val of @state.query_item.sort_keys
-				if @state.query_item.layout_keys.indexOf(key) < 0 
-					delete @state.query_item.sort_keys[key]
+		# if @state.query_item.sort_keys
+		# 	for key,val of @state.query_item.sort_keys
+		# 		if @state.query_item.layout_keys.indexOf(key) < 0 
+		# 			delete @state.query_item.sort_keys[key]
 
 		
 
