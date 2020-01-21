@@ -8,6 +8,7 @@ css = require './ModelGrid.less'
 cn = require 'classnames'
 {Input,MenuTab,Menu,Bar,Overlay,AlertOverlay,StyleContext,AlertDot} = require 're-lui'
 JsonView = require './JsonView.coffee'
+_ = require 'lodash' 
 
 global.xSeconds = (howmany)->
 	return 1000 * howmany
@@ -65,6 +66,8 @@ class ModelGrid extends Component
 			showBookmarksView: @showBookmarksView
 			onClearQuerySortKeys: @onClearQuerySortKeys
 			setBookmarkQueryItem: @setBookmarkQueryItem
+			selectNextDataItem: @selectNextDataItem
+			selectPrevDataItem: @selectPrevDataItem
 
 	log: =>
 		console.log('%c [modelgrid]','color:yellow',arguments[0]||'',arguments[1]||'',arguments[2]||'',arguments[3]||'',arguments[4]||'',arguments[5]||'')
@@ -120,26 +123,51 @@ class ModelGrid extends Component
 		@props.onSelectDataItem(item)
 
 
+	selectNextDataItem: (skip)=>
+		skip = skip || 1
+		data = @state.data.get(@state.query_item._id)
+		if @state.data_item
+			i = _.findIndex data,_id:@state.data_item._id
+			if data.length > 0
+				n_i = Math.min(data.length-1,i+skip)
+				@selectDataItem(data[n_i])
+		else
+			if data.length
+				@selectDataItem(data[0])
 
-	mapQueryItems: (props,state)=>
-		# @log 'update query items'
-		state = state || @state
-		props = props || @props
-		state.bookmarks = []
-		for q in state.queries
+	selectPrevDataItem: (skip)=>
+		skip = skip || 1
+		data = @state.data.get(@state.query_item._id)
+		if @state.data_item
+			i = _.findIndex data,_id:@state.data_item._id
+			if data.length > 0
+				n_i = Math.max(0,i-skip)
+				@selectDataItem(data[n_i])
+		else
+			if data.length
+				@selectDataItem(data[0])
+
+	scrollRight: =>
+		@
+
+
+
+	mapQueryItems: ()=>
+		@state.bookmarks = []
+		for q in @state.queries
 			if q.label
-				state.bookmarks.push q
-			state.query_map.set(q._id,q)
-			if state.query_item?._id == q._id
-				state.query_item = q
-		state.bookmarks_updated_at = Date.now() 
+				@state.bookmarks.push q
+			@state.query_map.set(q._id,q)
+			if @state.query_item?._id == q._id
+				@state.query_item = q
+		@setState
+			bookmarks_updated_at: Date.now() 
 
 
-	setQueryItem: (query_item,run_query_once)=>
+	setQueryItem: (query_item)=>
 		query_item.skip = 0
 		# log run_query_once
 		@setState
-			run_query_once: run_query_once || false
 			query_item: query_item
 
 
@@ -175,19 +203,33 @@ class ModelGrid extends Component
 		
 
 	createQueryItem: (query_item)->
-		sort_keys: query_item?.sort_keys || []
-		layout_keys: query_item?.layout_keys || [@props.schema.default_key || '_id']
-		key: query_item?.key || props.schema.keys_array[0]
-		label: query_item?.label
-		min_date: query_item?.min_date || Date.now() - xDays(365*2)
-		max_date: query_item?.max_date || Date.now() + xDays(365)
-		skip: 0
-		type: query_item?.type
-		value: query_item?.value
-		limit: @props.query_limit || 100
-		input_value: query_item?.input_value || ""
-		call_count: 0
-		_id: Date.now().toString(24)
+		qi = 
+			sort_keys: query_item?.sort_keys || []
+			layout_keys: query_item?.layout_keys || [@props.schema.default_key || '_id']
+			key: query_item?.key || props.schema.keys_array[0]
+			label: query_item?.label
+			min_date: query_item?.min_date || Date.now() - xDays(365*2)
+			max_date: query_item?.max_date || Date.now() + xDays(365)
+			skip: 0
+			type: query_item?.type
+			value: query_item?.value
+			limit: @props.query_limit || 100
+			input_value: query_item?.input_value || ""
+			call_count: 0
+			_id: Date.now().toString(24)
+		
+		
+		if @props.schema.force_keys
+			for key,i in @props.schema.force_keys
+				if !qi.layout_keys[i] || qi.layout_keys[i] != key
+					existing_index = qi.layout_keys.indexOf(key)
+					if existing_index >= 0
+						qi.layout_keys.splice(existing_index,1)
+					qi.layout_keys.splice(i,0,key)
+		# log qi.layout_keys,@props.schema.force_keys
+
+		return qi
+
 
 	
 	decideQueryItemType: (query_item)->
@@ -243,13 +285,13 @@ class ModelGrid extends Component
 			return null
 
 
-	cloneQueryItemAndSet: (schema,query_item,run_query_once)=>
+	cloneQueryItemAndSet: (schema,query_item)=>
 
 		# log run_query_once
 		query_item = @cloneQueryItem(schema,query_item)
 
 		@mapQueryItems()
-		@setQueryItem(query_item,run_query_once)
+		@setQueryItem(query_item)
 	
 
 
@@ -460,11 +502,10 @@ class ModelGrid extends Component
 			
 			@forceUpdate()
 		.catch @setQueryItemRunError.bind(@,s_q_i)
+
+		@setState({})
 	
 
-
-		@setState
-			run_query_once: false
 
 
 	runStaticMethod: (method)=>
@@ -652,19 +693,10 @@ class ModelGrid extends Component
 
 
 
-	componentWillMount: ->
-		Object.assign @state,@props.schema_state
-		@state.schema_state_id = @props.schema_state_id
-		@mapQueryItems()
-		for q in @state.queries
-			if q.called_at && !q.completed_at
-				q.called_at = q.completed_at = 0
-
-		@runQuery()
-		
-
 
 	componentDidUpdate: (props,state)->
+
+
 		@state.scroll_to_index = -1
 		@state.queries = @state.queries.slice(0,5)
 		save_state = Object.assign {},
@@ -676,8 +708,7 @@ class ModelGrid extends Component
 			new_doc: @state.new_doc
 			bookmarks: @state.bookmarks
 		
-		if @state.run_query_once
-			@runQuery()
+		
 
 		@props.onSchemaStateUpdated?(save_state)
 
@@ -697,11 +728,58 @@ class ModelGrid extends Component
 			# @log "RUN PROPS QUERY ITEM"
 			@cloneQueryItemAndSet(@props.run_query_item,@state.query_item,true)
 
+
+		if !@props.data_item_id && @state.data_item
+			@setState
+				data_item: null
+
+		
+		if @props.schema_state_id != props.schema_state_id || @props.query_state_id != props.query_state_id 
+			@runQuery()
+
+		if state.queries_updated_at != @state.queries_updated_at
+			@mapQueryItems()
+
+
+		if (!@state.data_item || state.query_item != @state.query_item || !state.data_item ) && @state.show_json_view
+			@hideJsonView()
+
+
+
+		if @state.data_item
+			if @state.data_item._id != @state.editor_value_id
+				if @state.data_item
+					state.editor_value = JSON.stringify(@state.data_item,null,4)
+					state.editor_patches = []
+				else
+					state.editor_value = "{}"
+					state.editor_patches = []
+				@setState
+					editor_value_id: @state.data_item._id
+
+		else
+			if @state.editor_value != '{}' || @state.editor_patches.length
+				@setState
+					editor_value: '{}'
+					editor_patches: []
+
+
+
+	hideJsonView: =>
+		@setState
+			show_json_view: false
+
 	# getChildContext: ->
 	# 	gridHeight: @base?.clientHeight - (@props.show_bar && DIM || 0)
 	componentDidMount: =>
-		# log 'DID MOUNT'
-		# @forceUpdate()
+		Object.assign @state,@props.schema_state
+		@mapQueryItems()
+		for q in @state.queries
+			if q.called_at && !q.completed_at
+				q.called_at = q.completed_at = 0
+
+		@runQuery()
+		
 
 	setScrollIndex: (state)=>
 		state = state || @state
@@ -718,54 +796,53 @@ class ModelGrid extends Component
 						state.scroll_to_index = i
 						break
 
-	componentWillUpdate: (props,state)=>
+
+	# componentWillUpdate: (props,state)=>
 		# state.data_item = props.data_item
-		if !props.data_item_id
-			state.data_item = null
+		# if !props.data_item_id
+		# 	state.data_item = null
 
 	
 		
-		if props.schema_state_id != state.schema_state_id
-			state.schema_state_id = props.schema_state_id
-			Object.assign state,@getDefaultConfig(props)
-			Object.assign state,props.schema_state
+		# if props.schema_state_id != state.schema_state_id
+		# 	state.schema_state_id = props.schema_state_id
+		# 	Object.assign state,@getDefaultConfig(props)
+		# 	Object.assign state,props.schema_state
 
-			# log 'NEW ID'
-			# if state.data_item
-			# 	@props.onSelectDataItem?(state.data_item)
+		# 	# log 'NEW ID'
+		# 	# if state.data_item
+		# 	# 	@props.onSelectDataItem?(state.data_item)
 
-			# log 'RUN QUERY ONCE'
-			state.run_query_once = true
+		# 	# log 'RUN QUERY ONCE'
+		# 	state.run_query_once = true
 
-		if props.query_state_id != @props.query_state_id
-			state.run_query_once = true
+		# if props.query_state_id != @props.query_state_id
+		# 	state.run_query_once = true
 
 			
 
-		if state.queries_updated_at != @state.queries_updated_at
-			@mapQueryItems(props,state)
 		
-		if !state.data_item
-			state.show_json_view = false
+		# if !state.data_item
+		# 	state.show_json_view = false
 		
-		if state.query_item != @state.query_item
-			state.show_json_view = false
+		# if state.query_item != @state.query_item
+		# 	state.show_json_view = false
 
 
 
-		if state.data_item
-			if state.data_item._id != state.editor_value_id
-				if state.data_item
-					state.editor_value = JSON.stringify(state.data_item,null,4)
-					state.editor_patches = []
-				else
-					state.editor_value = "{}"
-					state.editor_patches = []
+		# if state.data_item
+		# 	if state.data_item._id != state.editor_value_id
+		# 		if state.data_item
+		# 			state.editor_value = JSON.stringify(state.data_item,null,4)
+		# 			state.editor_patches = []
+		# 		else
+		# 			state.editor_value = "{}"
+		# 			state.editor_patches = []
 
-				state.editor_value_id = state.data_item._id
-		else
-			state.editor_value = '{}'
-			state.editor_patches = []
+		# 		state.editor_value_id = state.data_item._id
+		# else
+		# 	state.editor_value = '{}'
+		# 	state.editor_patches = []
 
 
 

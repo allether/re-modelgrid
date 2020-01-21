@@ -355,6 +355,7 @@
 	top: 0;
 	left: 0;
 	margin: @padding-size;
+
 }
 
 .model-grid-cell-selected{
@@ -375,6 +376,12 @@
     padding: 0px 10px;
     .model-grid-label{
     	float: left;
+    	i{
+			font-size: 11px;
+			line-height: 30px;
+			align-content: center;
+			vertical-align: middle;
+		}
     }
     input{
     	// border: 2px solid cyan;
@@ -524,9 +531,15 @@ ods-list-container-scroll-wrap{
 	vertical-align: center;
 	padding: 0px @padding-size;
 	align-items: center;
+	cursor: pointer;
 	&::before {
 		content: '=';
 		opacity: 0.3;
+		padding-right: @padding-size;
+	}
+	&.locked::before {
+		content: '•';
+		opacity: 1;
 		padding-right: @padding-size;
 	}
 }

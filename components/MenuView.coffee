@@ -25,7 +25,7 @@ class MenuView extends Component
 
 
 
-	componentWillUpdate: (props,state)->
+	UNSAFE_componentWillUpdate: (props,state)->
 		if props.schema.name != @props.schema.name
 			Object.assign state,@getDefaultState()
 			# log @state

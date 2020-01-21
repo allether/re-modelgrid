@@ -10,8 +10,10 @@ class LayoutsView extends Component
 	constructor: (props)->
 		super(props)
 		@state = 
-			unused_keys: []
+			unused_keys: @props.keys_array.filter (key)=>
+				@props.query_item?.layout_keys.indexOf(key) < 0
 		@_scroll_top = 0
+
 	# onSelectKey: (key_name)=>
 	# 	key_arr = [].concat @props.query_item.layout_keys
 
@@ -68,21 +70,21 @@ class LayoutsView extends Component
 
 
 
-	updateUnusedKeys: (props,state)->
-		state.unused_keys = state.unused_keys.filter (key)->
-			props.query_item.layout_keys.indexOf(key) < 0
+	updateUnusedKeys: ->
+		@setState
+			unused_keys: @state.unused_keys.filter (key)=>
+				@props.query_item.layout_keys.indexOf(key) < 0
 
 
-	resetUnusedKeys: (props,state)->
-		state.unused_keys = props.keys_array.filter (key)->
-			props.query_item.layout_keys.indexOf(key) < 0
+	resetUnusedKeys: ->
+		@setState
+			unused_keys: @props.keys_array.filter (key)=>
+				@props.query_item.layout_keys.indexOf(key) < 0
 
 	
-	componentWillMount: ->
-		@resetUnusedKeys(@props,@state)
 		
 		
-	componentWillUpdate: (props,state)->
+	componentDidUpdate: (props,state)->
 		if props.keys_array != @props.keys_array
 			@resetUnusedKeys(props,state)
 		if props.query_item.layout_keys != @props.query_item.layout_keys
@@ -131,9 +133,14 @@ class LayoutsView extends Component
 		if !e.destination
 			return
 
+		if e.destination.droppableId == 'drop-in'
+			if @props.schema.force_keys && e.destination.index < @props.schema.force_keys.length
+				return false
+
 		if e.destination.droppableId == 'drop-out' && e.source.droppableId == 'drop-out'
-			@state.unused_keys.splice e.source.index,1
-			@state.unused_keys.splice(e.destination.index,0,e.draggableId)
+			return 
+			# @state.unused_keys.splice e.source.index,1
+			# @state.unused_keys.splice(e.destination.index,0,e.draggableId)
 
 		else if e.destination.droppableId == 'drop-in' && e.source.droppableId == 'drop-out'
 			@state.unused_keys.splice e.source.index,1
@@ -186,6 +193,18 @@ class LayoutsView extends Component
 			background: bg
 			color: c
 
+	# onDragUpdate: (opts)=>
+	# 	if opts.destination.droppableId == 'drop-out' && opts.source.droppableId == 'drop-out'
+	# 		if !@state.lock_drop_out
+	# 			log 'lock'
+	# 			@setState
+	# 				lock_drop_out:
+	# 					draggableId: opts.draggableId
+	# 	else
+	# 		if @state.lock_drop_out
+	# 			log 'unlock'
+	# 			@setState
+	# 				lock_drop_out: undefined
 
 	render: ->
 
@@ -197,6 +216,7 @@ class LayoutsView extends Component
 			h DragDropContext,
 				# ref: @dropContextRef
 				onDragEnd: @onDragEnd
+				onDragUpdate: @onDragUpdate
 				h Droppable,
 					droppableId: 'drop-in'
 					(provided, snapshot)=>
@@ -207,18 +227,20 @@ class LayoutsView extends Component
 							style: @getActiveListStyle(snapshot.isDraggingOver)
 						h 'div',props,
 							@props.query_item.layout_keys.map (key_name,i)=>
+								locked_key = @props.schema.force_keys?.indexOf(key_name) >= 0
 								if !@props.keys[key_name]
 									return null
 								h Draggable,
+									isDragDisabled: locked_key
 									key: key_name
 									draggableId: key_name
 									index: i
 									(provided,snapshot)=>
 										item_props = Object.assign {ref: provided.innerRef},provided.draggableProps,provided.dragHandleProps,
-											className: css['methods-list-container-item']
+											className: cn css['methods-list-container-item'],locked_key && css['locked']
 											style: @getItemStyle('drop-in',i,snapshot,provided.draggableProps.style)
 											
-										h 'div',item_props,@props.keys[key_name].label 
+										h 'div',item_props,@props.keys[key_name].label
 							provided.placeholder
 
 				h Droppable,
@@ -236,6 +258,7 @@ class LayoutsView extends Component
 									return null
 								h Draggable,
 									key: key_name
+									# isDragDisabled: @state.lock_drop_out.draggableId != key_name
 									draggableId: key_name
 									index: i
 									(provided,snapshot)=>

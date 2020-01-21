@@ -20,6 +20,11 @@ class SearchView extends Component
 			show_info_options: no
 			query_item_label: null
 			clicked_run_query_at: 0
+
+		@_cell_cache = new CellMeasurerCache
+			defaultHeight: 30
+			fixedWidth: yes
+			fixedHeight: no
 	
 	onFocus: =>
 		if @state.run_query_interval
@@ -38,12 +43,9 @@ class SearchView extends Component
 		setTimeout @props.onHide,0
 
 
-	buildCache: ->
+	
 		
-		@_cell_cache = new CellMeasurerCache
-			defaultHeight: 30
-			fixedWidth: yes
-			fixedHeight: no
+		
 		
 		
 	setQueryItemLabel: (e)=>
@@ -111,11 +113,7 @@ class SearchView extends Component
 
 
 
-	componentWillMount: (props)->
-		@buildCache()
-
-
-	componentWillUpdate: (props,state)->
+	UNSAFE_componentWillUpdate: (props,state)->
 		if props.query_item._id != @props.query_item._id || props.reveal != @props.reveal || props.queries_updated_at != @props.queries_updated_at || props.bookmarks_updated_at != @props.bookmarks_updated_at
 			if props.queries_updated_at != @props.queries_updated_at
 				@_cell_cache?.clearAll()

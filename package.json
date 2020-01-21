@@ -1,6 +1,6 @@
 {
   "name": "re-modelgrid",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "description": "simple database explorer react component",
   "main": "./dist/re-modelgrid.js",
   "scripts": {
@@ -50,10 +50,11 @@
     "color": "^3.0.0",
     "css": "^2.2.4",
     "normalize.css": "^8.0.1",
-    "re-slide": "*",
+    "re-slide": "^1.2.2",
     "re-lui": "*",
-    "react": "^16.7.0",
-    "react-dom": "^16.7.0"
-  },
-  "dependencies": {}
+    "react": "^16.11.0",
+    "lodash": "^4.17.15",
+    "hotkeys-js": "^3.7.3",
+    "react-dom": "^16.11.0"
+  }
 }
