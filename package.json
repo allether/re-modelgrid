@@ -1,6 +1,6 @@
 {
   "name": "re-modelgrid",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "simple database explorer react component",
   "main": "./dist/re-modelgrid.js",
   "scripts": {
@@ -24,6 +24,7 @@
     "css": "^2.2.4",
     "css-loader": "^1.0.1",
     "dayjs": "^1.8.14",
+    "hotkeys-js": "^3.7.3",
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
     "mini-css-extract-plugin": "^0.5.0",
@@ -44,17 +45,17 @@
     "webpack-dev-server": "^3.7.2"
   },
   "peerDependencies": {
-    "react-beautiful-dnd": "^10.1.0",
     "classnames": "^2.2.6",
-    "react-virtualized": "^9.21.0",
     "color": "^3.0.0",
     "css": "^2.2.4",
-    "normalize.css": "^8.0.1",
-    "re-slide": "^1.2.2",
-    "re-lui": "*",
-    "react": "^16.11.0",
-    "lodash": "^4.17.15",
     "hotkeys-js": "^3.7.3",
-    "react-dom": "^16.11.0"
+    "lodash": "^4.17.15",
+    "normalize.css": "^8.0.1",
+    "re-lui": "*",
+    "re-slide": "^1.2.2",
+    "react": "^16.11.0",
+    "react-beautiful-dnd": "^11.0.4",
+    "react-dom": "^16.11.0",
+    "react-virtualized": "^9.21.0"
   }
 }

@@ -31,7 +31,7 @@ var cfg = {
 	resolve: {
 		extensions: [ '.js', '.coffee' ]
 	},
-	externals: ["dayjs","re-lui","react-dom","react","classnames","color","re-slide","react-json-view","react-virtualized/dist/commonjs/MultiGrid","react-virtualized/dist/commonjs/List","react-virtualized/dist/commonjs/CellMeasurer"],
+	externals: ["dayjs","re-lui","react-dom","hotkeys-js","react","classnames","color","re-slide","react-json-view","react-virtualized/dist/commonjs/MultiGrid","react-virtualized/dist/commonjs/List","react-virtualized/dist/commonjs/CellMeasurer"],
 	output: {
 		filename: "re-modelgrid.js",
 		libraryTarget: 'commonjs2'
