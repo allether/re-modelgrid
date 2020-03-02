@@ -87,41 +87,42 @@ class MenuView extends Component
 
 
 		# MODEL TITLE TAB
-		model_title_tab = h MenuTab,
-			vert: yes
-			show_backdrop: @getPinMenuBoolean('models',true)
-			reveal: @getPinMenuBoolean('models',true)
-			content: h Input,
-				type: 'label'
-				name: 'document'
-				btn_type: 'flat'
-				label: [
-					props.filter && h 'span',{key:'label'},props.filter.label
-					props.filter && h 'span',{key:'slash',className: css['model-grid-slash']},'/'
-					h 'span',{key:'slabel',style:{fontWeight:600,color:@context.primary.color[0]}},schema.label
-				]
+		if @props.show_title
+			model_title_tab = h MenuTab,
+				vert: yes
+				show_backdrop: @getPinMenuBoolean('models',true)
+				reveal: @getPinMenuBoolean('models',true)
+				content: h Input,
+					type: 'label'
+					name: 'document'
+					btn_type: 'flat'
+					label: [
+						props.filter && h 'span',{key:'label'},props.filter.label
+						props.filter && h 'span',{key:'slash',className: css['model-grid-slash']},'/'
+						h 'span',{key:'slabel',style:{fontWeight:600,color:@context.primary.color[0]}},schema.label
+					]
 
 
 		# MODEL STATICS TAB
-		model_statics_tab = h MenuTab,
-			vert: yes
-			big: no
-			show_backdrop: @getPinMenuBoolean('statics',true)
-			onClick: @togglePinMenu.bind(@,'statics',true)
-			reveal: @getPinMenuBoolean('statics',true)
-			content: h Input,
-				type: 'button'
-				btn_type: 'flat'
-				i: 'more_vert'
-			h 'div',
-				className: css['model-grid-statics-view']
-				style:
-					background: @context.primary.inv[0]
-				h MethodsView,
-					methods: schema.statics
-					renderDataItemMethod: @props.renderStaticMethod
-					runDataItemMethod: @props.runStaticMethod
-
+		if @props.show_static_methods
+			model_statics_tab = h MenuTab,
+				vert: yes
+				big: no
+				show_backdrop: @getPinMenuBoolean('statics',true)
+				onClick: @togglePinMenu.bind(@,'statics',true)
+				reveal: @getPinMenuBoolean('statics',true)
+				content: h Input,
+					type: 'button'
+					btn_type: 'flat'
+					i: 'more_vert'
+				h 'div',
+					className: css['model-grid-statics-view']
+					style:
+						background: @context.primary.inv[0]
+					h MethodsView,
+						methods: schema.statics
+						renderDataItemMethod: @props.renderStaticMethod
+						runDataItemMethod: @props.runStaticMethod
 
 
 		# ADD NEW DOCUMENT TAB / VIEW
@@ -178,6 +179,7 @@ class MenuView extends Component
 				h 'span',{key:1,className: css['model-grid-slash']},'/'
 				String(@props.query_item.layout_keys.length).padStart(2)
 			]
+		
 		bookmarks_tab = h Input,
 			onClick: @props.showBookmarksView
 			type: 'button'

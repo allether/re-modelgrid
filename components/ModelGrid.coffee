@@ -99,6 +99,7 @@ class ModelGrid extends Component
 		query_item: @createQueryItem
 			key: props.schema.default_key || '_id'
 			type: 'key'
+		
 		action_query:
 			data_item_id: null
 			called_at: 0
@@ -120,6 +121,7 @@ class ModelGrid extends Component
 		# if !@state.data_item || @state.data_item._id != item._id
 		@setState
 			data_item: Object.assign {},item
+			data_item_id: item._id
 		@props.onSelectDataItem(item)
 
 
@@ -205,7 +207,7 @@ class ModelGrid extends Component
 	createQueryItem: (query_item)->
 		qi = 
 			sort_keys: query_item?.sort_keys || []
-			layout_keys: query_item?.layout_keys || [@props.schema.default_key || '_id']
+			layout_keys: query_item?.layout_keys || [@props.schema.default_key || '_label']
 			key: query_item?.key || props.schema.keys_array[0]
 			label: query_item?.label
 			min_date: query_item?.min_date || Date.now() - xDays(365*2)
@@ -328,6 +330,7 @@ class ModelGrid extends Component
 		if @props.filter
 			query_item.filter_value = @props.filter(@props.schema,query_item)
 
+
 	updateQueryItem: (schema,query_item)=>
 		if !query_item.label && schema.label
 			@setQueryItemLabel(query_item,schema.label)
@@ -354,12 +357,14 @@ class ModelGrid extends Component
 
 		return query_item
 
+
 	cleanQuery: =>
+		# log 'CLEAN QUERY'
 		if @state.query_item.type == 'key'
 			if !@state.query_item.input_value
-				@state.query_item.type = 'json'
-				@state.query_item.value = {}
-				@state.query_item.input_value = '{}'
+				@state.query_item.type = 'key'
+				@state.query_item.value = ''
+				@state.query_item.input_value = ''
 		if @state.query_item.layout_keys.length == 0
 			@state.query_item.layout_keys[0] = '_label'
 
@@ -387,27 +392,22 @@ class ModelGrid extends Component
 				@state.query_item.hidden_layout_keys = @state.query_item.hidden_layout_keys.concat @props.schema.keys[key].keys_array
 
 		
-
+		# log @state.query_item
+		# log @state.query_item
 		@setQueryItemFilter(@state.query_item)
 
 
-	# hideQueryItemRunError: =>
-	# 	@setState
-	# 		query_item_run_error_visible: false
-	
+
 	setQueryItemRunError: (query_item,error)=>
 
 		query_item.error = error.message
 		query_item.completed_at = Date.now()
+		@setState
+			query_item_run_error_visible: yes
+			query_item_run_error:
+				error: error
+				query_item: query_item
 		@props.onError?(error)
-
-		@setState()
-		# console.error error
-		# @setState
-		# 	query_item_run_error_visible: yes
-		# 	query_item_run_error:
-		# 		error: error
-		# 		query_item: query_item
 
 	mapDataItems: =>
 		state_data_item_found = false
@@ -510,60 +510,46 @@ class ModelGrid extends Component
 
 	runStaticMethod: (method)=>
 		# log 'RUN STATIC METHOD',method
-		try
-			@setState
-				action_query:
-					data_item_id: '~'
-					data_item_label: @props.schema.name
-					action: method.name
-					called_at: Date.now()
-			
-			if method.run
-				prom = method.run(@props.schema,method)
-			else
-				prom = @props.runStaticMethod(@props.schema,method)
-			
-			if prom?.then
-				prom.then (method_res)=>
-					@state.action_query.completed_at = Date.now()
-					@runQuery()
-				.catch
-			else
-				@setState
-					action_query: {}
+	
+		@setState
+			action_query:
+				data_item_id: '~'
+				data_item_label: @props.schema.name
+				action: method.name
+				called_at: Date.now()
+		
+		if method.run
+			await method.run(@props.schema,method)
+		else
+			await @props.runStaticMethod(@props.schema,method)
 
-		catch error
-			@setActionStaticError(error)
+		@state.action_query.completed_at = Date.now()
+		@runQuery()
+		
+
 
 
 	runDataItemMethod: (method,callback)=>
-		try
-			@setState
-				action_query:
-					data_item_id: @state.data_item._id
-					data_item_label: @state.data_item._label	
-					action: method.name
-					called_at: Date.now()
-			
-			if method.run
-				prom = method.run(@props.schema,@state.data_item,method)
-			else
-				prom = @props.runDataItemMethod(@props.schema,@state.data_item,method)
-			
-			if prom?.then
-				prom.then (res)=>
-					@state.action_query.completed_at = Date.now()
-					@setState
-						data_item: Object.assign {},res.data_item
-					@runQuery()
-					callback?(res)
-				.catch @setActionMethodError.bind(@,@state.data_item)
-			else
-				@setState
-					action_query: {}
-		catch error
-			@setActionMethodError(@state.data_item,error)
+		
+		@setState
+			action_query:
+				data_item_id: @state.data_item._id
+				data_item_label: @state.data_item._label	
+				action: method.name
+				called_at: Date.now()
+		
+		if method.run
+			res = await method.run(@props.schema,@state.data_item,method)
+		else
+			res = await @props.runDataItemMethod(@props.schema,@state.data_item,method)
+		
+		@state.action_query.completed_at = Date.now()
+		@setState
+			data_item: Object.assign {},res.data_item
+		@runQuery()
+		callback?(res)
 
+	
 
 
 	renderDataItemMethod: (method,get_method_res_callback,method_res)=>
@@ -579,26 +565,24 @@ class ModelGrid extends Component
 
 
 	setActionMethodError: (data_item,error)=>
-		@props.onError?(error,data_item)
-		@setState
+		await @setState
 			action_query: {}
-		# @setState
-		# 	query_item_run_error_visible: false
-			# action_error:
-			# 	data_item: data_item
-			# 	error: error
+			query_item_run_error_visible: false
+			action_error:
+				data_item: data_item
+				error: error
+		@props.onError?(error,data_item)
 
-		# return false
+		return false
 	
 	setActionStaticError: (error)=>
-		# console.error error
-		@props.onError?(error)
-		@setState
+		await @setState
 			action_query: {}
-		# @setState
-		# 	query_item_run_error_visible: false
-			# action_error: 
-			# 	error: error
+			query_item_run_error_visible: false
+			action_error: 
+				error: error
+
+		@props.onError?(error)
 			
 
 	# clearActionQueryError: =>
@@ -667,8 +651,7 @@ class ModelGrid extends Component
 		.catch @setActionMethodError.bind(@,@state.data_item)
 
 	getDataItem: ()=>
-		# log @state.action_query
-
+	
 		if !@state.action_query.completed_at && @state.action_query.called_at
 			return
 		
@@ -681,13 +664,14 @@ class ModelGrid extends Component
 				action: 'get'
 		
 		@props.getDataItem(@state.data_item._id).then (doc)=>
-			# @log 'got data_item',doc
 			@state.action_query.completed_at = Date.now()
 			@state.editor_value_id = null
 			if @state.data_item._id == doc._id
 				@props.onSelectDataItem(doc)
 				@setState
 					data_item: doc
+					data_item_id: doc._id
+
 		
 		.catch @setActionMethodError.bind(@,@state.data_item)
 
@@ -704,6 +688,7 @@ class ModelGrid extends Component
 			queries: @state.queries
 			query_item: @state.query_item
 			data_item: @state.data_item
+			data_item_id: @state.data_item_id
 			show_json_view: @state.show_json_view
 			new_doc: @state.new_doc
 			bookmarks: @state.bookmarks
@@ -769,8 +754,8 @@ class ModelGrid extends Component
 		@setState
 			show_json_view: false
 
-	# getChildContext: ->
-	# 	gridHeight: @base?.clientHeight - (@props.show_bar && DIM || 0)
+	
+
 	componentDidMount: =>
 		Object.assign @state,@props.schema_state
 		@mapQueryItems()
@@ -781,15 +766,12 @@ class ModelGrid extends Component
 		@runQuery()
 		
 
+
 	setScrollIndex: (state)=>
 		state = state || @state
 		if state.query_item && state.data_item
-			
-
 			state.scroll_to_index = -1
 			data = state.data.get(state.query_item._id)
-
-
 			if data
 				for data_item,i in data
 					if data_item._id == state.data_item._id
@@ -928,6 +910,8 @@ class ModelGrid extends Component
 		@g_props.query_map = @state.query_map
 		@g_props.query_item = @state.query_item
 		@g_props.data_item = @state.data_item
+		@g_props.show_title = @props.show_title
+		@g_props.show_static_methods = @props.show_static_methods
 		@g_props.data_item_id = @props.data_item_id
 		@g_props.new_doc = @state.new_doc
 		@g_props.action_query = @state.action_query
@@ -949,7 +933,8 @@ class ModelGrid extends Component
 		style.visiblity = @state.is_visible && 'visible' || 'hidden'
 		style.transform = 'translate(0px)'
 		
-		
+		style.height = '100%'
+		style.width = '100%'
 
 		h Slide,
 			ref: @baseRef
@@ -1008,6 +993,7 @@ class ModelGrid extends Component
 							fontFamily: 'monor, monospace'
 							height: 'fit-content'
 							fontSize: 13
+				
 				h Slide,
 					dim: DIM2
 					vert: yes

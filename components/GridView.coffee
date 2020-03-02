@@ -125,13 +125,13 @@ class MoveGuide extends Component
 		
 		width = @state.start_move_width + (e.clientX - @state.start_move_x)
 		
-		min = 100
+		min = @props.move_key.min_width || 100
 		width = clamp(width,min,MAX_COL_WIDTH)
 
 		@setState
 			left: left
 			width: width
-			min_width: width < @props.move_key.col_width || width == MAX_COL_WIDTH
+			min_width: width <= Math.max(min,@props.move_key.col_width) || width == MAX_COL_WIDTH
 
 		@props.onMove(@props.move_key,width)
 
@@ -306,23 +306,24 @@ class GridView extends Component
 		if !key_name
 			console.warn g_opts.index-1,@props.query_item.layout_keys
 			return null
+		
+
 		key = @props.schema.keys[key_name]
 		key._name = key_name
-
-		key.col_width = key.label.length* CHAR_W + CELL_PAD*2 + 70
+		key.col_width = Math.max(key.min_width||100,key.label.length* CHAR_W + CELL_PAD*2 + 70)
 
 		# key._min_width = key.col_width
 		if !key
 			throw new Error 'schema key not found ,'+key_name
 		# log @props.key_col_widths[key.name]
 		if @props.key_col_widths[key._name]
-			c_w = @props.key_col_widths[key._name]
+			c_w = Math.max(key.min_width||100,@props.key_col_widths[key._name])
 		else
 			c_w = key.col_width || 100
 
 		key._c_w = c_w
 
-		if c_w < key.col_width
+		if c_w <= key.col_width
 			key._min_width = true
 		else
 			key._min_width = false
@@ -365,6 +366,7 @@ class GridView extends Component
 		schema = @props.schema
 		data = @props.data
 		doc = data[g_opts.rowIndex-1]
+
 		is_key = g_opts.rowIndex == 0
 		g_style = {}
 
@@ -379,13 +381,15 @@ class GridView extends Component
 
 		
 
-		if !is_key && @props.data_item_id
-			is_selected = @props.data_item_id == data[g_opts.rowIndex-1]._id
+		
  
 
-		if !is_key && !data[g_opts.rowIndex-1]
+		if !is_key && !doc
 			return null
 		
+		if !is_key && @props.data_item_id
+			is_selected = @props.data_item_id == doc._id
+
 		if g_opts.rowIndex % 2 == 0
 			alt_cell = true
 		
@@ -568,7 +572,21 @@ class GridView extends Component
 		else
 			g_opts.style.borderRight = 'none'
 			# g_opts.style.borderLeft = 'none'
+
+
 		
+		
+		if !data[g_opts.rowIndex-1].__filled_doc && ( key.fill || schema.fill)
+			data[g_opts.rowIndex-1].__filled_doc = _.cloneDeep(data[g_opts.rowIndex-1])
+			fill_fn = key.fill || schema.fill
+			fill_fn(data[g_opts.rowIndex-1].__filled_doc)
+			data_obj = data[g_opts.rowIndex-1].__filled_doc
+		else if data[g_opts.rowIndex-1].__filled_doc
+			data_obj = data[g_opts.rowIndex-1].__filled_doc
+		else
+			data_obj = data[g_opts.rowIndex-1]
+
+		# log data_obj.__filled
 			
 
 		return h 'div',
@@ -577,7 +595,7 @@ class GridView extends Component
 			h 'div',
 				onMouseDown: !is_selected && @props.selectDataItem.bind(null,data[g_opts.rowIndex-1]) || undefined
 				className: css['model-grid-cell']+' '+(is_selected && css['model-grid-cell-selected'] || '')
-				key.render && key.render(schema,data[g_opts.rowIndex-1]) || value
+				key.render && key.render(schema,data_obj) || value
 
 
 	
@@ -598,20 +616,20 @@ class GridView extends Component
 			state.data_item = props.data_item
 			state.edit_key = null
 		g_k = @getGridKey(props)
-		# log g_k
+
+
 		if g_k != state.grid_key
 			state.grid_key = g_k
 			state.force_update_grid = true
-		
-		# log props.data_item
+
+
 		if props.data_item != @props.data_item
 			if props.data_item
 				state.scroll_to_row = _.findIndex(props.data,_id:props.data_item._id)
 			else
 				state.scroll_to_row = undefined
-			# log 'SET SCROL TO ROW',state.scroll_to_row
-			# else if props.focus_column
-		# log @base
+
+
 		if @base
 			if state.grid_w != @base.clientWidth || state.grid_h != @base.clientHeight
 				# log 'resize grid'
@@ -787,7 +805,7 @@ class GridView extends Component
 			columnCount: (query_item.layout_keys.length + 2) || 0
 			fixedColumnCount:0
 			fixedRowCount:1
-			# scrollToRow: scroll_to_row
+			scrollToRow: scroll_to_row
 			scrollToAlignment: 'auto'
 			scrollToColumn: @state.scroll_to_col+1
 			height: @state.grid_h

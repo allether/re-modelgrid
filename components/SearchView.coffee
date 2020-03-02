@@ -27,6 +27,9 @@ class SearchView extends Component
 			fixedHeight: no
 	
 	onFocus: =>
+		setTimeout ()=>
+			@_search.focus()
+		,0
 		if @state.run_query_interval
 			@toggleQueryInterval()
 		if @props.query_item.called_at && @props.reveal
@@ -43,11 +46,6 @@ class SearchView extends Component
 		setTimeout @props.onHide,0
 
 
-	
-		
-		
-		
-		
 	setQueryItemLabel: (e)=>
 		@setState query_item_label: e.target.value
 
@@ -524,6 +522,7 @@ class SearchView extends Component
 				onMouseEnter: @mouseEnterMenuIcon
 				onMouseLeave: @mouseLeaveMenuIcon
 				onClick: @onClickIcon
+				hide: yes
 				pos: @state.hover_menu_icon && 2 || (qi.type == 'bookmark' && 2 || qi.type == 'key' && 1 || qi.type == 'json' && 0)
 				h Slide,
 					beta: 100
