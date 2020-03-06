@@ -1,12 +1,13 @@
 Slide = require 're-slide'
 {Input,MenuTab,Menu,Bar,StyleContext} = require 're-lui'
-css = require './ModelGrid.less'
 MAX_CHAR = 32
 { DragDropContext, Droppable, Draggable } = require "react-beautiful-dnd"
 
+css = require './LayoutEditorView.less'
+cn = require 'classnames'
 
 
-class LayoutsView extends Component
+class LayoutEditorView extends Component
 	constructor: (props)->
 		super(props)
 		@state = 
@@ -34,6 +35,60 @@ class LayoutsView extends Component
 	# 		@props.updateQueryItemAndSet
 	# 			layout_keys: key_arr
 	# 		,@props.query_item
+
+	renderChip: (chip_name,chip_state,provided,snapshot)=>
+		# log snapshot
+
+		# log Object.assign {},provided.draggableProps.style
+		item_props = Object.assign {ref: provided.innerRef},provided.draggableProps,provided.dragHandleProps,
+			className: css['chip-layout-editor-chip-wrap']
+			style: Object.assign {},provided.draggableProps.style
+		
+
+		if chip_state.is_disabled
+			chip_bg = @context.primary.inv[0]
+			chip_color = @context.primary.inv[3]
+			drag_color = @context.primary.inv[3]
+		else if snapshot.isDragging
+			chip_bg = @context.secondary.inv[1]
+			chip_color = @context.secondary.color[0]
+			drag_color = @context.secondary.inv[3]
+		else
+			chip_bg = @context.primary.inv[1]
+			chip_color = @context.primary.color[0]
+			drag_color = @context.primary.inv[2]
+
+
+		
+		h 'div',item_props,
+			h 'div',
+				className: cn css['chip-layout-editor-chip'],'flex-right full-w'
+				style:
+					background: chip_bg
+					color: chip_color
+				h 'i',
+					cn: 'material-icons'
+					style:
+						color: drag_color
+					'drag_handle'
+				h 'span',
+					cn: 'reg-mono pad-left no-shrink'
+					chip_state.label || chip_name
+				h 'div',
+					cn: 'full-w flex-left'
+					h Input,
+						type: 'button'
+						btn_type: snapshot.isDragging && 'primary'
+						i: 'remove_red_eye'
+						onClick: ()=>
+							chip_state.is_disabled = !chip_state.is_disabled
+							@props.onEditChips(@state.layout_id,@state.layout.chip_states,@state.layout.sorted_chips)
+							@setState
+								list_v: Date.now()
+							# @_ctx.forceUpdate()
+						# btn_type: chip_state.is_disabled && 'false' || ''
+
+						
 
 
 
@@ -271,8 +326,8 @@ class LayoutsView extends Component
 					
 				
 			
-LayoutsView.contextType = StyleContext
+LayoutEditorView.contextType = StyleContext
 			
 
 
-module.exports = LayoutsView
+module.exports = LayoutEditorView

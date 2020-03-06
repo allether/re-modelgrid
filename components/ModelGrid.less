@@ -24,6 +24,23 @@
 	}
 }
 
+.chip-layout-editor-dropbox{
+	width: -webkit-fill-available;
+	height: 100%;
+	margin: @margin-size;
+}
+
+.chip-layout-editor-chip{
+	margin: 0;
+	border-radius: @border-radius;
+	padding: @padding-size;
+	width: -webkit-fill-available;
+	// margin: @margin-size;
+}
+.chip-layout-editor-chip-wrap{
+	padding: @margin-size;
+	width: -webkit-fill-available;
+}
 
 .move-guide-wrapper{
 	width: 100%;
@@ -130,10 +147,13 @@
 	right: 30px;
 	
 	i{
-		opacity: 0.4;
+		opacity: 0.3;
 		transition: opacity @ease;
 		cursor: pointer;
 		&:hover{
+			opacity: 1;
+		}
+		&.active{
 			opacity: 1;
 		}
 	}

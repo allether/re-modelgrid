@@ -5,6 +5,7 @@ cn = require 'classnames'
 JsonView = require './JsonView.coffee'
 {List} = require 'react-virtualized/dist/commonjs/List'
 {CellMeasurer,CellMeasurerCache} = require 'react-virtualized/dist/commonjs/CellMeasurer'
+LayoutEditorView = require './LayoutEditorView'
 
 MAX_CHAR = 32
 
@@ -35,7 +36,7 @@ class SearchView extends Component
 		if @props.query_item.called_at && @props.reveal
 			@props.cloneQueryItemAndSet(label: false,@props.query_item)
 			
-		@props.onClick()
+		@props.onClick?()
 	
 	onSearchEnter: =>
 		if !@props.query_item.called_at && @props.query_item.type == 'bookmark'
@@ -372,6 +373,29 @@ class SearchView extends Component
 		# 	clicked_run_query_at: Date.now()
 		@props.runQuery()
 
+	onShowLayoutHoverBox: (e)=>
+		@props.setHoverBox
+			visible: yes
+			delay: 0
+			renderContent: ()=>
+				h LayoutEditorView,
+					query_item: @props.query_item
+					keys_array: @props.schema.keys_array
+					keys: @props.schema.keys
+					schema: @props.schema
+
+
+			getSize: ()->
+				return
+					width: 300
+					height: 400
+
+
+			getBindElement: ()=>
+				@_week_btn
+				# ,renderContent,getSize})
+
+
 	render: ->
 		props = @props
 		state = @state
@@ -402,7 +426,7 @@ class SearchView extends Component
 			info_i = qi.error && 'error' || 'error_outline'
 			info_type = 'label'
 		else if qi.type == 'key'
-			search_placeholder =  'search by '+props.keys[qi.key].label
+			search_placeholder =  'search by '+props.schema.keys[qi.key].label
 			info_label = [
 				'search by '
 				h 'span',{key:2,style:color:@context.primary.true},qi.key
@@ -450,11 +474,11 @@ class SearchView extends Component
 			info_btn_type = 'default'
 
 	
-		if props.query_item.label && !props.reveal
-			search_input_label = true 
-			search_input_label_value = h 'span',
-				className: css['search-query-menu-search-label']
-				qi.input_value
+		# if props.query_item.label && !props.reveal
+		# 	search_input_label = true 
+		# 	search_input_label_value = h 'span',
+		# 		className: css['search-query-menu-search-label']
+		# 		qi.input_value
 
 		# log qi
 		if qi.error
@@ -464,12 +488,13 @@ class SearchView extends Component
 			bar_style = 
 				background: qi.error && @context.secondary.false || @context.secondary.color[2]
 
+		search_placeholder = 'keyword / #saved / {json}'
 
 
 		search_input = h Input,
 			onFocus: @onFocus
 			ref: @searchRef
-			type: search_input_label && 'button' || 'input'
+			type: 'input'
 			input_props:
 				autoComplete: 'false'
 				spellCheck: 'false'
@@ -486,19 +511,19 @@ class SearchView extends Component
 			onInput: @setSearchValue
 			onEnter: @onSearchEnter
 			bar: yes
-			onClick: search_input_label && props.onClick
+			# onClick: search_input_label && props.onClick
 			placeholder: search_placeholder
-			search_input_label_value
+			# search_input_label_value
 
-		refresh_query_button = h Input,
-			type: 'button'
-			btn_type: 'flat'
-			i_type: query_item_is_loading && 'primary' || 'flat'
-			i: 'play_arrow'
-			onClick: @onRunQuery
-			outer_props:
-				onDoubleClick: @toggleQueryInterval
-			@state.run_query_interval && h AlertDot
+		# refresh_query_button = h Input,
+		# 	type: 'button'
+		# 	btn_type: 'flat'
+		# 	i_type: query_item_is_loading && 'primary' || 'flat'
+		# 	i: 'play_arrow'
+		# 	onClick: @onRunQuery
+		# 	outer_props:
+		# 		onDoubleClick: @toggleQueryInterval
+		# 	@state.run_query_interval && h AlertDot
 
 
 
@@ -509,6 +534,7 @@ class SearchView extends Component
 			slide: yes
 			pos: if query_item_is_loading then 0 else 1
 			className: css['search-query-menu-icon']
+			onClick: @onRunQuery
 			h Slide,
 				beta: 100
 				center: yes
@@ -521,7 +547,7 @@ class SearchView extends Component
 				beta: 100
 				onMouseEnter: @mouseEnterMenuIcon
 				onMouseLeave: @mouseLeaveMenuIcon
-				onClick: @onClickIcon
+				# onClick: @onClickIcon
 				hide: yes
 				pos: @state.hover_menu_icon && 2 || (qi.type == 'bookmark' && 2 || qi.type == 'key' && 1 || qi.type == 'json' && 0)
 				h Slide,
@@ -544,83 +570,116 @@ class SearchView extends Component
 						'bookmark'
 
 
-		
+		# if qi.called_at && !qi.label
+		# 	info_options = @renderSaveForm()
+		# else if qi.label
+		# 	info_options = @renderBookmarkOptions()
 
-		search_placeholder = '#tag | {json} | key'
-
-		
-
-
-		if qi.called_at && !qi.label
-			info_options = @renderSaveForm()
-		else if qi.label
-			info_options = @renderBookmarkOptions()
-
-		else if qi.type == 'key'
-			info_options = @renderKeysView()
-			info_fn = @showInfoOptions
+		# else if qi.type == 'key'
+		# 	info_options = @renderKeysView()
+		# 	info_fn = @showInfoOptions
 
 		# log info_fn
-		info_bar = h Input,
-			i: info_i
-			style:
-				width: SEARCH_BAR_WIDTH
-				overflow: 'hidden'
-			onClick: info_fn
+		# info_bar = h Input,
+		# 	i: info_i
+		# 	style:
+		# 		width: SEARCH_BAR_WIDTH
+		# 		overflow: 'hidden'
+		# 	onClick: info_fn
 
-			type: info_type
-			btn_type: info_btn_type
-			# select: info
-			label: info_label
+		# 	type: info_type
+		# 	btn_type: info_btn_type
+		# 	# select: info
+		# 	label: info_label
 		
-		query_tab_height = 260
-		if @context.gridHeight? && (@context.gridHeight - 30) < 260
-			query_tab_height = @context.gridHeight - 30
+		# query_tab_height = 260
+		# if @context.gridHeight? && (@context.gridHeight - 30) < 260
+		# 	query_tab_height = @context.gridHeight - 30
 		
 
 		# log qi
-		if props.reveal
-			if qi.type == 'bookmark' && !qi.called_at
-				query_list = @renderBookmarksList(query_tab_height)
-			else
-				query_list = @renderQueryList(query_tab_height)
+		# if props.reveal
+		# 	if qi.type == 'bookmark' && !qi.called_at
+		# 		query_list = @renderBookmarksList(query_tab_height)
+		# 	else
+		# 		query_list = @renderQueryList(query_tab_height)
 
-	
-		h MenuTab,
+		h Slide,
 			vert: yes
-			big: no
-			tab_style:
-				width: SEARCH_BAR_WIDTH
-			bar_style:
-				width: SEARCH_BAR_WIDTH
-			reveal: props.reveal
-			show_backdrop: props.reveal
-			onClickBackdrop: props.onHide
-			onKeyDown: @onKeyDown
-			content: h Bar,
-				big: yes
-				style:
-					transition: 'background 0.3s ease'
-					background: props.reveal && @context.primary.inv[1] || @context.primary.inv[0]
-				refresh_query_button
-				search_i
-				search_input
-			force_split_y: 1
-			force_bar_dir_y: 1
-			split_y: 1
+			dim: DIM2*2
+			h Slide,
+				vert:no
+				# h Slide,
+				# 	beta: 50
+				h Bar,
+					vert: no
+					search_i
+					search_input
+				h Slide,
+					beta: 100
+					inverse:yes
+					h Input,
+						type: 'button'
+						i: 'view_week'
+						ref: (el)=>
+							if el
+								@_week_btn = el._outer
+						
+						label: String(@props.query_item.layout_keys.length).padStart(2)
+						# onMouseEnter: @onLayoutMouseEnter
+						onClick: @onShowLayoutHoverBox
+					h Input,
+						type: 'button'
+						i: 'save'
+						# btn_type: 'primary'
+						onClick: @onShowSaveHoverBox
+			h Slide,
+				vert: yes
+				'bookmark chips & search autofill hints go here'
+
+			# h 'div',
+			# 	className: 'flex-down'
+			# 	h 'div',
+			# 		className: 'flex-right'
+					
+					
+					
+		# h Input,
+
+
+		# 	vert: yes
+		# 	big: no
+		# 	tab_style:
+		# 		width: SEARCH_BAR_WIDTH
+		# 	bar_style:
+		# 		width: SEARCH_BAR_WIDTH
+		# 	reveal: props.reveal
+		# 	show_backdrop: props.reveal
+		# 	onClickBackdrop: props.onHide
+		# 	onKeyDown: @onKeyDown
+		# 	content: h Bar,
+		# 		big: yes
+		# 		style:
+		# 			transition: 'background 0.3s ease'
+		# 			background: props.reveal && @context.primary.inv[1] || @context.primary.inv[0]
+		# 		# refresh_query_button
+				
+		# 	force_split_y: 1
+		# 	force_bar_dir_y: 1
+		# 	split_y: 1
 			
-			h MenuTab,
-				click_reveal_enabled: no
-				content: info_bar
-				show_backdrop: info_options && @state.show_info_options
-				reveal: info_options && @state.show_info_options || false
-				onClickBackdrop: info_options && @hideInfoOptions
-				info_options
-			h MenuTab,
-				tab_style:
-					height: query_tab_height
-					background: @context.primary.inv[0]
-				content: query_list
+		# 	h MenuTab,
+		# 		click_reveal_enabled: no
+		# 		content: info_bar
+		# 		show_backdrop: info_options && @state.show_info_options
+		# 		reveal: info_options && @state.show_info_options || false
+		# 		onClickBackdrop: info_options && @hideInfoOptions
+		# 		info_options
+		# 	h MenuTab,
+		# 		tab_style:
+		# 			height: query_tab_height
+		# 			background: @context.primary.inv[0]
+		# 		content: query_list
 
 SearchView.contextType = StyleContext
 module.exports = SearchView

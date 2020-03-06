@@ -9,7 +9,7 @@ global.h = createElement
 ModelGrid = require './components/ModelGrid.coffee'
 
 Slide = require 're-slide'
-{Style,Input,MenuTab,Menu,Bar,StyleContext} = require 're-lui'
+{Style,Input,MenuTab,Menu,Bar,HoverBox,StyleContext} = require 're-lui'
 
 adler = require 'adler-32'
 demo_models = require './demo-models.coffee'
@@ -20,11 +20,26 @@ class Demo extends Component
 	constructor: (props)->
 		super(props)
 		@state =
-			primary:'#1B1C1D'
-			secondary:'#386277'
+			primary:'#2c2e30'
+			primary_inv: '#fff'
+			secondary: '#fff'
+			secondary_inv: '#386277'
 			primary2:'#fff'
-			secondary2:'#386277'
+			secondary2:'#fff'
+			primary2_inv:'#323233'
+			secondary2_inv:'#5498bb'
+			hoverbox: 
+				visible: no
+				background: 'black'
+				pointer_events: yes
+				onClose: ()=>
+					@state.hoverbox.visible = false
+					@setState({})
 
+	onHoverBoxClose: =>
+		@state.hoverbox.visible = no
+		@setState({})
+	
 	onSetStyle: (primary,secondary)=>
 		@setState
 			background: primary.inv[0]
@@ -33,13 +48,27 @@ class Demo extends Component
 		@setState
 			background2: primary.inv[0]
 			color2: primary.color[0]
+	
 	componentDidMount: =>
 		window.addEventListener 'resize',()=>
 			@forceUpdate()
+
+	setHoverBox: ({visible,getBindElement,renderContent,getSize})=>
+		# log {visible,getBindElement,renderContent,getSize}
+		log 'SET HOVER BOX'
+		@state.hoverbox.visible = visible
+		@state.hoverbox.getBindElement = getBindElement
+		@state.hoverbox.renderContent = renderContent
+		@state.hoverbox.getSize = getSize
+		@setState({})
+
 	render: ->
+		log 'RENDER'
 		h Style,
 			primary: @state.primary
 			secondary: @state.secondary
+			secondary_inv: @state.secondary_inv
+			primary_inv: @state.primary_inv
 			onSetStyle: @onSetStyle
 			h Slide,
 				vert:yes
@@ -48,22 +77,44 @@ class Demo extends Component
 					height: '100%'
 					width: '100%'
 				slide: no
+				outerChildren: h HoverBox,
+					visible: @state.hoverbox.visible
+					hide_delay: @state.hoverbox.hide_delay
+					show_delay: @state.hoverbox.show_delay
+					visible_delay: no
+					onClose: @state.hoverbox.onClose
+					onClickOverlay: @state.hoverbox.onClickOverlay || @state.hoverbox.onClose
+					box_pointer_events: @state.hoverbox.pointer_events
+					offset_y: 0
+					snap_x: 1
+					align_x: -1
+					align_y: 1
+					snap_y: 0
+					offset_x: 0
+					background: @state.hoverbox.background
+					renderContent: @state.hoverbox.renderContent
+					getBindElement: @state.hoverbox.getBindElement
+					getSize: @state.hoverbox.getSize
 				h Slide,
 					beta: 30
-					style:
-						background: @state.background
-						color: @state.color
+					# style:
+					# 	background: @state.background
+					# 	color: @state.color
 					h ModelGridExample,
 						key: 1
+						setHoverBox: @setHoverBox
 				h Slide,
 					beta: 70
 					h Style,
 						primary: @state.primary2
+						primary_inv: @state.primary2_inv
 						secondary: @state.secondary2
+						secondary_inv: @state.secondary2_inv
 						darken_factor: .88
 						onSetStyle: @onSetStyle2
 						h ModelGridExample,
-							key: 2				
+							key: 2			
+							setHoverBox: @setHoverBox	
 
 
 
@@ -92,7 +143,7 @@ class ModelGridExample extends Component
 		@state =
 			selected_model_index: 0
 			schema_state_id: Date.now()
-	
+
 	selectModelIndex: (i)=>
 		@setState
 			selected_model_index: i
@@ -104,12 +155,13 @@ class ModelGridExample extends Component
 			key: model.name
 			content: h Input,
 				type: 'button'
-				btn_type: 'primary'
+				# btn_type: 'primary'
 				label: model.label
 				onClick: @selectModelIndex.bind(@,i)
 				select: i == @state.selected_model_index
 
 
+				
 	render: ->
 
 		schema_state = getStateConfig(demo_models.models[@state.selected_model_index])
@@ -118,12 +170,15 @@ class ModelGridExample extends Component
 		h Slide,
 			vert: no
 			
+			
 			h Style,
-				primary: '#81ffcd'
-				secondary: '#81ffcd'
+				primary: '#000'
+				primary_inv: '#fde400'
+				# secondary: '#fde400'
 				h Slide,
 					style:
-						background: '#81ffcd'
+						background: '#fde400'
+						color: '#000'
 						overflow: 'visible'
 						zIndex: 9999
 					dim: 30
@@ -136,7 +191,7 @@ class ModelGridExample extends Component
 						h MenuTab,
 							content: h Input,
 								i: 'menu'
-								btn_type: 'primary'
+								# btn_type: 'primary'
 								type: 'button'
 							demo_models.models.map @mapMenuModels
 
@@ -150,8 +205,12 @@ class ModelGridExample extends Component
 					schema_state: schema_state
 					schema_state_id: @state.schema_state_id
 					onSchemaStateUpdated: setStateConfig.bind(null,demo_models.models[@state.selected_model_index])
-					filter: (schema)->
-						{test_filter:schema.name}
+					setHoverBox: @props.setHoverBox
+					
+					filter: (schema)=>
+						@setState
+							test_filter:schema.name
+					
 					createDataItem: (doc)=>
 						return new Promise (resolve,reject)=>
 							setTimeout ()=>

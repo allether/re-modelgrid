@@ -35,7 +35,8 @@ require 'prismjs/themes/prism-twilight.css'
 
 global.DIM2 = 40
 global.DIM = 30
-MenuView = require './MenuView.coffee'
+SearchView = require './SearchView.coffee'
+# BookmarksView = require './BookmarksView.coffee'
 GridView = require './GridView.coffee'
 # CalendarView = require './CalendarView.coffee'
 
@@ -63,7 +64,7 @@ class ModelGrid extends Component
 			renderDataItemMethod: @renderDataItemMethod
 			showLayoutsView: @showLayoutsView
 			hideRightView: @hideRightView
-			showBookmarksView: @showBookmarksView
+			# showBookmarksView: @showBookmarksView
 			onClearQuerySortKeys: @onClearQuerySortKeys
 			setBookmarkQueryItem: @setBookmarkQueryItem
 			selectNextDataItem: @selectNextDataItem
@@ -925,6 +926,7 @@ class ModelGrid extends Component
 		@g_props.show_layouts_view = @state.show_layouts_view
 		@g_props.show_bookmarks_view = @state.show_bookmarks_view
 		@g_props.key_col_widths = @state.key_col_widths
+		@g_props.setHoverBox = @props.setHoverBox
 
 		# log @state.bookmarks
 
@@ -1021,11 +1023,9 @@ class ModelGrid extends Component
 				style:
 					transform: 'translate(0)'
 				beta: @state.show_json_view && 50 || 100
-				h MenuView,@g_props
-				h Slide,
-					beta: 100
-					# h CalendarView,@g_props
-					h GridView,@g_props
+				h SearchView,@g_props
+				h GridView,@g_props
+					
 
 
 

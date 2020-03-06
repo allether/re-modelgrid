@@ -8,8 +8,7 @@ css = require './ModelGrid.less'
 MethodsView = require './MethodsView.coffee'
 
 hotkeys = require('hotkeys-js').default
-LayoutsView = require './LayoutsView.coffee'
-BookmarksView = require './BookmarksView.coffee'
+
 
 _ = require 'lodash'
 
@@ -54,9 +53,6 @@ class InputCell extends Component
 			@state.value = props.value
 	
 	render: ->
-		
-
-
 		h 'input',		
 			value: @state.value
 			type: typeof @state.value
@@ -230,6 +226,7 @@ class GridView extends Component
 	
 	
 	gridRef: (el)=>
+		log "GRID REF",el
 		@_grid = el		
 	
 
@@ -334,12 +331,12 @@ class GridView extends Component
 		@state.scroll_left = e.scrollLeft
 		if !@props.query_item.end_reached && @props.query_item.completed_at && e.scrollTop > 0 && e.scrollTop > (e.scrollHeight - (e.clientHeight * @props.scroll_query_beta_offset))
 			@props.runQuery(true)
-			# @setState
-			# 	run: yes
-	
+			
 	
 	setMoveKey: (key,e)=>
+		# log 'SET MOVE KEY',@props.query_item.layout_keys.indexOf(key)
 		@setState
+			# scroll_to_col: @props.query_item.layout_keys.indexOf(key)
 			move_key: key
 		
 	
@@ -385,7 +382,12 @@ class GridView extends Component
  
 
 		if !is_key && !doc
-			return null
+			return h 'div',
+				style: Object.assign g_style,g_opts.style
+				key: g_opts.key
+				# h 'div',{},'test'
+
+			# return null
 		
 		if !is_key && @props.data_item_id
 			is_selected = @props.data_item_id == doc._id
@@ -416,7 +418,7 @@ class GridView extends Component
 			g_style.background = r_color[0]
 			g_style.color = r_color[1]
 
-	
+		
 
 		if is_selected && schema.rowColorSelect
 			r_color = schema.rowColorSelect(schema,doc,g_opts.rowIndex)
@@ -474,20 +476,26 @@ class GridView extends Component
 				g_style.background = @context.primary.inv[2]
 
 			if key.indexed
+				sort_up = (sort_key && sort_key.dir == 1)
+				sort_down = (sort_key && sort_key.dir == -1)
+				if sort_up
+					g_style.background = 'rgb(255,255,0,0.3)'
+				else if sort_down
+					g_style.background = 'rgb(0,255,255,0.3)'
 
 				sort_opts = h 'div',
-					className: css['model-grid-key-toggle']
+					className: cn css['model-grid-key-toggle']
 					h 'i',
 						style:
-							color: (sort_key && sort_key.dir == 1 && @context.secondary.false) || @context.primary.color[2]
+							color: (sort_up && 'yellow') || @context.primary.color[2]
 						onClick: @toggleSortKey.bind(null,key_name,1)
-						className: 'material-icons'
+						className: cn 'material-icons',sort_up && css['active']
 						'keyboard_arrow_up'
 					h 'i',
 						style:
-							color: (sort_key && sort_key.dir == -1 && @context.secondary.true) || @context.primary.color[2]
+							color: (sort_key && sort_key.dir == -1 && 'cyan') || @context.primary.color[2]
 						onClick: @toggleSortKey.bind(null,key_name,-1)
-						className: 'material-icons'
+						className: cn 'material-icons',sort_down && css['active']
 						'keyboard_arrow_down'
 					# h 'i',
 					# 	style:
@@ -525,17 +533,18 @@ class GridView extends Component
 				sort_index_label = h 'div',
 					className: css['model-grid-label']
 					style:
-						paddingLeft: 5
+						paddingRight: 5
 						fontSize: 11
+						fontWeight: 600
 						lineHeight: 11
-						color: @context.primary.inv[5]
-					"("+sort_key_index+")"
+						color: @context.primary.color[0]
+					"["+(sort_key_index+1)+"]"
 
 
 			if sort_key && sort_key.dir == 1
-				g_style.color = @context.secondary.false
+				g_style.color = 'yellow'
 			else if sort_key && sort_key.dir == -1
-				g_style.color = @context.secondary.true
+				g_style.color = 'cyan'
 			else
 				g_style.color = @context.primary.color[2]
 
@@ -558,11 +567,10 @@ class GridView extends Component
 				className: css['model-grid-cell']
 				style: Object.assign g_style,g_opts.style
 				key: g_opts.key
+				sort_index_label
 				key_label
 				lock_icon
-				sort_index_label
 				sort_opts
-				
 				resize_bar
 
 		if key == @state.focus_key && !@state.move_key
@@ -623,6 +631,8 @@ class GridView extends Component
 			state.force_update_grid = true
 
 
+
+
 		if props.data_item != @props.data_item
 			if props.data_item
 				state.scroll_to_row = _.findIndex(props.data,_id:props.data_item._id)
@@ -643,6 +653,7 @@ class GridView extends Component
 			@_rect = @base?.getBoundingClientRect()
 			if @state.grid_w != @base.clientWidth || @state.grid_h != @base.clientHeight
 				# log 'update grid size',@props.schema.name,@base.clientHeight,@base.clientWidth
+
 				return @setState
 					force_update_grid: false
 					grid_w: @base.clientWidth
@@ -650,10 +661,19 @@ class GridView extends Component
 
 
 		if (@state.force_update_grid) && @_grid
-			@_grid?.recomputeGridSize()
+			# log 'update grid size',@props.schema.name,@base.clientHeight,@base.clientWidth
+			# @_grid?.recomputeGridSize()
 			@setState
 				force_update_grid: false
 
+		if @state.scroll_to_row || @state.scroll_to_col
+			setTimeout ()=>
+				@setState
+					scroll_to_row: undefined
+					scroll_to_col: undefined
+					_scroll_to_col: @state.scroll_to_col
+					_scroll_to_row: @state.scroll_to_row
+			,0
 
 	componentWillUnmount: ->
 		# log 'DELETE SCOPE'
@@ -661,9 +681,11 @@ class GridView extends Component
 
 
 	componentDidMount: ->
+		# log 'DID MOUNT'
 
 		@state.grid_key = @getGridKey(@props)
 		if @props.data_item
+			log 'DID MOUNT'
 			@state.scroll_to_row = _.findIndex(@props.data,_id:@props.data_item._id)
 		@setState({})
 
@@ -706,7 +728,7 @@ class GridView extends Component
 		skip = skip || 1
 		if !@props.query_item || !@props.query_item.layout_keys?.length
 			return false
-		col = Math.max 0,(@state.scroll_to_col - skip) || 0
+		col = Math.max 0,(@state._scroll_to_col - skip) || 0
 
 		@setState
 			scroll_to_col: col
@@ -716,7 +738,7 @@ class GridView extends Component
 		skip = skip || 1
 		if !@props.query_item || !@props.query_item.layout_keys?.length
 			return false
-		col = Math.min @props.query_item.layout_keys.length-1,(@state.scroll_to_col + skip) || 1
+		col = Math.min @props.query_item.layout_keys.length-1,(@state._scroll_to_col + skip) || 1
 		@setState
 			focus_key: @props.schema.keys[@props.query_item.layout_keys[col]]
 			scroll_to_col: col
@@ -741,7 +763,7 @@ class GridView extends Component
 		if @state.move_key
 			return
 		# log (e.clientX - @_rect.left)
-		for key_name in @props.query_item.layout_keys
+		for key_name,key_index in @props.query_item.layout_keys
 			key = @props.schema.keys[key_name]
 			key_width = @props.key_col_widths[key._name] || key.col_width
 			key_left = @props.schema.keys[key_name]._left
@@ -751,6 +773,7 @@ class GridView extends Component
 					# log 'set focus key'
 					return @setState
 						focus_key: key
+						_scroll_to_col: key_index
 
 
 	
@@ -760,41 +783,15 @@ class GridView extends Component
 		query_item = @props.query_item
 
 
+		if @state.scroll_to_row?
+			scroll_to_row = @state.scroll_to_row+1
+			scroll_to_row = Math.min(Math.max(scroll_to_row,1),data.length+1)
 
-		scroll_to_row = if @props.scroll_to_index >=0 then @props.scroll_to_index+1 else @state.scroll_to_row+1
-		scroll_to_row = Math.min(Math.max(scroll_to_row,1),data.length+1)
-		
-		# log "RENDER GRID VIEW"
-		# log "DATA LENGTH",data.length
-		# log "SCROLL_TO_ROW",scroll_to_row
-
-
-		if @state.show_method_menu
-			item_label = h Input,
-				type: 'label'
-				big: no
-				btn_type: 'flat'
-				className: css['grid-item-label']
-				label: [
-					@props.schema.name
-					h 'span',{key: 1,className: css['model-grid-slash']},'/'
-					h 'span',{key: 2,style:{fontWeight:600,color:@context.primary.color[0]}},@props.data_item._label || @props.data_item._id
-				]
-
-			method_menu = h MethodsView,
-				data_item: @props.data_item
-				render_edit_bar: yes
-				showJSONView: @props.showJSONView
-				methods: @props.schema.methods
-				onDelete: @props.deleteDataItem
-				renderDataItemMethod: @props.renderDataItemMethod
-				runDataItemMethod: @props.runDataItemMethod
-
-
-	
+		if @state.scroll_to_col?
+			scroll_to_col = Math.min(Math.max(scroll_to_col,1),query_item.layout_keys.length+2)
+			
 
 		grid = h MultiGrid,
-			key: @props.query_item._id
 			styleTopRightGrid:
 				background: @context.primary.inv[1]
 			className: css['model-grid-list']
@@ -805,13 +802,13 @@ class GridView extends Component
 			columnCount: (query_item.layout_keys.length + 2) || 0
 			fixedColumnCount:0
 			fixedRowCount:1
-			scrollToRow: scroll_to_row
+			scrollToRow: scroll_to_row || undefined
 			scrollToAlignment: 'auto'
-			scrollToColumn: @state.scroll_to_col+1
+			scrollToColumn: scroll_to_col || undefined
 			height: @state.grid_h
-			width:@state.grid_w
+			width: @state.grid_w
 			rowHeight: @rowHeight
-			rowCount:data.length+1
+			rowCount:Math.max(data.length+1,2)
 
 
 
@@ -827,84 +824,27 @@ class GridView extends Component
 
 
 
-		overlay = h Overlay,
-			visible: overlay_visible
-			backdrop_color: @context.primary.inv[1]
-			onClick: @onOverlayClick
-			h 'div',
-				className: overlay_bar_cn
-				style:
-					background: @context.primary.color[1]
-			item_label
-
-
 		if @state.move_key
 			move_guide = h MoveGuide,
 				move_key: @state.move_key
 				query_item: @props.query_item
 				scroll_left: @state.scroll_left
-				scroll_to_col: @state.scroll_to_col
+				scroll_to_col: scroll_to_col
 				onMoveDone: @onMoveDone
 				onMove: @onMove
 				clientX: @state.clientX
-				# onMouseMove: @state.move_key && @onMoveKeyMouseMove || undefined
-
-
-		if @props.show_layouts_view
-			right_view = h LayoutsView,
-				keys_array: @props.schema.keys_array
-				updateQueryItemAndSet: @props.updateQueryItemAndSet
-				updateQueryItem: @props.updateQueryItem
-				cloneQueryItemAndSet: @props.cloneQueryItemAndSet
-				cloneQueryItem: @props.cloneQueryItem
-				setQueryItem: @props.setQueryItem
-				keys: @props.schema.keys
-				schema:@props.schema
-				query_item: @props.query_item
-		
-
-		else if @props.show_bookmarks_view
-			right_view = h BookmarksView,
-				bookmarks: @props.bookmarks
-				setBookmarkQueryItem: @props.setBookmarkQueryItem
-				query_item: @props.query_item
-
-
-
-		if @state.show_method_menu
-			slide_pos = 0
-		else if right_view
-			slide_pos = 2
-		else
-			slide_pos = 1
-
-	
 
 
 		h Slide,
-			slide: yes
-			vert: no
-			pos: slide_pos
 			ref: @baseRef
 			outer_props:
 				onMouseMove: @onOuterMouseMove
 			outerChildren: move_guide 
-			h Slide,
-				vert: yes
-				style:
-					overflow: 'visible'
-				dim: DIM2*8
-				method_menu || null
-			h Slide,
-				beta: 100
-				className: css['model-grid-wrap']
+			className: css['model-grid-wrap']
+			grid
+			
 				
-				grid || null
-				overlay
-				
-			h Slide,
-				dim: 300
-				right_view
+		
 			
 			
 GridView.contextType = StyleContext
