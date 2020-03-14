@@ -6,7 +6,7 @@ Slide = require 're-slide'
 Color = require 'color'
 css = require './ModelGrid.less'
 cn = require 'classnames'
-{Input,MenuTab,Menu,Bar,Overlay,AlertOverlay,StyleContext,AlertDot} = require 're-lui'
+{Input,MenuTab,Menu,Bar,Overlay,AlertOverlay,StyleContext,AlertDot,HoverBox,Style} = require 're-lui'
 JsonView = require './JsonView.coffee'
 _ = require 'lodash' 
 
@@ -30,8 +30,10 @@ CodeEditor = require('react-simple-code-editor').default
 { highlight, languages } = require 'prismjs/components/prism-core'
 require 'prismjs/components/prism-clike'
 require 'prismjs/components/prism-json'
+require 'prismjs/components/prism-javascript'
 require 'prismjs/themes/prism-twilight.css'
 
+# dateFns = require('date-fns')
 
 global.DIM2 = 40
 global.DIM = 30
@@ -40,12 +42,56 @@ SearchView = require './SearchView.coffee'
 GridView = require './GridView.coffee'
 # CalendarView = require './CalendarView.coffee'
 
+QueryBuilderView = require './QueryBuilderView'
+
+
+
+
+
+
 
 class ModelGrid extends Component
 	constructor: (props)->
 		super(props)
-		window._grid = @
-		@state = @getDefaultConfig(props)
+
+		window._grid = @ #DEBUG
+		
+		@state = 
+			is_visible: false
+			scroll_to_index: -1
+			key_col_widths: {}
+			editor_patches: []
+			editor_error: null
+			editor_value: '{}'
+			
+
+			data_item: null
+			data_item_id: props.data_item_id
+			
+			query_item: null
+			data: new Map()
+
+			schema: props.schema
+			
+
+			# local storage
+			schema_queries: {}
+			schema_queries_indices: {}
+
+			# external persistant storage
+			public_schema_queries: {}
+			private_schema_queries: {}
+			schema_states: {}
+
+
+			hoverbox:
+				visible: no
+				pointer_events: yes
+				onClose: ()=>
+					@state.hoverbox.visible = false
+					@setState({})
+					@runQuery()
+		
 		@g_props = 
 			selectDataItem: @selectDataItem
 			updateDataItem: @updateDataItem
@@ -54,6 +100,7 @@ class ModelGrid extends Component
 			showJSONView: @showJSONView
 			setQueryItem: @setQueryItem
 			updateQueryItemAndSet: @updateQueryItemAndSet
+			updateQueryItemTypeAndSet: @updateQueryItemTypeAndSet
 			updateQueryItem: @updateQueryItem
 			cloneQueryItemAndSet: @cloneQueryItemAndSet
 			cloneQueryItem: @cloneQueryItem
@@ -62,722 +109,77 @@ class ModelGrid extends Component
 			runStaticMethod: @runStaticMethod
 			updateSelectedDocument: @updateSelectedDocument
 			renderDataItemMethod: @renderDataItemMethod
-			showLayoutsView: @showLayoutsView
-			hideRightView: @hideRightView
-			# showBookmarksView: @showBookmarksView
-			onClearQuerySortKeys: @onClearQuerySortKeys
 			setBookmarkQueryItem: @setBookmarkQueryItem
 			selectNextDataItem: @selectNextDataItem
 			selectPrevDataItem: @selectPrevDataItem
+			showQueryBuilderHoverBox: @showQueryBuilderHoverBox
+			public_bookmarks: {}
+			private_bookmarks: []
+
 
 	log: =>
 		console.log('%c [modelgrid]','color:yellow',arguments[0]||'',arguments[1]||'',arguments[2]||'',arguments[3]||'',arguments[4]||'',arguments[5]||'')
 
 
+	decideQueryItem: ()->
+		query_index = @state.schema_queries_indices[@state.schema.name] || 0
 
-	onClearQuerySortKeys: =>
-		@state.query_item.sort_keys = []
-		@runQuery()
+		if !query_index?
+			query_index = 0
+
+		@state.schema_queries[@state.schema.name] = @state.schema_queries[@state.schema.name] || []
 
 
-	getDefaultConfig: (props)=>
 		
-		queries: [] # array <query_item>
-		query_map: new Map # map <query_item>
-
-		data: new Map # <query._id> : [<data_item>]
-		
-		queries_updated_at: 0
-
-		is_visible: false
-
-		scroll_to_index: -1
-
-		key_col_widths: {}
-		
-		bookmarks: [] 	# array <query_item_id>
-	
-		query_item: @createQueryItem
-			key: props.schema.default_key || '_id'
-			type: 'key'
-		
-		action_query:
-			data_item_id: null
-			called_at: 0
-			completed_at: 0
-
-
-		editor_patches: []
-		editor_error: null
-		editor_value: '{}'
-	
-		data_item: @props.data_item
-		
-		new_doc: {}
-
-
-
-
-	selectDataItem: (item)=>
-		# if !@state.data_item || @state.data_item._id != item._id
-		@setState
-			data_item: Object.assign {},item
-			data_item_id: item._id
-		@props.onSelectDataItem(item)
-
-
-	selectNextDataItem: (skip)=>
-		skip = skip || 1
-		data = @state.data.get(@state.query_item._id)
-		if @state.data_item
-			i = _.findIndex data,_id:@state.data_item._id
-			if data.length > 0
-				n_i = Math.min(data.length-1,i+skip)
-				@selectDataItem(data[n_i])
+		if !@state.schema_queries[@state.schema.name].length
+			@state.query_item = @createNewQuery(@state.schema)
 		else
-			if data.length
-				@selectDataItem(data[0])
+			@state.query_item = @state.schema_queries[@state.schema.name][query_index]
 
-	selectPrevDataItem: (skip)=>
-		skip = skip || 1
-		data = @state.data.get(@state.query_item._id)
-		if @state.data_item
-			i = _.findIndex data,_id:@state.data_item._id
-			if data.length > 0
-				n_i = Math.max(0,i-skip)
-				@selectDataItem(data[n_i])
-		else
-			if data.length
-				@selectDataItem(data[0])
 
-	scrollRight: =>
-		@
+		@state.scroll_top = @state.query_item.scroll_top
 
 
-
-	mapQueryItems: ()=>
-		@state.bookmarks = []
-		for q in @state.queries
-			if q.label
-				@state.bookmarks.push q
-			@state.query_map.set(q._id,q)
-			if @state.query_item?._id == q._id
-				@state.query_item = q
-		@setState
-			bookmarks_updated_at: Date.now() 
-
-
-	setQueryItem: (query_item)=>
-		query_item.skip = 0
-		# log run_query_once
-		@setState
-			query_item: query_item
-
-
-	resetQueryItemLabel: (query_item)->
-		
-		keys = Object.keys(query_item.value)
-		query_item.label = undefined
-		is_key = true
-		for key in keys
-			if key != query_item.key #&& filter_keys.indexOf(key) == -1
-				is_key = false
-				break
-		
-
-		if is_key	
-			query_item.type = 'key'
-			query_item.input_value = query_item.input_value
-		else
-			query_item.type = 'json'
-			query_item.input_value = JSON.stringify(query_item.value)
-
-
-	setQueryItemLabel: (query_item,label)=>
-		if !label
-			return
-		for b in @state.bookmarks
-			if b.label == label || b._id == @state.query_item._id
-				return
-		query_item.label = label
-		query_item.type = 'bookmark'
-		query_item.input_value = '#'+label
-		query_item.saved_at = Date.now()
-		
-
-	createQueryItem: (query_item)->
-		qi = 
-			sort_keys: query_item?.sort_keys || []
-			layout_keys: query_item?.layout_keys || [@props.schema.default_key || '_label']
-			key: query_item?.key || props.schema.keys_array[0]
-			label: query_item?.label
-			min_date: query_item?.min_date || Date.now() - xDays(365*2)
-			max_date: query_item?.max_date || Date.now() + xDays(365)
-			skip: 0
-			type: query_item?.type
-			value: query_item?.value
-			limit: @props.query_limit || 100
-			input_value: query_item?.input_value || ""
-			call_count: 0
-			_id: Date.now().toString(24)
-		
-		
-		if @props.schema.force_keys
-			for key,i in @props.schema.force_keys
-				if !qi.layout_keys[i] || qi.layout_keys[i] != key
-					existing_index = qi.layout_keys.indexOf(key)
-					if existing_index >= 0
-						qi.layout_keys.splice(existing_index,1)
-					qi.layout_keys.splice(i,0,key)
-		# log qi.layout_keys,@props.schema.force_keys
-
-		return qi
-
-
-	
-	decideQueryItemType: (query_item)->
-		if query_item.input_value?[0] == '{'
-			query_item.type = 'json'
-		else if query_item.input_value?[0] == '#'
-			query_item.type = 'bookmark'
-		else
-			query_item.type = 'key'
-	
-	
-	syncQueryItem: (query_item)->
-		
-
-		if query_item.type == 'key'
-			q_value = {}
-			query_item.error = null
-			q_value[query_item.key || query_item.key] = '//'+query_item.input_value+'//ig'
-			query_item.value = q_value
-		else if query_item.type == 'json'
-			try
-				obj = eval('('+query_item.input_value+')')
-				query_item.value = obj
-				query_item.error = null
-			catch error
-				query_item.error = error.message
-
-
-	
-	findQueryItemBookmark: (query_item)->
-		if query_item.type != 'bookmark'
-			return
-		
-		query_label = query_item.input_value.substring(1)
-		# m_r = new RegExp(query_label,"ig")
-		query_item.match_label = null
-		query_item.match_label_part = null
-		if query_label
-			n_q = @state.bookmarks.find (b)->
-				if !query_item.match_label
-					if b.label.indexOf(query_label) >= 0
-						query_item.match_label = b.label
-						query_item.match_label_q = query_label
-
-				if b.label == query_label
-					return true
-				return false
-			if !n_q
-				return null
-			else
-				return n_q
-		else
-			return null
-
-
-	cloneQueryItemAndSet: (schema,query_item)=>
-
-		# log run_query_once
-		query_item = @cloneQueryItem(schema,query_item)
-
-		@mapQueryItems()
-		@setQueryItem(query_item)
-	
-
-
-	updateQueryItemAndSet: (schema,query_item)=>
-		@updateQueryItem(schema,query_item)
-		@mapQueryItems()
-		@setQueryItem(query_item)
-
-
-
-	cloneQueryItem: (schema,query_item)=>
-		query_item = @createQueryItem(query_item)
-
-		if query_item.label
-			@resetQueryItemLabel(query_item)
-
-		Object.assign query_item,schema
-
-
-		@decideQueryItemType(query_item)
-		
-		# # find bookmark
-		# found_query = @findQueryItemBookmark(query_item)
-		# if found_query
-		# 	return found_query
-		
-		# set value (check for errors etc)
-		@syncQueryItem(query_item)
-
-		return query_item
-
-
-	setQueryItemFilter: (query_item)->
-		if @props.filter
-			query_item.filter_value = @props.filter(@props.schema,query_item)
-
-
-	updateQueryItem: (schema,query_item)=>
-		if !query_item.label && schema.label
-			@setQueryItemLabel(query_item,schema.label)
-			@mapQueryItems()
-		else if query_item.label && schema.label == false
-			@resetQueryItemLabel(query_item)
-			@mapQueryItems()
-
-		Object.assign query_item,schema
-
-		# decide type
-		@decideQueryItemType(query_item)
-		
-		# find bookmark
-		found_query = @findQueryItemBookmark(query_item)
-		if found_query
-			return @setState
-				query_item: found_query
-				# run_query_once: no
-		
-		# set value (check for errors etc)
-		@syncQueryItem(query_item)
-
-
-		return query_item
-
-
-	cleanQuery: =>
-		# log 'CLEAN QUERY'
-		if @state.query_item.type == 'key'
-			if !@state.query_item.input_value
-				@state.query_item.type = 'key'
-				@state.query_item.value = ''
-				@state.query_item.input_value = ''
-		if @state.query_item.layout_keys.length == 0
-			@state.query_item.layout_keys[0] = '_label'
-
-		@state.query_item.hidden_layout_keys = []
-
-
-		@state.query_item.layout_keys = @state.query_item.layout_keys.filter (key)=>
-			@props.schema.keys[key]?
-
-		@state.query_item.required_keys = @props.schema.required_keys
-
-		# log @state.query_item
-		# if @state.query_item.sort_keys
-		# 	for key,val of @state.query_item.sort_keys
-		# 		if @state.query_item.layout_keys.indexOf(key) < 0 
-		# 			delete @state.query_item.sort_keys[key]
-
-		
-
-	
-		@state.query_item.populate = []
-		for key in @state.query_item.layout_keys
-			@state.query_item.populate = @state.query_item.populate.concat @props.schema.keys[key].populate || []
-			if @props.schema.keys[key].keys_array
-				@state.query_item.hidden_layout_keys = @state.query_item.hidden_layout_keys.concat @props.schema.keys[key].keys_array
-
-		
-		# log @state.query_item
-		# log @state.query_item
-		@setQueryItemFilter(@state.query_item)
-
-
-
-	setQueryItemRunError: (query_item,error)=>
-
-		query_item.error = error.message
-		query_item.completed_at = Date.now()
-		@setState
-			query_item_run_error_visible: yes
-			query_item_run_error:
-				error: error
-				query_item: query_item
-		@props.onError?(error)
-
-	mapDataItems: =>
-		state_data_item_found = false
-		if !@state.data_item then return
-		data = @state.data.get(@state.query_item._id)
-		for item in data
-			if item._id == @state.data_item._id
-				state_data_item_found = true
-				break
-		if state_data_item_found && @state.show_json_view
-			@state.get_data_item = true
-		else if !state_data_item_found
-			@state.data_item = null
-
-
-
-	runQuery: (run_next)=>
-		@cleanQuery()
-
-		if @state.query_item.error
-			return
-
-		if run_next
-			@state.scroll_to_index = -1
-
-		# log 'NEXT',run_next
-
-		@state.query_item.called_at = Date.now()
-		@state.query_item.completed_at = null
-		@state.query_item.call_count = @state.query_item.call_count || 0
-		@state.query_item.call_count += 1
-
-		# if run_all
-		
-
-		
-		if run_next == true
-			@state.query_item.skip += @state.query_item.limit
-			@state.query_item.limit = 100
-		else
-			@state.query_item.limit += @state.query_item.skip
-			@state.query_item.skip = 0
-			@state.query_item.end_reached = false
-
-
-		h_i = -1
-		q = @state.queries.find (q,i)=>
-			if q._id == @state.query_item._id
-				h_i = i
-				return true
-			return false
-
-		if h_i > 0
-			@state.data_item = null
-			@state.queries.splice(h_i,1)
-			@state.queries.unshift @state.query_item
-			@state.queries_updated_at = Date.now()
-		
-		else if h_i < 0
-			@state.data_item = null
-			@state.queries.unshift @state.query_item
-			@state.queries_updated_at = Date.now()
-
-
-
-		s_q_i = @state.query_item
-		q_i = Object.assign {},@state.query_item
-
-
-
-		@state.query_item.error = undefined
-		@props.runQuery(q_i).then (data)=>
-
-			if q_i._id != @state.query_item._id
-				return @setQueryItemRunError(q_i,new Error('previously ran query does not match current state query '+q_i._id+' != '+@state.query_item._id))
-			current_data = @state.data.get(@state.query_item._id) || []
-			if !run_next
-				current_data = []
-			@state.data.set(@state.query_item._id,current_data.concat(data))
-
-			@state.query_item.completed_at = Date.now()
-			if data.length < @state.query_item.limit
-				@state.query_item.end_reached = true
-			# @log 'runQuery completed',@state.query_item._id,(@state.query_item.completed_at - @state.query_item.called_at)+'ms','#'+data.length
-			@mapDataItems()
-
-			# log current_data.length
-			if !run_next
-				@setScrollIndex()
-			
-			# log @state.scroll_to_index
-			
-			@forceUpdate()
-		.catch @setQueryItemRunError.bind(@,s_q_i)
-
-		@setState({})
-	
-
-
-
-	runStaticMethod: (method)=>
-		# log 'RUN STATIC METHOD',method
-	
-		@setState
-			action_query:
-				data_item_id: '~'
-				data_item_label: @props.schema.name
-				action: method.name
-				called_at: Date.now()
-		
-		if method.run
-			await method.run(@props.schema,method)
-		else
-			await @props.runStaticMethod(@props.schema,method)
-
-		@state.action_query.completed_at = Date.now()
-		@runQuery()
-		
-
-
-
-	runDataItemMethod: (method,callback)=>
-		
-		@setState
-			action_query:
-				data_item_id: @state.data_item._id
-				data_item_label: @state.data_item._label	
-				action: method.name
-				called_at: Date.now()
-		
-		if method.run
-			res = await method.run(@props.schema,@state.data_item,method)
-		else
-			res = await @props.runDataItemMethod(@props.schema,@state.data_item,method)
-		
-		@state.action_query.completed_at = Date.now()
-		@setState
-			data_item: Object.assign {},res.data_item
-		@runQuery()
-		callback?(res)
-
-	
-
-
-	renderDataItemMethod: (method,get_method_res_callback,method_res)=>
-		# log get_method_res_callback
-		method_exec = @runDataItemMethod.bind(@,method,get_method_res_callback)
-		return method.render(@props.schema,@state.data_item,method_exec,method_res)
-
-	renderStaticMethod: (method,get_method_res_callback,method_res)=>
-		# log get_method_res_callback
-		method_exec = @runStaticMethod.bind(@,method,get_method_res_callback)
-		return method.render(@props.schema,method_exec,method_res)
-
-
-
-	setActionMethodError: (data_item,error)=>
-		await @setState
-			action_query: {}
-			query_item_run_error_visible: false
-			action_error:
-				data_item: data_item
-				error: error
-		@props.onError?(error,data_item)
-
-		return false
-	
-	setActionStaticError: (error)=>
-		await @setState
-			action_query: {}
-			query_item_run_error_visible: false
-			action_error: 
-				error: error
-
-		@props.onError?(error)
 			
 
-	# clearActionQueryError: =>
-	# 	@setState
-	# 		action_query: {}
-	# 		# action_error: null
+	loadLocalState: ()->
+		m_state = JSON.parse(localStorage.getItem('re-moodelgrid-local-state')||'{}')
+		Object.assign @state,m_state
 
 
-	createDataItem: =>
-		# @log 'create data item'
-		@setState
-			action_query:
-				data_item_id: JSON.stringify(@state.new_doc)
-				action: 'create'
-				called_at: Date.now()
-		@props.createDataItem(@state.new_doc).then (created_doc)=>
-			# @log 'created data_item',created_doc
-			@state.action_query.completed_at = Date.now()
-			@state.data_item = Object.assign {},created_doc
-			@runQuery()
-		.catch @setActionMethodError.bind(@,@state.new_doc)
+	saveLocalState: ()->
+		@log 'saving local state'
+		save_str = JSON.stringify
+			schema_queries: @state.schema_queries
+			schema_queries_indices: @state.schema_queries_indices
 
-	deleteDataItem: =>
-		# @log 'delete data item'
-		@setState
-			action_query:
-				data_item_id: @state.data_item._id
-				data_item_label: @state.data_item._label
-				action: 'delete'
-				called_at: Date.now()
-
-		
-		@props.deleteDataItem(@state.data_item._id).then (deleted_doc_id)=>
-			# @log 'deleted data_item',deleted_doc_id
-			@state.action_query.completed_at = Date.now()
-			if @state.data_item._id == deleted_doc_id
-				@setState
-					data_item: null
-			@runQuery()
-		.catch @setActionMethodError.bind(@,@state.data_item)
-
-	updateDataItem: ()=>
+		localStorage.setItem('re-moodelgrid-local-state',save_str)
 	
-		if !@state.action_query.completed_at && @state.action_query.called_at || !@state.editor_patches.length
-			return
-		
-		if @state.editor_value_id != @state.data_item._id
-			return
 
-		@setState
-			action_query:
-				data_item_id: @state.data_item._id
-				data_item_label: @state.data_item._label
-				body: @state.editor_patches
-				action: 'update'
-				called_at: Date.now()
 
-		@props.updateDataItem(@state.editor_value_id,@state.editor_patches).then (doc)=>
-			# @log 'updated data_item',doc
-			@state.editor_value_id = null
-			@state.action_query.completed_at = Date.now()
-			if @state.data_item._id == doc._id
-				@setState
-					data_item: doc
-			@runQuery()
-		.catch @setActionMethodError.bind(@,@state.data_item)
-
-	getDataItem: ()=>
-	
-		if !@state.action_query.completed_at && @state.action_query.called_at
-			return
-		
-		@setState
-			action_query:
-				body: {}
-				data_item_id: @state.data_item._id
-				data_item_label: @state.data_item._label
-				called_at: Date.now()
-				action: 'get'
-		
-		@props.getDataItem(@state.data_item._id).then (doc)=>
-			@state.action_query.completed_at = Date.now()
-			@state.editor_value_id = null
-			if @state.data_item._id == doc._id
-				@props.onSelectDataItem(doc)
-				@setState
-					data_item: doc
-					data_item_id: doc._id
-
-		
-		.catch @setActionMethodError.bind(@,@state.data_item)
+	fillSchemaState: ()->
+		@state.schema_queries[@state.schema.name] = @state.schema_queries[@state.schema.name] || []
+		@state.schema_states[@state.schema.name] = @state.schema_states[@state.schema.name] || {}
+		@state.public_schema_queries[@state.schema.name] = @state.public_schema_queries[@state.schema.name] || []
+		@state.private_schema_queries[@state.schema.name] = @state.private_schema_queries[@state.schema.name] || []
 
 
 
 
-	componentDidUpdate: (props,state)->
+	getAllSchemaData: ()->
+		@getSchemaPublicQueries()
+		@getSchemaPrivateQueries()
+		@getSchemaState()
 
-
-		@state.scroll_to_index = -1
-		@state.queries = @state.queries.slice(0,5)
-		save_state = Object.assign {},
-			key_col_widths: @state.key_col_widths
-			queries: @state.queries
-			query_item: @state.query_item
-			data_item: @state.data_item
-			data_item_id: @state.data_item_id
-			show_json_view: @state.show_json_view
-			new_doc: @state.new_doc
-			bookmarks: @state.bookmarks
-		
-		
-
-		@props.onSchemaStateUpdated?(save_state)
-
-		if @state.get_data_item || (@state.data_item && @state.show_json_view && ((@state.show_json_view != state.show_json_view) || @state.action_query.data_item_id != @state.data_item._id))
-			@state.get_data_item = false
-			@getDataItem()
-
-		split_vert = if (@base && @base.clientHeight > @base.clientWidth) then true else false
-		if split_vert != @state.split_vert
-			@setState
-				split_vert: split_vert
-
-		if @state.show_json_view != state.show_json_view
-			@forceUpdate()
-
-		if props.run_query_item != @props.run_query_item
-			# @log "RUN PROPS QUERY ITEM"
-			@cloneQueryItemAndSet(@props.run_query_item,@state.query_item,true)
-
-
-		if !@props.data_item_id && @state.data_item
-			@setState
-				data_item: null
-
-		
-		if @props.schema_state_id != props.schema_state_id || @props.query_state_id != props.query_state_id 
-			@runQuery()
-
-		if state.queries_updated_at != @state.queries_updated_at
-			@mapQueryItems()
-
-
-		if (!@state.data_item || state.query_item != @state.query_item || !state.data_item ) && @state.show_json_view
-			@hideJsonView()
-
-
-
-		if @state.data_item
-			if @state.data_item._id != @state.editor_value_id
-				if @state.data_item
-					state.editor_value = JSON.stringify(@state.data_item,null,4)
-					state.editor_patches = []
-				else
-					state.editor_value = "{}"
-					state.editor_patches = []
-				@setState
-					editor_value_id: @state.data_item._id
-
-		else
-			if @state.editor_value != '{}' || @state.editor_patches.length
-				@setState
-					editor_value: '{}'
-					editor_patches: []
-
-
-
-	hideJsonView: =>
-		@setState
-			show_json_view: false
-
-	
 
 	componentDidMount: =>
-		Object.assign @state,@props.schema_state
-		@mapQueryItems()
-		for q in @state.queries
-			if q.called_at && !q.completed_at
-				q.called_at = q.completed_at = 0
-
+		@fillSchemaState()
+		@loadLocalState()
+		@decideQueryItem()
+		@getAllSchemaData()
 		@runQuery()
-		
 
 
-	setScrollIndex: (state)=>
-		state = state || @state
-		if state.query_item && state.data_item
-			state.scroll_to_index = -1
-			data = state.data.get(state.query_item._id)
-			if data
-				for data_item,i in data
-					if data_item._id == state.data_item._id
-						state.scroll_to_index = i
-						break
 
 
 	# componentWillUpdate: (props,state)=>
@@ -787,10 +189,10 @@ class ModelGrid extends Component
 
 	
 		
-		# if props.schema_state_id != state.schema_state_id
-		# 	state.schema_state_id = props.schema_state_id
+		# if state.schema_state_id != state.schema_state_id
+		# 	state.schema_state_id = state.schema_state_id
 		# 	Object.assign state,@getDefaultConfig(props)
-		# 	Object.assign state,props.schema_state
+		# 	Object.assign state,state.schema_state
 
 		# 	# log 'NEW ID'
 		# 	# if state.data_item
@@ -828,38 +230,798 @@ class ModelGrid extends Component
 		# 	state.editor_patches = []
 
 
+	componentDidUpdate: (props,state)->
+		@state.scroll_top = undefined
+		if @props.data_item_id != props.data_item_id
+			@state.data_item_id = @props.data_item_id
+			if @state.data_item_id
+				@getDataItem()
+			else
+				@state.data_item = null
+			
+
+
+		if props.schema != @props.schema || @props.schema_data_sync_id != props.schema_data_sync_id
+			@state.schema = @props.schema
+			@fillSchemaState()
+			@decideQueryItem()
+			@getAllSchemaData()
+			@runQuery()
+
+
+		
+
+
+	#*****************#
+	# QUERY API
+	#*****************#
+
+	navNextQuery: ->
+		current_query_index = @state.schema_queries_indices[@state.schema.name]
+		if !current_query_index?
+			return false
+		if @state.schema_queries[@state.schema.name][current_query_index+1]?
+			@state.schema_queries_indices[@state.schema.name]+=1
+			@state.query_item = @state.schema_queries[@state.schema.name]?[current_query_index+1]
+			@setState({})
+			@runQuery()
+			@saveLocalState()
+
+
+	navPrevQuery: ->
+		current_query_index = @state.schema_queries_indices[@state.schema.name]
+		if !current_query_index? || current_query_index == 0
+			return false
+		
+		if @state.schema_queries[@state.schema.name][current_query_index-1]?
+			@state.schema_queries_indices[@state.schema.name]-=1
+			@state.query_item = @state.schema_queries[@state.schema.name]?[current_query_index-1]
+			@setState({})
+			@runQuery()
+			@saveLocalState()
+
+
+	clearQueryIndex: ->
+		@state.schema_queries_indices[@state.schema.name] = Math.max(@state.schema_queries[@state.schema.name].length-1,0)
+
+
+
+
+	getSchemaPublicQueries: ()->
+		schema_name = @state.schema.name
+		public_queries = await @props.getSchemaPublicQueries(schema_name)
+		@state.public_schema_queries[schema_name] = public_queries || []
+		@log 'getSchemaPublicQueries',public_queries
+		@setState({})
+
+
+
+
+	getSchemaPrivateQueries: ()->
+		schema_name = @state.schema.name
+		private_queries = await @props.getSchemaPrivateQueries(@state.schema.name)
+		@state.private_schema_queries[schema_name] = private_queries || []
+		@log 'getSchemaPrivateQueries',private_queries
+		@setState({})
+
+
+
+
+	runQuery: (run_next)=>
+		# log 'RUN QUERY',@state.query_item._id
+		@cleanQuery()
+
+		qi = @state.query_item
+
+		if qi.error
+			return
+
+		# if run_next
+		# 	@state.scroll_to_index = -1
+
+		qi.called_at = Date.now()
+		qi.completed_at = null
+		qi.call_count = @state.query_item.call_count || 0
+		qi.call_count += 1
+
+		# if run_all
+		if run_next == true
+			qi.skip += qi.limit
+			qi.limit = 100
+		else
+			qi.limit += qi.skip
+			qi.skip = 0
+			qi.end_reached = false
+
+
+		if qi.call_count == 1
+			schema_queries = @state.schema_queries[@state.schema.name]
+			schema_queries.push qi
+			@state.schema_queries_indices[@state.schema.name] = schema_queries.length-1
+			if schema_queries.length > @props.max_save_local_query_count
+				@state.schema_queries[@state.schema.name] = schema_queries.slice(Math.max(schema_query.length-@props.max_save_local_query_count,0),schema_queries.length-1)
+			@saveLocalState()
+			
+
+
+
+		
+		q_i = Object.assign {},@state.query_item
+
+		
+
+		if q_i.json_input && q_i.type == 'json'
+			q_i.value = eval('('+q_i.json_input+')')
+
+
+
+		@state.query_item.error = undefined
+		
+		@props.runQuery(q_i).then (data)=>
+			# log 'QUERY RAN'
+
+			if q_i._id != @state.query_item._id
+				console.warn 'previously ran query does not match current state query'
+				return false
+				# return @setQueryItemRunError(q_i,new Error('previously ran query does not match current state query '+q_i._id+' != '+@state.query_item._id))
+			
+			current_data = @state.data.get(@state.query_item._id) || []
+			if !run_next
+				current_data = []
+			# log @state.query_item._id,current_data.concat(data)
+			@state.data.set(@state.query_item._id,current_data.concat(data))
+
+			@state.query_item.completed_at = Date.now()
+			if data.length < @state.query_item.limit
+				@state.query_item.end_reached = true
+			
+
+			@mapDataItems()
+
+			# log current_data.length
+			# if !run_next
+			# 	@setScrollIndex()
+			
+			# log @state.scroll_to_index
+			
+			@forceUpdate()
+		.catch @setQueryItemRunError.bind(@,qi)
+
+		@saveLocalState()
+		@setState({})
+
+	
+
+	cloneQuery: ()->
+		cloned_query = _.cloneDeep(@state.query_item.query)
+		@props.queries.push cloned_query
+		@setState
+			query_item: cloned_query
+
+
+	createNewQuery: ()->
+
+		query = 
+			sort_keys: []
+			layout_keys: [@state.schema.default_key || @state.schema.keys_array[0]]
+			search_key: @state.schema.default_key || @state.schema.keys_array[0] 
+			type: 'keyword'
+			label: null #bookmark label
+			user_id: null #bookmark user id
+			skip: 0 #skip
+			limit: @props.query_limit || 100
+			call_count: 0
+			_id: Date.now().toString(24)
+			ran_at: null
+			json_input: null
+			keyword_input: null
+
+		@log 'create new query',query
+		return query
+
+
+	setNewQuery: ()->
+		query_item = @createNewQuery(@state.schema)
+		@setState
+			query_item: query_item
+
+
+	saveQuery: ()->
+		@props.saveQuery @state.schema.name,@state.query_item
+
+
+	updateQuery: (update,query_item)=>
+
+		# log update
+
+		Object.assign query_item,update
+		
+
+		if update.keyword_input
+			q_value = {}
+			query_item.error = null
+			q_value[query_item.key || query_item.key] = '//'+query_item.keyword_input+'//ig'
+			update.value = q_value
+		else if update.json_input
+			try
+				obj = eval('('+query_item.json_input+')')
+				query_item.error = null
+			catch error
+				query_item.error = error.message
+
+
+		return query_item
+
+
+
+	resetQueryItemLabel: (query_item)->
+		
+		keys = Object.keys(query_item.value)
+		query_item.label = undefined
+		is_key = true
+		for key in keys
+			if key != query_item.key #&& filter_keys.indexOf(key) == -1
+				is_key = false
+				break
+
+		if is_key	
+			query_item.type = 'key'
+			query_item.input_value = query_item.input_value
+		else
+			query_item.type = 'json'
+			query_item.input_value = JSON.stringify(query_item.value)
+
+
+
+
+	setQueryItemType: (type,query_item)=>
+		if type == 'json'
+			query_item.type = 'json'
+			if query_item.keyword_input && !query_item.json_input
+				query_item.json_input = JSON.stringify(@getKeywordQueryObject(query_item.keyword_input,query_item),0,2)
+				query_item.keyword_input = undefined
+		else
+			query_item.type = 'key'
+			query_item.keyword_input = query_item.keyword_input || ''
+		@setQueryItem(query_item)
+
+
+
+	# saveQueryItemLabel: (bookmark_label,is_public,query_item)->
+	# 	query_item.bookmark_label = bookmark_label
+	# 	query_item.is_public = is_public || false
+	# 	@props.saveQueryItemLabel(Object.assign({},query_item))
+
+
+
+
+	updateQueryItemAndSet: (schema,query_item)=>
+		@updateQueryItem(schema,query_item)
+		@setQueryItem(query_item)
+
+
+
+
+	getSchemaState: ()=>
+		schema_name = @state.schema.name
+		schema_state = await @props.getSchemaState(schema_name)
+		if @state.schema.name != schema_name
+			@log 'getSchemaState (reload - interrupted)'
+			return false
+			@state.schema_states[schema_name] = schema_state || {}
+		@setState()
+
+
+	saveSchemaState: ()->
+		save_state =
+			key_col_widths: @state.key_col_widths
+			data_item_id: @state.data_item_id
+			show_json_view: @state.show_json_view
+		@props.saveSchemaState(@state.schema.name,save_state)
+
+
+
+
+
+
+
+
+
+
+
+	findBookmarkByLabel: (bookmark_label)=>
+		return _.find(@props.bookmarks,bookmark_label:bookmark_label)
+
+
+
+	matchBookmarks: (label)->
+		matched_queries = @props.bookmarks.filter (q)->
+			if q.bookmark_label.indexOf(label) >= 0
+				return true
+	
+
+
+	onScrollTop: (scroll_top)->
+		if !@state.query_item.scroll_top
+			@state.query_item.scroll_top = scroll_top
+			@saveLocalState()
+		else
+			if Math.abs(@state.query_item.scroll_top - scroll_top) > 100
+				@state.query_item.scroll_top = scroll_top
+				@saveLocalState()
+
+
+
+
+	selectDataItem: (item)=>
+		# log scroll_top
+		@state.query_item.selected_data_item_id = item._id
+		# @state.query_item.scroll_top = scroll_top
+		@props.selectDataItem(item._id)
+		@saveLocalState()
+
+
+	selectNextDataItem: (skip)=>
+		skip = skip || 1
+		data = @state.data.get(@state.query_item._id)
+		if @state.data_item
+			i = _.findIndex data,_id:@state.data_item._id
+			if data.length > 0
+				n_i = Math.min(data.length-1,i+skip)
+				@selectDataItem(data[n_i])
+		else
+			if data.length
+				@selectDataItem(data[0])
+
+
+	selectPrevDataItem: (skip)=>
+		skip = skip || 1
+		data = @state.data.get(@state.query_item._id)
+		if @state.data_item
+			i = _.findIndex data,_id:@state.data_item._id
+			if data.length > 0
+				n_i = Math.max(0,i-skip)
+				@selectDataItem(data[n_i])
+		else
+			if data.length
+				@selectDataItem(data[0])
+
+
+
+
+
+	resetQueryItemLabel: (query_item)->
+		
+		keys = Object.keys(query_item.value)
+		query_item.label = undefined
+		is_key = true
+		for key in keys
+			if key != query_item.key #&& filter_keys.indexOf(key) == -1
+				is_key = false
+				break
+		
+
+		if is_key	
+			query_item.type = 'key'
+			query_item.input_value = query_item.input_value
+		else
+			query_item.type = 'json'
+			query_item.input_value = JSON.stringify(query_item.value)
+
+
+
+
+
+	
+	# saveQueryItemLabel: (bookmark_label,is_public,query_item)->
+	# 	query_item.bookmark_label = bookmark_label
+	# 	query_item.is_public = is_public || false
+	# 	@props.saveQueryItemLabel(Object.assign({},query_item))
+
+	# updateQueryItemAndSet: (schema,query_item)=>
+	# 	@updateQueryItem(schema,query_item)
+	# 	@setQueryItem(query_item)
+
+
+	# setQueryItem: (query_item)=>
+	# 	query_item.skip = 0
+	# 	# log run_query_once
+	# 	@setState
+	# 		query_item: query_item
+	
+	# cloneQueryItem: (schema,query_item)=>
+	# 	log 'CLONE QUERY ITEM',schema.name,query_item
+	# 	query_item = @createQueryItem(query_item)
+		
+	# 	#if query item is bookmarked, clone and then delete bookmark reference.
+	# 	if query_item.label
+	# 		@resetQueryItemLabel(query_item)
+
+	# 	@updateQueryItem(query_item,schema)
+
+
+
+
+
+
+
+
+
+
+
+
+	setQueryItemFilter: (query_item)->
+		if @props.filter
+			query_item.filter_value = @props.filter(@state.schema,query_item)
+
+
+	getKeywordQueryObject: (keyword,query_item)=>
+		keyword_parts = keyword.split(' ').map (part)->
+			"\b"+part
+		
+		q_obj = {}
+		q_obj[query_item.key]  = "//#{keyword_parts.join('|')}//ig"
+		
+		return q_obj
+
+
+	clearQueryItemInput: (query_item)=>
+		query_item.json_input = undefined
+		query_item.keyword_input = undefined
+		@setQueryItem(query_item)
+
+
+	cleanQuery: =>
+		if @state.query_item.type == 'key'
+			if !@state.query_item.input_value
+				@state.query_item.type = 'key'
+				@state.query_item.value = ''
+				@state.query_item.input_value = ''
+		if @state.query_item.layout_keys.length == 0
+			@state.query_item.layout_keys[0] = '_label'
+
+		@state.query_item.hidden_layout_keys = []
+
+
+		@state.query_item.layout_keys = @state.query_item.layout_keys.filter (key)=>
+			@state.schema.keys[key]?
+
+		@state.query_item.required_keys = @state.schema.required_keys
+
+
+		@state.query_item.populate = []
+		for key in @state.query_item.layout_keys
+			@state.query_item.populate = @state.query_item.populate.concat @state.schema.keys[key].populate || []
+			if @state.schema.keys[key].keys_array
+				@state.query_item.hidden_layout_keys = @state.query_item.hidden_layout_keys.concat @state.schema.keys[key].keys_array
+
+
+		@setQueryItemFilter(@state.query_item)
+
+
+
+	setQueryItemRunError: (query_item,error)=>
+
+		query_item.error = error.message
+		query_item.completed_at = Date.now()
+		@setState
+			query_item_run_error_visible: yes
+			query_item_run_error:
+				error: error
+				query_item: query_item
+		@props.onError?(error)
+
+	mapDataItems: =>
+		state_data_item_found = false
+		if !@state.data_item then return
+		data = @state.data.get(@state.query_item._id)
+		for item in data
+			if item._id == @state.data_item._id
+				state_data_item_found = true
+				break
+		if state_data_item_found && @state.show_json_view
+			@state.get_data_item = true
+		else if !state_data_item_found
+			@state.data_item = null
+
+
+
+
+
+
+	runStaticMethod: (method)=>
+		# log 'RUN STATIC METHOD',method
+	
+		@setState
+			action_query:
+				data_item_id: '~'
+				data_item_label: @state.schema.name
+				action: method.name
+				called_at: Date.now()
+		
+		if method.run
+			await method.run(@state.schema,method)
+		else
+			await @props.runStaticMethod(@state.schema,method)
+
+		@state.action_query.completed_at = Date.now()
+		@runQuery()
+		
+
+
+
+	runDataItemMethod: (method,callback)=>
+		
+		@setState
+			action_query:
+				data_item_id: @state.data_item._id
+				data_item_label: @state.data_item._label	
+				action: method.name
+				called_at: Date.now()
+		
+		if method.run
+			res = await method.run(@state.schema,@state.data_item,method)
+		else
+			res = await @props.runDataItemMethod(@state.schema,@state.data_item,method)
+		
+		@state.action_query.completed_at = Date.now()
+		@setState
+			data_item: Object.assign {},res.data_item
+		@runQuery()
+		callback?(res)
+
+	
+
+
+	renderDataItemMethod: (method,get_method_res_callback,method_res)=>
+		# log get_method_res_callback
+		method_exec = @runDataItemMethod.bind(@,method,get_method_res_callback)
+		return method.render(@state.schema,@state.data_item,method_exec,method_res)
+
+	renderStaticMethod: (method,get_method_res_callback,method_res)=>
+		# log get_method_res_callback
+		method_exec = @runStaticMethod.bind(@,method,get_method_res_callback)
+		return method.render(@state.schema,method_exec,method_res)
+
+
+
+	setActionMethodError: (data_item,error)=>
+		await @setState
+			action_query: {}
+			query_item_run_error_visible: false
+			action_error:
+				data_item: data_item
+				error: error
+		@props.onError?(error,data_item)
+
+		return false
+	
+	setActionStaticError: (error)=>
+		await @setState
+			action_query: {}
+			query_item_run_error_visible: false
+			action_error: 
+				error: error
+
+		@props.onError?(error)
+			
+
+	# clearActionQueryError: =>
+	# 	@setState
+	# 		action_query: {}
+	# 		# action_error: null
+
+
+	# createDataItem: =>
+	# 	# @log 'create data item'
+	# 	@setState
+	# 		action_query:
+	# 			data_item_id: JSON.stringify(@state.new_doc)
+	# 			action: 'create'
+	# 			called_at: Date.now()
+	# 	@props.createDataItem(@state.new_doc).then (created_doc)=>
+	# 		# @log 'created data_item',created_doc
+	# 		@state.action_query.completed_at = Date.now()
+	# 		@state.data_item = Object.assign {},created_doc
+	# 		@runQuery()
+	# 	.catch @setActionMethodError.bind(@,@state.new_doc)
+
+	# deleteDataItem: =>
+	# 	# @log 'delete data item'
+	# 	@setState
+	# 		action_query:
+	# 			data_item_id: @state.data_item._id
+	# 			data_item_label: @state.data_item._label
+	# 			action: 'delete'
+	# 			called_at: Date.now()
+
+		
+	# 	@props.deleteDataItem(@state.data_item._id).then (deleted_doc_id)=>
+	# 		# @log 'deleted data_item',deleted_doc_id
+	# 		@state.action_query.completed_at = Date.now()
+	# 		if @state.data_item._id == deleted_doc_id
+	# 			@setState
+	# 				data_item: null
+	# 		@runQuery()
+	# 	.catch @setActionMethodError.bind(@,@state.data_item)
+
+	updateDataItem: ()=>
+	
+		if !@state.action_query.completed_at && @state.action_query.called_at || !@state.editor_patches.length
+			return
+		
+		if @state.editor_value_id != @state.data_item._id
+			return
+
+		@setState
+			action_query:
+				data_item_id: @state.data_item._id
+				data_item_label: @state.data_item._label
+				body: @state.editor_patches
+				action: 'update'
+				called_at: Date.now()
+
+		@props.updateDataItem(@state.editor_value_id,@state.editor_patches).then (doc)=>
+			# @log 'updated data_item',doc
+			@state.editor_value_id = null
+			@state.action_query.completed_at = Date.now()
+			if @state.data_item._id == doc._id
+				@setState
+					data_item: doc
+			@runQuery()
+		.catch @setActionMethodError.bind(@,@state.data_item)
+
+
+	getDataItem: ()=>
+	
+		if !@state.action_query?.completed_at && @state.action_query?.called_at
+			return
+		
+		@setState
+			action_query:
+				body: {}
+				data_item_id: @state.data_item_id
+				data_item_label: @state.data_item?._label || @state.data_item_id
+				called_at: Date.now()
+				action: 'get'
+
+		# log @state.data_item_id
+		
+		@props.getDataItem(@state.data_item_id).then (doc)=>
+			# log doc
+			@state.action_query.completed_at = Date.now()
+			@state.editor_value_id = null
+			if @state.data_item_id == doc._id
+				@setState
+					data_item: doc
+					data_item_id: doc._id
+
+		
+		.catch @setActionMethodError.bind(@,@state.data_item)
+
+
+	# componentWillUpdate: (props,state)->
+	# 	# log state.schema_state
+	# 	if @state.schema_state != state.schema_state && state.schema_state
+	# 		Object.assign state,@state.schema_state
+	# 		if state.schema_state.queries.length
+	# 			state.query_item = state.schema_state.queries[state.schema_state.queries.length-1]
+
+
+	# componentDidUpdate: (props,state)->
+	# 	log 'ModelGrid componentDidUpdate'
+
+
+	# 	@state.queries = @state.queries.slice(0,5)
+	# 	save_state = Object.assign {},
+	# 		key_col_widths: @state.key_col_widths
+	# 		queries: @state.queries
+	# 		bookmarks: @state.private_bookmarks
+	# 		data_item_id: @state.data_item_id
+	# 		show_json_view: @state.show_json_view
+	# 		new_doc: @state.new_doc
+		
+
+	# 	@props.onSchemaStateUpdated?(save_state)
+
+	# 	if @state.get_data_item || (@state.data_item && @state.show_json_view && ((@state.show_json_view != state.show_json_view) || @state.action_query.data_item_id != @state.data_item._id))
+	# 		@state.get_data_item = false
+	# 		@getDataItem()
+
+	# 	split_vert = if (@base && @base.clientHeight > @base.clientWidth) then true else false
+	# 	if split_vert != @state.split_vert
+	# 		@setState
+	# 			split_vert: split_vert
+
+	# 	if @state.show_json_view != state.show_json_view
+	# 		@forceUpdate()
+
+	# 	if props.run_query_item != @props.run_query_item
+	# 		# @log "RUN PROPS QUERY ITEM"
+	# 		@cloneQueryItemAndSet(@props.run_query_item,@state.query_item,true)
+
+
+	# 	if !@props.data_item_id && @state.data_item
+	# 		@setState
+	# 			data_item: null
+
+		
+	# 	if @state.schema_state_id != state.schema_state_id || @props.query_state_id != props.query_state_id 
+	# 		@runQuery()
+
+	# 	# if state.queries_updated_at != @state.queries_updated_at
+	# 	# 	@mapQueryItems()
+
+
+	# 	if (!@state.data_item || state.query_item != @state.query_item || !state.data_item ) && @state.show_json_view
+	# 		@hideJsonView()
+
+
+
+	# 	if @state.data_item
+	# 		if @state.data_item._id != @state.editor_value_id
+	# 			if @state.data_item
+	# 				state.editor_value = JSON.stringify(@state.data_item,null,4)
+	# 				state.editor_patches = []
+	# 			else
+	# 				state.editor_value = "{}"
+	# 				state.editor_patches = []
+	# 			@setState
+	# 				editor_value_id: @state.data_item._id
+
+	# 	else
+	# 		if @state.editor_value != '{}' || @state.editor_patches.length
+	# 			@setState
+	# 				editor_value: '{}'
+	# 				editor_patches: []
+
+
+
+	hideJsonView: =>
+		@setState
+			show_json_view: false
+
+	
+
+	# componentDidMount: =>
+	# 	Object.assign @state,@state.schema_state
+	# 	for q in @state.queries
+	# 		if q.called_at && !q.completed_at
+	# 			q.called_at = q.completed_at = 0
+
+	# 	log 'run query'
+	# 	@runQuery()
+		
+
+
+	# setScrollIndex: (state)=>
+	# 	state = state || @state
+	# 	if state.query_item && state.data_item
+	# 		state.scroll_to_index = -1
+	# 		data = state.data.get(state.query_item._id)
+	# 		if data
+	# 			for data_item,i in data
+	# 				if data_item._id == state.data_item._id
+	# 					state.scroll_to_index = i
+	# 					break
+
+
+
 
 	showJSONView: ()=>
 		@setState 
 			show_json_view: yes	
 
-
-	
 	closeJSONView: =>
-		@setState show_json_view: no
+		@setState
+			show_json_view: no
 
 	setBookmarkQueryItem: (query_item)=>
 		@setState
 			show_bookmarks_view: no
 		@setQueryItem query_item
 
-	showBookmarksView: =>
-		@setState
-			show_bookmarks_view: yes
-			show_layouts_view: no
 
-	hideRightView: =>
-		@runQuery()
-		@setState
-			show_bookmarks_view: no
-			show_layouts_view: no
-
-
-
-	showLayoutsView: =>
-		@setState
-			show_bookmarks_view: no
-			show_layouts_view: yes
 
 
 
@@ -891,11 +1053,63 @@ class ModelGrid extends Component
 		else
 			@setState
 				is_visible:no
-		
+	
+
+	showQueryBuilderHoverBox: (bind_el)=>
+		@setState
+			show_query_builder_view: yes
+
+		@setHoverBox
+			visible: yes
+			show_delay: 0
+			hide_delay: 0
+			flat: yes
+			renderContent: =>
+				h QueryBuilderView,
+					cloneQueryItemAndSet: @cloneQueryItemAndSet
+					updateQueryItemAndSet: @updateQueryItemAndSet
+					updateQueryItemTypeAndSet: @updateQueryItemTypeAndSet
+					setBookmarkQueryItem: @setBookmarkQueryItem
+					findBookmarkByLabel: @findBookmarkByLabel
+					resetQueryItemLabel: @resetQueryItemLabel
+					saveQueryItemLabel: @saveQueryItemLabel 
+
+					clearQueryItemInput: @clearQueryItemInput
+					updateQueryItem: @updateQueryItem
+					query_item: @state.query_item
+					keys_array: @state.schema.keys_array
+					keys: @state.schema.keys
+					schema: @state.schema
+					renderHoverBox: @props.renderHoverBox
+			getSize: ()->
+				return
+					width: 600
+					height: 560
+			getBindElement: ()=>
+				return bind_el
+
+
+	setHoverBox: ({visible,flat,getBindElement,renderContent,getSize,show_delay,hide_delay})=>
+		@state.hoverbox.visible = visible
+		@state.hoverbox.getBindElement = getBindElement
+		@state.hoverbox.renderContent = renderContent
+		@state.hoverbox.getSize = getSize
+		@state.hoverbox.show_delay = show_delay
+		@state.hoverbox.hide_delay = hide_delay
+		@state.hoverbox.flat = flat
+		@setState({})
+
+
 
 	render: ->
-		window[@props.schema.name+'_grid'] = @
+		if @state.scroll_top
+			@log 'scroll top',@state.scroll_top
+		
 
+
+		if !@state.query_item
+			@log 'query item missing, skip render'
+			return false
 		
 		if @_pc != @context.primary.color[0]
 			@_pc = @context.primary.color[0]
@@ -906,8 +1120,8 @@ class ModelGrid extends Component
 		@g_props.scroll_to_index = @state.scroll_to_index
 		@g_props.bounding_box = @base?.getBoundingClientRect()
 		@g_props.data = @state.data.get(@state.query_item._id) || []
-		@g_props.queries = @state.queries
-		@g_props.bookmarks = @state.bookmarks
+		# log @g_props.data
+		@g_props.scroll_top = @state.scroll_top
 		@g_props.query_map = @state.query_map
 		@g_props.query_item = @state.query_item
 		@g_props.data_item = @state.data_item
@@ -915,28 +1129,58 @@ class ModelGrid extends Component
 		@g_props.show_static_methods = @props.show_static_methods
 		@g_props.data_item_id = @props.data_item_id
 		@g_props.new_doc = @state.new_doc
+		@g_props.queries = @state.schema_queries[@state.schema.name]
 		@g_props.action_query = @state.action_query
-		@g_props.schema = @props.schema
-		@g_props.row_height = @props.schema.row_height || 30
+		@g_props.schema = @state.schema
+		@g_props.row_height = @state.schema.row_height || 30
 		@g_props.scroll_query_beta_offset = @props.scroll_query_beta_offset
 		@g_props.show_json_view = @state.show_json_view
-		@g_props.queries_updated_at = @state.queries_updated_at
 		@g_props.methods = @props.methods
 		@g_props.filter = @props.filter
 		@g_props.show_layouts_view = @state.show_layouts_view
 		@g_props.show_bookmarks_view = @state.show_bookmarks_view
 		@g_props.key_col_widths = @state.key_col_widths
-		@g_props.setHoverBox = @props.setHoverBox
+		# @g_props.setHoverBox = @props.setHoverBox
+		# @g_props.renderHoverBox = @props.renderHoverBox
+		@g_props._pc_is_dark = @_pc_is_dark
 
 		# log @state.bookmarks
 
 
 		style = {}
 		style.visiblity = @state.is_visible && 'visible' || 'hidden'
-		style.transform = 'translate(0px)'
+		# style.transform = 'translate(0px)'
 		
 		style.height = '100%'
 		style.width = '100%'
+
+
+		hover_box = h Style,
+			primary:'#2c2e30'
+			primary_inv: '#fff'
+			secondary: '#fff'
+			secondary_inv: '#386277'
+			h HoverBox,
+				visible: @state.hoverbox.visible
+				hide_delay: @state.hoverbox.hide_delay
+				show_delay: @state.hoverbox.show_delay
+				visible_delay: no
+				onClose: @state.hoverbox.onClose
+				onClickOverlay: @state.hoverbox.onClickOverlay || @state.hoverbox.onClose
+				box_pointer_events: @state.hoverbox.pointer_events
+				offset_y: 0
+				snap_x: 1
+				align_x: -1
+				align_y: 1
+				snap_y: 0
+				offset_x: 0
+				flat: @state.hoverbox.flat
+				background: @context.primary.inv[0]
+				renderContent: @state.hoverbox.renderContent
+				getBindElement: @state.hoverbox.getBindElement
+				getSize: @state.hoverbox.getSize
+
+
 
 		h Slide,
 			ref: @baseRef
@@ -946,6 +1190,7 @@ class ModelGrid extends Component
 			className: css['model-grid']
 			pos: !@state.show_json_view && 1 || 0
 			vert: no
+			outerChildren: hover_box
 			
 			h Slide,
 				className: css['react-json-wrap']
@@ -1001,7 +1246,7 @@ class ModelGrid extends Component
 					vert: yes
 					scroll: yes
 					style:
-						background: @context.primary.inv[1]
+						background: @context.primary.inv.darker[4]
 					@state.editor_patches.map (patch,i)=>
 						h JsonView,
 							key: 'patch-'+i
@@ -1034,6 +1279,7 @@ ModelGrid.contextType = StyleContext
 ModelGrid.defaultProps = 
 	show_bar: yes
 	query_limit: 100
+	max_save_local_query_count: 15
 	scroll_query_beta_offset: 2
 
 

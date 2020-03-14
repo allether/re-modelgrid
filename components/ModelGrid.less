@@ -1,15 +1,15 @@
-@import './_globals.less';
+@import '../node_modules/re-lui/components/variables.less';
 .model-grid{
 	font-family: @monofont;
 	font-size: @fontsize;
-	transform: translate(0);
+	// transform: translate(0);
 	height: 100%;
 	width: 100%;
 	::-webkit-scrollbar{
 		-webkit-appearance: none;
 		background-color: rgba(0,0,0,0.2);
-		width: 8px;
-		height: 8px;
+		width: 12px;
+		height: 12px;
 	}
 	::-webkit-scrollbar-corner {
 		background-color: rgba(0,0,0,0.3);
@@ -24,27 +24,10 @@
 	}
 }
 
-.chip-layout-editor-dropbox{
-	width: -webkit-fill-available;
-	height: 100%;
-	margin: @margin-size;
-}
 
-.chip-layout-editor-chip{
-	margin: 0;
-	border-radius: @border-radius;
-	padding: @padding-size;
-	width: -webkit-fill-available;
-	// margin: @margin-size;
-}
-.chip-layout-editor-chip-wrap{
-	padding: @margin-size;
-	width: -webkit-fill-available;
-}
 
 .move-guide-wrapper{
 	width: 100%;
-
 	height: 100%;
 	// background: rgba(0,0,0,0.2);
 	cursor: move;
@@ -430,11 +413,63 @@
     }
 }
 
+
+
+
+
+
+
+
+
+
+.chip-layout-editor-dropbox{
+	width: -webkit-fill-available;
+	height: 100%;
+	overflow: scroll;
+	// margin: @margin-size;
+}
+.chip-layout-editor-dropbox-part{
+	width: -webkit-fill-available;
+	height: -webkit-fill-available;
+	min-height: 50%;
+	padding: @margin-size;
+	flex-shrink: 0;
+	// overflow: visible;
+	// overflow: scroll;
+	// padding: @margin-size;
+	// margin: @margin-size;
+}
+
+.chip-layout-editor-chip{
+	margin: 0;
+	border-radius: @border-radius;
+	padding-left: @padding-size;
+	width: -webkit-fill-available;
+	// margin: @margin-size;
+}
+.chip-layout-editor-chip-wrap{
+	padding: @margin-size;
+	width: -webkit-fill-available;
+}
+
+
+
+
+
+
+
+
+
+
+
 .react-json-wrap{
 	// overflow: scroll;
 	position: relative;
 	transform: translate(0);
 }
+
+
+
 
 .react-json-container{
 	overflow: scroll;
@@ -453,6 +488,9 @@
 		};
 	}
 	&.light{
+		:global(.keyword){
+			color: #00659b;
+		}
 		:global(.number){
 			color: #a14e03;
 		}
@@ -466,6 +504,7 @@
 			color: #878787;
 		};
 	}
+
 }
 
 .json-editor-menu{

@@ -4,13 +4,27 @@ var cfg = {
 	devtool: 'source-map',
 	module: {
 		rules: [
-			{ test: /\.coffee$/, use: "coffee-loader"},
+			{ test: /\.coffee$/, use: [{
+				loader: 'string-replace-loader',
+				options: {
+					search: 'cn:',
+					replace: 'className:',
+					flags: 'g'
+				}
+			},"coffee-loader"]},
 			{ test: /\.(xml|html|txt|md|glsl|svg)$/, loader: "raw-loader" },
 			{ test: /\.(less)$/, exclude: /^(https?:)?\/\//,use: ['style-loader',{loader:'css-loader',options: {
 			    modules: true,
 			    // importLoaders: 1,
 			    localIdentName: 'lui-g-[local]'
-			  }},'less-loader'] },
+			  }},{
+			  	loader: 'less-loader',
+			  	options: {
+			  		modifyVars: {
+			  			"dim": process.env.DIM+"px"
+			  		}
+			  	}
+			  }] },
 			{ test: /\.(css)$/, exclude: /^(https?:)?\/\//, use: ['style-loader','css-loader'] },
 			{ test: /\.(woff|woff2|eot|ttf|png)$/,loader: 'url-loader?limit=65000' }
 		]

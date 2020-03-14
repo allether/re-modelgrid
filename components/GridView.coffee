@@ -5,7 +5,7 @@ Slide = require 're-slide'
 {Input,MenuTab,Menu,Bar,Overlay,StyleContext} = require 're-lui'
 
 css = require './ModelGrid.less'
-MethodsView = require './MethodsView.coffee'
+# MethodsView = require './MethodsView.coffee'
 
 hotkeys = require('hotkeys-js').default
 
@@ -122,7 +122,9 @@ class MoveGuide extends Component
 		width = @state.start_move_width + (e.clientX - @state.start_move_x)
 		
 		min = @props.move_key.min_width || 100
-		width = clamp(width,min,MAX_COL_WIDTH)
+		# log width
+		width = Math.max(Math.min(width,MAX_COL_WIDTH),min)
+		# log width
 
 		@setState
 			left: left
@@ -157,21 +159,6 @@ class MoveGuide extends Component
 		else
 			label_string = label
 
-		# if @props.move_key.indexed
-		# 	sort_opts = h 'div',
-		# 		className: css['model-grid-key-toggle']
-		# 		h 'i',
-		# 			style:
-		# 				color: @props.query_item.sort_keys[key_name] == 1 && @context.secondary.false || @context.primary.color[2]
-		# 			# onClick: @toggleSortKey.bind(null,key_name,1)
-		# 			className: 'material-icons'
-		# 			'keyboard_arrow_up'
-		# 		h 'i',
-		# 			style:
-		# 				color: @props.query_item.sort_keys[key_name] == -1 && @context.secondary.true || @context.primary.color[2]
-		# 			# onClick: @toggleSortKey.bind(null,key_name,-1)
-		# 			className: 'material-icons'
-		# 			'keyboard_arrow_down'
 
 		h 'div',
 			className: css['move-guide-wrapper']
@@ -184,21 +171,9 @@ class MoveGuide extends Component
 				style:
 					borderRight: '2px solid '+@context.primary.inv[2]
 					transform: 'translate('+@state.left+'px,'+0+'px)'
-					background: @state.min_width && 'rgba(255,255,0,0.5)' || 'rgba(255,255,255,0.5)'
+					background: @state.min_width && ('rgba(255,255,0,0.5)' || 'rgba(255,255,255,0.5)')
 					width: @state.width
-				# h 'div',
-				# 	className: css['move-guide-key']+' '+css['model-grid-cell']+' '+css['model-grid-key']
-				# 	style:
-				# 		height: 30
-				# 		background: @context.primary.inv[2]
-				# 		color: @context.primary.color[0]
-				# 	label_string
-				# 	sort_opts
-				# 	h 'i',
-				# 		style:
-				# 			color: @context.primary.color[2]
-				# 		className: 'material-icons '+css['model-grid-key-resize']
-				# 		'last_page'
+
 
 MoveGuide.contextType = StyleContext
 
@@ -226,7 +201,7 @@ class GridView extends Component
 	
 	
 	gridRef: (el)=>
-		log "GRID REF",el
+		# log "GRID REF",el
 		@_grid = el		
 	
 
@@ -280,7 +255,7 @@ class GridView extends Component
 		@setState
 			show_method_menu: yes
 			data_item_g_opts: g_opts
-		@props.selectDataItem(@props.data[g_opts.rowIndex-1])
+		@props.selectDataItem(@props.data[g_opts.rowIndex-1],@state.scroll_top)
 	
 	onOverlayClick: =>
 		if @props.show_layouts_view || @props.show_bookmarks_view
@@ -292,27 +267,29 @@ class GridView extends Component
 
 	columnWidth: (g_opts)=>
 
-		if g_opts.index == @props.query_item.layout_keys.length+1
+		if g_opts.index == @props.query_item.layout_keys.length
 			return 500 
 
 
-		if g_opts.index == 0
-			return 30
 		
-		key_name = @props.query_item.layout_keys[g_opts.index-1]
+		
+		key_name = @props.query_item.layout_keys[g_opts.index]
 		if !key_name
-			console.warn g_opts.index-1,@props.query_item.layout_keys
+			console.warn g_opts.index,@props.query_item.layout_keys
 			return null
 		
 
+
 		key = @props.schema.keys[key_name]
+
+		if !key
+			console.error @props.schema.keys
+			throw new Error 'schema key not found: '+key_name
+
 		key._name = key_name
 		key.col_width = Math.max(key.min_width||100,key.label.length* CHAR_W + CELL_PAD*2 + 70)
 
-		# key._min_width = key.col_width
-		if !key
-			throw new Error 'schema key not found ,'+key_name
-		# log @props.key_col_widths[key.name]
+		
 		if @props.key_col_widths[key._name]
 			c_w = Math.max(key.min_width||100,@props.key_col_widths[key._name])
 		else
@@ -329,8 +306,11 @@ class GridView extends Component
 
 	onScroll: (e)=>
 		@state.scroll_left = e.scrollLeft
+		# @state.scroll_top = e.scrollTop
 		if !@props.query_item.end_reached && @props.query_item.completed_at && e.scrollTop > 0 && e.scrollTop > (e.scrollHeight - (e.clientHeight * @props.scroll_query_beta_offset))
 			@props.runQuery(true)
+
+		@props.onScrollTop(@state.scroll_top)
 			
 	
 	setMoveKey: (key,e)=>
@@ -352,10 +332,13 @@ class GridView extends Component
 		@_grid.recomputeGridSize()
 
 
+	selectDataItem: (data_item)=>
+		@props.selectDataItem(data_item,@state.scroll_top)
+
 	# {index, isScrolling, key, parent, style}
 	renderCell: (g_opts)=>
 		
-		if g_opts.columnIndex == @props.query_item.layout_keys.length+1
+		if g_opts.columnIndex == @props.query_item.layout_keys.length
 			return h 'div',
 				key: g_opts.key
 				style: g_opts.style
@@ -367,14 +350,14 @@ class GridView extends Component
 		is_key = g_opts.rowIndex == 0
 		g_style = {}
 
-		if g_opts.rowIndex == 0 && g_opts.columnIndex == 0
-			return h 'div',
-				key: g_opts.key
-				style: g_opts.style
-				h 'div',
-					className: cn css['model-grid-cell'],css['model-grid-cell-method-button'],'material-icons'
-					onClick: @props.onClearQuerySortKeys
-					'clear'
+		# if g_opts.rowIndex == 0 && g_opts.columnIndex == 0
+		# 	return h 'div',
+		# 		key: g_opts.key
+		# 		style: g_opts.style
+		# 		h 'div',
+		# 			className: cn css['model-grid-cell'],css['model-grid-cell-method-button'],'material-icons'
+		# 			onClick: @props.onClearQuerySortKeys
+		# 			'clear'
 
 		
 
@@ -426,36 +409,46 @@ class GridView extends Component
 			g_style.color = r_color[1]
 		
 
-		if g_opts.columnIndex == 0
-			if is_key
-				return null
+		# if g_opts.columnIndex == 0
+		# 	if is_key
+		# 		return null
 			
 			
 			
 			
-			# g_opts.style.width = '100%'
-			return h 'div',
-				style: Object.assign g_style,g_opts.style
-				key: g_opts.key
-				onClick: !is_selected && @props.selectDataItem.bind(null,data[g_opts.rowIndex-1]) || undefined
-				h 'div',
-					className: cn css['model-grid-cell'],css['model-grid-cell-method-button'],'material-icons',(is_selected && css['model-grid-cell-selected'])
-					onClick: @showMethodMenu.bind(@,g_opts)
-					is_selected && 'arrow_forward' || 'more_horiz'
-		else
-			key_name = @props.query_item.layout_keys[g_opts.columnIndex-1]
-			key = schema.keys[key_name]
-			edit_key = !is_key && @state.edit_key == key_name && is_selected
-			if !key
-				throw new Error 'invalid key '+key_name
+		# 	# g_opts.style.width = '100%'
+		# 	return h 'div',
+		# 		style: Object.assign g_style,g_opts.style
+		# 		key: g_opts.key
+		# 		onClick: !is_selected && @props.selectDataItem.bind(null,data[g_opts.rowIndex-1]) || undefined
+		# 		h 'div',
+		# 			className: cn css['model-grid-cell'],css['model-grid-cell-method-button'],'material-icons',(is_selected && css['model-grid-cell-selected'])
+		# 			onClick: @showMethodMenu.bind(@,g_opts)
+		# 			is_selected && 'arrow_forward' || 'more_horiz'
+		# else
+		
+		key_name = @props.query_item.layout_keys[g_opts.columnIndex]
+		key = schema.keys[key_name]
+		edit_key = !is_key && @state.edit_key == key_name && is_selected
+		if !key
+			throw new Error 'invalid key '+key_name
 		
 		
 		if !is_key
 			value = data[g_opts.rowIndex-1][key_name]
 		
 		# log 'render cell'
-		
-				
+		e_style = {}
+		if key == @state.focus_key && !@state.move_key
+			e_style.borderRight = '2px solid rgba(0,0,0,0.6)'
+			# g_opts.style.borderLeft = '2px solid rgba(0,0,0,0.3)'
+
+		else
+			e_style.borderRight = '2px solid rgba(0,0,0,0.3)'
+			# g_opts.style.borderLeft = 'none'
+
+
+
 		
 		if is_key
 			sort_key_index = _.findIndex @props.query_item.sort_keys,key:key_name
@@ -562,26 +555,19 @@ class GridView extends Component
 							className: 'material-icons'
 							'fiber_manual_record'
 		
-			
+			# log e_style
 			return h 'div',
 				className: css['model-grid-cell']
-				style: Object.assign g_style,g_opts.style
+				style: Object.assign g_style,g_opts.style,e_style
 				key: g_opts.key
 				sort_index_label
 				key_label
 				lock_icon
 				sort_opts
 				resize_bar
+		
 
-		if key == @state.focus_key && !@state.move_key
-			g_opts.style.borderRight = '2px solid rgba(0,0,0,0.3)'
-			# g_opts.style.borderLeft = '2px solid rgba(0,0,0,0.3)'
-
-		else
-			g_opts.style.borderRight = 'none'
-			# g_opts.style.borderLeft = 'none'
-
-
+		
 		
 		
 		if !data[g_opts.rowIndex-1].__filled_doc && ( key.fill || schema.fill)
@@ -598,10 +584,10 @@ class GridView extends Component
 			
 
 		return h 'div',
-			style: Object.assign g_style,g_opts.style
+			style: Object.assign g_style,g_opts.style,e_style
 			key: g_opts.key
 			h 'div',
-				onMouseDown: !is_selected && @props.selectDataItem.bind(null,data[g_opts.rowIndex-1]) || undefined
+				onMouseDown: !is_selected && @selectDataItem.bind(null,data[g_opts.rowIndex-1]) || undefined
 				className: css['model-grid-cell']+' '+(is_selected && css['model-grid-cell-selected'] || '')
 				key.render && key.render(schema,data_obj) || value
 
@@ -685,7 +671,6 @@ class GridView extends Component
 
 		@state.grid_key = @getGridKey(@props)
 		if @props.data_item
-			log 'DID MOUNT'
 			@state.scroll_to_row = _.findIndex(@props.data,_id:@props.data_item._id)
 		@setState({})
 
@@ -783,14 +768,19 @@ class GridView extends Component
 		query_item = @props.query_item
 
 
-		if @state.scroll_to_row?
-			scroll_to_row = @state.scroll_to_row+1
-			scroll_to_row = Math.min(Math.max(scroll_to_row,1),data.length+1)
+		
+		if !@props.query_scroll_top
+			if @state.scroll_to_row?
+				scroll_to_row = @state.scroll_to_row+1
+				scroll_to_row = Math.min(Math.max(scroll_to_row,1),data.length+1)
+
 
 		if @state.scroll_to_col?
 			scroll_to_col = Math.min(Math.max(scroll_to_col,1),query_item.layout_keys.length+2)
-			
 
+
+			
+		
 		grid = h MultiGrid,
 			styleTopRightGrid:
 				background: @context.primary.inv[1]
@@ -799,11 +789,12 @@ class GridView extends Component
 			onScroll: @onScroll
 			cellRenderer: @renderCell
 			columnWidth: @columnWidth
-			columnCount: (query_item.layout_keys.length + 2) || 0
-			fixedColumnCount:0
+			columnCount: (query_item.layout_keys.length + 1) || 0
+			# fixedColumnCount: query_item.sort_keys.length
 			fixedRowCount:1
 			scrollToRow: scroll_to_row || undefined
 			scrollToAlignment: 'auto'
+			scrollTop: @props.query_scroll_top || undefined
 			scrollToColumn: scroll_to_col || undefined
 			height: @state.grid_h
 			width: @state.grid_w

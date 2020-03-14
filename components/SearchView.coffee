@@ -5,7 +5,7 @@ cn = require 'classnames'
 JsonView = require './JsonView.coffee'
 {List} = require 'react-virtualized/dist/commonjs/List'
 {CellMeasurer,CellMeasurerCache} = require 'react-virtualized/dist/commonjs/CellMeasurer'
-LayoutEditorView = require './LayoutEditorView'
+
 
 MAX_CHAR = 32
 
@@ -143,26 +143,19 @@ class SearchView extends Component
 
 	renderQueryListItem: (r_opts)=>
 		query_item = @props.queries[r_opts.index]
-
 		if !query_item
 			return false
-		
-		# r_opts.style.height = 'auto'
-		
+
+
 		is_selected = @props.query_item._id == query_item._id
 
-		# log is_selected,query_item.label || query_item._id
 
-
-		# log is_selected
 		if is_selected
 			cell_bg = @context.secondary.color[0]
 			cell_color = @context.secondary.inv[1]
-			
 		else
 			cell_bg = (r_opts.index % 2) && @context.primary.inv[1] || null
 			cell_color = @context.primary.color[3]
-		
 
 
 		bot_right = null
@@ -227,9 +220,7 @@ class SearchView extends Component
 					) || null
 
 
-					
 	renderBookmarkItem: (r_opts)=>
-		# log 'render bookmark'
 		query_item = @props.bookmarks[r_opts.index]
 		is_selected = @props.query_item._id == query_item._id
 		r_opts.style.background = (r_opts.index % 2) && @context.primary.inv[1] || null
@@ -241,7 +232,6 @@ class SearchView extends Component
 			h 'span',{className:css['model-grid-opaque']},'#'
 			h 'span',{},query_item.label
 			h 'span',{className:css['search-query-item-label']},query_item.call_count
-			
 
 
 
@@ -253,10 +243,10 @@ class SearchView extends Component
 			rowHeight: 30
 			rowCount: @props.bookmarks.length
 			rowRenderer: @renderBookmarkItem
-	
+
+
+
 	renderQueryList: (height)->
-		
-		
 		scroll_queries_index = @state.scroll_queries_index
 		@state.scroll_queries_index = undefined
 
@@ -367,33 +357,13 @@ class SearchView extends Component
 			@setState
 				run_query_interval: q_i
 	onRunQuery: =>
-		# if Date.now() - @state.clicked_run_query_at < 300
-		# 	@toggleQueryInterval()
-		# @setState
-		# 	clicked_run_query_at: Date.now()
 		@props.runQuery()
 
 	onShowLayoutHoverBox: (e)=>
-		@props.setHoverBox
-			visible: yes
-			delay: 0
-			renderContent: ()=>
-				h LayoutEditorView,
-					query_item: @props.query_item
-					keys_array: @props.schema.keys_array
-					keys: @props.schema.keys
-					schema: @props.schema
+		@props.showQueryBuilderHoverBox(@_week_btn)
 
 
-			getSize: ()->
-				return
-					width: 300
-					height: 400
-
-
-			getBindElement: ()=>
-				@_week_btn
-				# ,renderContent,getSize})
+	onSelectBookmarkItem: =>
 
 
 	render: ->
@@ -408,13 +378,11 @@ class SearchView extends Component
 		if qi.match_label
 			l_q_i = qi.match_label.indexOf(qi.match_label_q)
 			l_q_l = qi.match_label_q.length
-			# log l_q_i+l_q_l
 			suggest = [
 				qi.match_label.substring(0,l_q_i)
 				h 'span',{key:2,style:color:@context.primary.true},qi.match_label_q
 				qi.match_label.substring(l_q_i+l_q_l)
 			]
-			
 
 
 
@@ -425,14 +393,20 @@ class SearchView extends Component
 			info_label = qi.error || 'ok'
 			info_i = qi.error && 'error' || 'error_outline'
 			info_type = 'label'
+
+
+
 		else if qi.type == 'key'
-			search_placeholder =  'search by '+props.schema.keys[qi.key].label
+			search_placeholder =  'search by ' + ( props.schema.keys[qi.key]?.label )
 			info_label = [
-				'search by '
+				'search by'
 				h 'span',{key:2,style:color:@context.primary.true},qi.key
 			]
 			info_i = 'menu'
 			info_type = 'button'
+
+
+
 		else if qi.type == 'bookmark'
 			search_i = 'bookmark'
 			search_placeholder = '#[bookmark name]'
@@ -444,7 +418,8 @@ class SearchView extends Component
 			else 
 				info_i = 'more_horiz'
 				info_type = 'label'
-			
+
+
 
 		if qi.called_at
 			if qi.label
@@ -457,28 +432,19 @@ class SearchView extends Component
 				info_label = h 'div',{},
 					'save '
 					h 'span',{style:opacity:.5},props.query_item._id
-				# 
 				info_type = 'button'
-				
-
 				if @state.query_item_label
 					info_fn = @saveQueryItem
-					# info_btn_type = 'primary'
 				else
 					info_fn = @showInfoOptions
-					# info_btn_type = 'default' 
+
 
 		if props.query_item.called_at
 			info_btn_type = 'primary'
 		else
 			info_btn_type = 'default'
 
-	
-		# if props.query_item.label && !props.reveal
-		# 	search_input_label = true 
-		# 	search_input_label_value = h 'span',
-		# 		className: css['search-query-menu-search-label']
-		# 		qi.input_value
+
 
 		# log qi
 		if qi.error
@@ -488,86 +454,94 @@ class SearchView extends Component
 			bar_style = 
 				background: qi.error && @context.secondary.false || @context.secondary.color[2]
 
-		search_placeholder = 'keyword / #saved / {json}'
 
+		search_placeholder = 'keyword | #saved | {json}'
 
-		search_input = h Input,
-			onFocus: @onFocus
-			ref: @searchRef
-			type: 'input'
-			input_props:
-				autoComplete: 'false'
-				spellCheck: 'false'
-				autoCorrect: 'false'
-				autoCapitalize: 'false'
-			btn_type: 'flat'
-			style: 
-				paddingLeft: 0
-				background: 'none'
-				# color: qi.type == 'json' && @context.secondary.color[2] || @context.primary.color[0]
-				width: SEARCH_BAR_WIDTH - 40 - 40
-			value: qi.input_value
-			bar_style: bar_style
-			onInput: @setSearchValue
-			onEnter: @onSearchEnter
-			bar: yes
-			# onClick: search_input_label && props.onClick
-			placeholder: search_placeholder
-			# search_input_label_value
+		search_input = h 'div',
+			cn: 'flex-right'
+			h Bar,
+				btn: yes
+				big: yes
+				h Input,
+					type: 'button'
+					i: 'keyboard_arrow_left'
+				h Input,
+					type: 'button'
+					disabled: yes
+					i: 'keyboard_arrow_right'
+			h Bar,
+				big: yes
+				btn: yes
+				h Input,
+					onFocus: @onFocus
+					ref: @searchRef
+					type: 'input'
+					input_props:
+						autoComplete: 'false'
+						spellCheck: 'false'
+						autoCorrect: 'false'
+						autoCapitalize: 'false'
+					i: 'search'
+					style: 
+						width: SEARCH_BAR_WIDTH - 40 - 40
+					value: qi.input_value
+					bar_style: bar_style
+					onInput: @setSearchValue
+					onEnter: @onSearchEnter
+					bar: yes
+					placeholder: search_placeholder
+				h Input,
+						type: 'button'
+						i: 'menu_open'
+						big: yes
+						ref: (el)=>
+							if el
+								@_week_btn = el._outer
+						onClick: @onShowLayoutHoverBox
 
-		# refresh_query_button = h Input,
-		# 	type: 'button'
-		# 	btn_type: 'flat'
-		# 	i_type: query_item_is_loading && 'primary' || 'flat'
-		# 	i: 'play_arrow'
+		# search_i = h Slide,
+		# 	vert: yes
+		# 	width: 40
+		# 	height: 40
+		# 	slide: yes
+		# 	pos: if query_item_is_loading then 0 else 1
+		# 	className: css['search-query-menu-icon']
+		# 	style:
+		# 		background: @context.primary.inv[1]
 		# 	onClick: @onRunQuery
-		# 	outer_props:
-		# 		onDoubleClick: @toggleQueryInterval
-		# 	@state.run_query_interval && h AlertDot
-
-
-
-		search_i = h Slide,
-			vert: yes
-			width: 40
-			height: 40
-			slide: yes
-			pos: if query_item_is_loading then 0 else 1
-			className: css['search-query-menu-icon']
-			onClick: @onRunQuery
-			h Slide,
-				beta: 100
-				center: yes
-				h SquareLoader,
-					background: !qi.error && @context.primary.color[0] || @context.primary.false
-					is_loading: query_item_is_loading && !qi.error
-			h Slide,
-				vert: no
-				slide: yes
-				beta: 100
-				onMouseEnter: @mouseEnterMenuIcon
-				onMouseLeave: @mouseLeaveMenuIcon
-				# onClick: @onClickIcon
-				hide: yes
-				pos: @state.hover_menu_icon && 2 || (qi.type == 'bookmark' && 2 || qi.type == 'key' && 1 || qi.type == 'json' && 0)
-				h Slide,
-					beta: 100
-					center: yes
-					h 'i',
-						className: 'material-icons'
-						'code'
-				h Slide,
-					beta: 100
-					center: yes
-					h 'i',
-						className: 'material-icons'
-						'search'
-				h Slide,
-					beta: 100
-					center: yes
-					h 'i',
-						className: 'material-icons'
-						'bookmark'
+		# 	h Slide,
+		# 		beta: 100
+		# 		center: yes
+		# 		h SquareLoader,
+		# 			background: !qi.error && @context.primary.color[0] || @context.primary.false
+		# 			is_loading: query_item_is_loading && !qi.error
+		# 	h Slide,
+		# 		vert: no
+		# 		slide: yes
+		# 		beta: 100
+		# 		onMouseEnter: @mouseEnterMenuIcon
+		# 		onMouseLeave: @mouseLeaveMenuIcon
+		# 		# onClick: @onClickIcon
+		# 		hide: yes
+		# 		pos: @state.hover_menu_icon && 2 || (qi.type == 'bookmark' && 2 || qi.type == 'key' && 1 || qi.type == 'json' && 0)
+		# 		h Slide,
+		# 			beta: 100
+		# 			center: yes
+		# 			h 'i',
+		# 				className: 'material-icons'
+		# 				'code'
+		# 		h Slide,
+		# 			beta: 100
+		# 			center: yes
+		# 			h 'i',
+		# 				className: 'material-icons'
+		# 				'search'
+		# 		h Slide,
+		# 			beta: 100
+		# 			center: yes
+		# 			h 'i',
+		# 				className: 'material-icons'
+		# 				'bookmark'
 
 
 		# if qi.called_at && !qi.label
@@ -603,39 +577,106 @@ class SearchView extends Component
 		# 		query_list = @renderBookmarksList(query_tab_height)
 		# 	else
 		# 		query_list = @renderQueryList(query_tab_height)
+		# if @props.data_item_id
+		edit_doc_json_button = h Input,
+			type: 'button'
+			i: 'edit'
+			btn_type: !@props.data_item_id && 'flat'
+			big: yes
+			disabled: !@props.data_item_id
+				# btn_type: 'primary'
+
+
+		# private_bookmarks = @props.bookmarks[@props.schema.name].map (query_item)=>
+		# 	h Input,
+		# 		type: 'button'
+		# 		label: '#'+query_item.bookmark_label
+		# 		btn_type: 'primary'
+		# 		onClick: @onSelectBookmarkItem
+
+		# public_bookmarks = @props.bookmarks[@props.schema.name].map (query_item)=>
+		# 	h Input,
+		# 		type: 'button'
+		# 		label: '#'+query_item.bookmark_label
+		# 		btn_type: 'primary'
+		# 		onClick: @onSelectBookmarkItem
+
 
 		h Slide,
 			vert: yes
-			dim: DIM2*2
-			h Slide,
-				vert:no
+			dim: DIM2*2+14
+			className: 'mpad'
+			h 'div',
+				className: 'flex-right full-w'
+				h Input,
+					type: 'label'
+					style:
+						paddingRight: 0
+					i: 'public'
+					label: ':'
+					btn_type: 'flat'
+				h Input,
+					type: 'button'
+					label: '#123'
+					# btn_type: 'primary'
+				h Input,
+					type: 'button'
+					label: '#122'
+					# btn_type: 'primary'
+				h Input,
+					type: 'button'
+					label: '#222'
+			h 'div',
+				className: 'flex-right'
+				search_input
+				# h Bar,
+				# 	vert: no
+				# 	big: yes
+				# 	btn: yes
+				# 	# search_i
+					
+					
+				# h 'div',
+				# 	className: 'flex-right margin-left margin-right full-w'
+				# 	# style:
+				# 		# background: @context.secondary.inv[2]
+				edit_doc_json_button
+				h Input,
+					type: 'label'
+					i: 'bookmarks'
+					label: ':'
+					btn_type: 'flat'
+					style:
+						paddingRight: 0
+				# private_bookmarks
+				# h Input,
+				# 	type: 'button'
+				# 	label: '#123'
+				# 	btn_type: 'primary'
+				# h Input,
+				# 	type: 'button'
+				# 	label: '#122'
+				# 	btn_type: 'primary'
+				# h Input,
+				# 	type: 'button'
+				# 	label: '#222'
+				# 	btn_type: 'primary'
 				# h Slide,
-				# 	beta: 50
-				h Bar,
-					vert: no
-					search_i
-					search_input
-				h Slide,
-					beta: 100
-					inverse:yes
-					h Input,
-						type: 'button'
-						i: 'view_week'
-						ref: (el)=>
-							if el
-								@_week_btn = el._outer
-						
-						label: String(@props.query_item.layout_keys.length).padStart(2)
-						# onMouseEnter: @onLayoutMouseEnter
-						onClick: @onShowLayoutHoverBox
-					h Input,
-						type: 'button'
-						i: 'save'
+				# 	beta: 100
+				# 	inverse:yes
+					
+				# 	h Input,
+				# 		type: 'button'
+				# 		i: 'save'
+				# 		# btn_type: 'primary'
+				# 		onClick: @onShowSaveHoverBox
+			
+			
 						# btn_type: 'primary'
-						onClick: @onShowSaveHoverBox
-			h Slide,
-				vert: yes
-				'bookmark chips & search autofill hints go here'
+				# className: 'margin-left'
+				
+
+				# 'public bookmark chips & search autofill hints go here'
 
 			# h 'div',
 			# 	className: 'flex-down'

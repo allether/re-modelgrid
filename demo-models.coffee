@@ -17,54 +17,12 @@ onFormSubmit = (opts)->
 	console.log opts
 
 user_data = [
-	{
-		project: 'My Project'
-		_id: 1
-		_name: 'Jake'
-		_age: 10
-	},{
-		project: 'My Project'
-		_id: 2
-		_name: 'Paul'
-		_age: 11
-	},{
-		project: 'My Project'
-		_id: 3
-		_name: 'Sam Hyde'
-		_age: 13
-	},{
-		project: 'Your Project'
-		_id: 4
-		_name: 'Ron'
-	}
 ]
 
-
-
 room_data = [
-	{
-		project: 'My Project'
-		_id: 1
-		_type: 'private'
-	},{
-		project: 'My Project'
-		_id: 2
-		_type: 'public'
-	}
 ]
 
 event_data = [
-	{
-		project: 'My Project'
-		_id: 1
-		_name: 'birthday party'
-		created_at: Date.now()
-	},{
-		project: 'My Project'
-		_id: 2
-		_name: 'meeting'
-		created_at: Date.now() - 1000
-	}
 ]
 
 
@@ -414,3 +372,5 @@ module.exports = {
 	models: [user_model,event_model,room_model]
 	data: [user_data,event_data,room_data]
 }
+
+
