@@ -101,30 +101,28 @@ class MoveGuide extends Component
 			left: props.move_key._left - props.scroll_left
 
 
+
 	wrapperRef: (el)=>
 		if !el
 			return
 		@_wrapper = el
 		@_rect = @_wrapper.getBoundingClientRect()
-		
+
+
 
 	onMouseDown: (e)=>
 		@state.start_move_x = e.clientX
 		@state.start_move_width = @props.move_key.col_width
 		
 
-
 	
 	onMouseMove: (e)=>
 		left = @props.move_key._left - @props.scroll_left
-		# width = start_move_x + (start_move_x-e.clientX) - @_rect.left - left + 30/2
-		
 		width = @state.start_move_width + (e.clientX - @state.start_move_x)
 		
 		min = @props.move_key.min_width || 100
-		# log width
+
 		width = Math.max(Math.min(width,MAX_COL_WIDTH),min)
-		# log width
 
 		@setState
 			left: left
@@ -134,15 +132,13 @@ class MoveGuide extends Component
 		@props.onMove(@props.move_key,width)
 
 
-	
+
 	onMouseUp: (e)=>
 		return @props.onMoveDone(@props.move_key,@state.width)
-	
+
+
 
 	render: ->
-
-		
-		# log @props.move_key
 		label = @props.move_key.label
 
 		key_name = @props.move_key._name
@@ -171,11 +167,12 @@ class MoveGuide extends Component
 				style:
 					borderRight: '2px solid '+@context.primary.inv[2]
 					transform: 'translate('+@state.left+'px,'+0+'px)'
-					background: @state.min_width && ('rgba(255,255,0,0.5)' || 'rgba(255,255,255,0.5)')
+					background: @state.min_width && "rgba(255,255,0,0.5)" || "rgba(255,255,255,0.5)"
 					width: @state.width
 
 
 MoveGuide.contextType = StyleContext
+
 
 
 
@@ -290,8 +287,8 @@ class GridView extends Component
 		key.col_width = Math.max(key.min_width||100,key.label.length* CHAR_W + CELL_PAD*2 + 70)
 
 		
-		if @props.key_col_widths[key._name]
-			c_w = Math.max(key.min_width||100,@props.key_col_widths[key._name])
+		if @props.schema_state.key_col_widths[key._name]
+			c_w = Math.max(key.min_width||100,@props.schema_state.key_col_widths[key._name])
 		else
 			c_w = key.col_width || 100
 
@@ -306,11 +303,14 @@ class GridView extends Component
 
 	onScroll: (e)=>
 		@state.scroll_left = e.scrollLeft
-		# @state.scroll_top = e.scrollTop
+		if @state.scroll_top > 0
+			trigger = true
+		@state.scroll_top = e.scrollTop
 		if !@props.query_item.end_reached && @props.query_item.completed_at && e.scrollTop > 0 && e.scrollTop > (e.scrollHeight - (e.clientHeight * @props.scroll_query_beta_offset))
 			@props.runQuery(true)
 
-		@props.onScrollTop(@state.scroll_top)
+		if @state.scroll_top || trigger
+			@props.onScrollTop(@state.scroll_top)
 			
 	
 	setMoveKey: (key,e)=>
@@ -322,13 +322,14 @@ class GridView extends Component
 	
 	onMoveDone: (key,new_width)=>
 		# log 'DONE',key,new_width
-		@props.key_col_widths[key._name] = new_width
+		@props.schema_state.key_col_widths[key._name] = new_width
 		@setState
 			move_key: null
 		@_grid.recomputeGridSize()
+		@props.saveSchemaState()
 	
 	onMove: (key,new_width)=>
-		@props.key_col_widths[key._name] = new_width
+		@props.schema_state.key_col_widths[key._name] = new_width
 		@_grid.recomputeGridSize()
 
 
@@ -617,7 +618,8 @@ class GridView extends Component
 			state.force_update_grid = true
 
 
-
+		if props.scroll_top != @props.scroll_top
+			state.trigger_scroll_top = props.scroll_top
 
 		if props.data_item != @props.data_item
 			if props.data_item
@@ -634,7 +636,7 @@ class GridView extends Component
 
 
 
-	componentDidUpdate: ->
+	componentDidUpdate: (props)->
 		if @base
 			@_rect = @base?.getBoundingClientRect()
 			if @state.grid_w != @base.clientWidth || @state.grid_h != @base.clientHeight
@@ -646,15 +648,16 @@ class GridView extends Component
 					grid_h: @base.clientHeight
 
 
-		if (@state.force_update_grid) && @_grid
+		if (@state.force_update_grid) && @_grid 
 			# log 'update grid size',@props.schema.name,@base.clientHeight,@base.clientWidth
-			# @_grid?.recomputeGridSize()
+			@_grid?.recomputeGridSize()
 			@setState
 				force_update_grid: false
 
-		if @state.scroll_to_row || @state.scroll_to_col
+		if @state.scroll_to_row || @state.scroll_to_col || @state.trigger_scroll_top
 			setTimeout ()=>
 				@setState
+					trigger_scroll_top: undefined
 					scroll_to_row: undefined
 					scroll_to_col: undefined
 					_scroll_to_col: @state.scroll_to_col
@@ -750,7 +753,7 @@ class GridView extends Component
 		# log (e.clientX - @_rect.left)
 		for key_name,key_index in @props.query_item.layout_keys
 			key = @props.schema.keys[key_name]
-			key_width = @props.key_col_widths[key._name] || key.col_width
+			key_width = @props.schema_state.key_col_widths[key._name] || key.col_width
 			key_left = @props.schema.keys[key_name]._left
 
 			if (key_left) < (e.clientX - @_rect.left + @state.scroll_left ) < (key_left+key_width)
@@ -769,7 +772,7 @@ class GridView extends Component
 
 
 		
-		if !@props.query_scroll_top
+		if !@props.scroll_top
 			if @state.scroll_to_row?
 				scroll_to_row = @state.scroll_to_row+1
 				scroll_to_row = Math.min(Math.max(scroll_to_row,1),data.length+1)
@@ -778,23 +781,23 @@ class GridView extends Component
 		if @state.scroll_to_col?
 			scroll_to_col = Math.min(Math.max(scroll_to_col,1),query_item.layout_keys.length+2)
 
-
-			
+		# log @props.scroll_top
+		
 		
 		grid = h MultiGrid,
 			styleTopRightGrid:
 				background: @context.primary.inv[1]
+				borderBottom: '2px solid rgba(0,0,0,0.6)'
 			className: css['model-grid-list']
 			ref: @gridRef
 			onScroll: @onScroll
 			cellRenderer: @renderCell
 			columnWidth: @columnWidth
 			columnCount: (query_item.layout_keys.length + 1) || 0
-			# fixedColumnCount: query_item.sort_keys.length
 			fixedRowCount:1
 			scrollToRow: scroll_to_row || undefined
 			scrollToAlignment: 'auto'
-			scrollTop: @props.query_scroll_top || undefined
+			scrollTop: @state.trigger_scroll_top || undefined
 			scrollToColumn: scroll_to_col || undefined
 			height: @state.grid_h
 			width: @state.grid_w

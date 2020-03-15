@@ -102,10 +102,8 @@ class QueryBuilderView extends Component
 		@state = 
 			unused_keys: @props.keys_array.filter (key)=>
 				@props.query_item?.layout_keys.indexOf(key) < 0
-		@_scroll_top = 0
+		
 
-
-	
 
 	renderUnusedChip: (key_name)=>
 		key = @props.keys[key_name]	
@@ -121,14 +119,6 @@ class QueryBuilderView extends Component
 				onClick: @addKey.bind(@,key_name)
 				label: key.label
 			
-
-
-	
-					
-						
-
-
-
 
 	addKey: (key_name)=>
 		@setKeyIndex(key_name,@props.query_item.layout_keys.length)
@@ -175,40 +165,14 @@ class QueryBuilderView extends Component
 				@props.query_item.sort_keys.splice(f_i,1)
 			
 
-		await @props.setQueryItemType
+		await @props.editQuery
 			layout_keys: key_arr
 			sort_keys: sort_keys
-		,@props.query_item
 
 		@setState
 			sorted_provider_key: Date.now()
 		
 
-		
-
-	
-
-
-
-	# updateUnusedKeys: ->
-	# 	@setState
-	# 		unused_keys: @state.unused_keys.filter (key)=>
-	# 			@props.query_item.layout_keys.indexOf(key) < 0
-
-
-	# resetUnusedKeys: ->
-	# 	@setState
-			
-
-	
-		
-		
-	# componentDidUpdate: (props,state)->
-	# 	if props.keys_array != @props.keys_array
-	# 		@resetUnusedKeys(props,state)
-	# 	if props.query_item.layout_keys != @props.query_item.layout_keys
-	# 		@updateUnusedKeys(props,state)
-			
 
 			
 	setNewLayoutNameValue: (e)=>
@@ -234,7 +198,6 @@ class QueryBuilderView extends Component
 	mapMenuLayoutButtons: (layout,i)=>
 		h MenuTab,
 			key: i
-			# onClick: @togglePinMenu.bind(@,'layout')
 			content: h Input,
 				invalid:yes
 				onClick: @props.onSelectLayout.bind(null,layout)
@@ -249,8 +212,6 @@ class QueryBuilderView extends Component
 	
 	
 	onDragEnd: (e,n,a)=>
-		# log e,n,a
-		# log e
 		if !e.destination
 			return
 
@@ -268,20 +229,8 @@ class QueryBuilderView extends Component
 			else
 				@setKeyIndex(e.draggableId,e.destination.index,-1)
 
-
-		# else if e.destination.droppableId == 'drop-in' && e.source.droppableId == 'drop-out'
-		# 	@state.unused_keys.splice e.source.index,1
-		# 	@setKeyIndex(e.draggableId,e.destination.index)
-
 		else if e.destination.droppableId == 'drop-in'
 			@setKeyIndex(e.draggableId,e.destination.index)
-
-		# else if e.source.droppableId == 'drop-in' && e.destination.droppableId == 'drop-out'
-		# 	@state.unused_keys.splice e.destination.index,0,e.draggableId
-		# 	@setKeyIndex(e.draggableId,-1)
-
-	# dropContextRef: (ctx)->
-	# 	log ctx
 
 
 	getActiveListStyle: (dragging)->
@@ -324,28 +273,14 @@ class QueryBuilderView extends Component
 			color: c
 
 
-	# onDragUpdate: (opts)=>
-	# 	if opts.destination.droppableId == 'drop-out' && opts.source.droppableId == 'drop-out'
-	# 		if !@state.lock_drop_out
-	# 			log 'lock'
-	# 			@setState
-	# 				lock_drop_out:
-	# 					draggableId: opts.draggableId
-	# 	else
-	# 		if @state.lock_drop_out
-	# 			log 'unlock'
-	# 			@setState
-	# 				lock_drop_out: undefined
 
 	dropInSortedProvider: (provided,snapshot)=>
-		# log 'render dropInSortedProvider',@props.query_item.layout_keys
 		props = Object.assign {},provided.droppableProps,
 			ref: provided.innerRef
 			className: css['chip-layout-editor-dropbox-part']
 			style:
 				background: @context.secondary.inv[1]
 				minHeight: DIM2
-			# style: @getActiveListStyle(snapshot.isDraggingOver)
 		
 		
 
@@ -366,7 +301,6 @@ class QueryBuilderView extends Component
 
 
 	dropInProvider: (provided,snapshot)=>
-		# log 'render dropInProvider',@props.query_item.layout_keys
 		props = Object.assign {},provided.droppableProps,
 			ref: provided.innerRef
 			className: css['chip-layout-editor-dropbox-part']
@@ -402,20 +336,16 @@ class QueryBuilderView extends Component
 
 
 	onSetQueryType: (type)=>
-		@props.updateQueryItemTypeAndSet(type,@props.query_item)
+		@props.editQuery
+			type: type
 			
 
 	onBookmarkLabelInput: (e)=>
 		v = e.target.value
-		if v?[0] != '#'
-			@setState
-				bookmark_label: '#'
-				bookmark_label_invalid: undefined
-		else
-			bookmark_exists = @props.findBookmarkByLabel(v.substring(1))?
-			@setState
-				bookmark_label:v
-				bookmark_label_invalid: if (bookmark_exists || v.length) < 4 then yes else if (!bookmark_exists && v.length >= 4) then no else undefined
+		bookmark_exists = @props.matchQueryByLabelPart(v)?
+		@setState
+			bookmark_label:v
+			bookmark_label_invalid: if (bookmark_exists || v.length) < 4 then yes else if (!bookmark_exists && v.length >= 4) then no else undefined
 
 
 	toggleSavePublic: =>
@@ -424,18 +354,18 @@ class QueryBuilderView extends Component
 
 
 	onSaveBookmark: =>
-		@props.saveQueryItemLabel(@state.bookmark_label,@state.save_bookmark_public,@props.query_item)
+		@props.editQuery
+			label: @state.bookmark_label
+			is_public: @state.save_bookmark_public
 
 
 	onSelectQueryKey: (e)=>
-		# log e.target.value
 		@props.updateQueryItemAndSet
 			key: e.target.value
 		,@props.query_item
 
 
 	render: ->
-		# log 'RENDER LAYUOT EDITOR'
 		qi = @props.query_item
 		if @_pc != @context.primary.color[0]
 			@_pc = @context.primary.color[0]
@@ -445,10 +375,10 @@ class QueryBuilderView extends Component
 		@state.unused_keys = @props.keys_array.filter (key)=>
 			@props.query_item.layout_keys.indexOf(key) < 0
 
-		if qi.type == 'key'
+		if qi.type == 'keyword'
 			select_query_key_btn = h Input,
 				type: 'select'
-				value: qi.key
+				value: qi.search_key
 				btn_type: 'primary'
 				onInput: @onSelectQueryKey
 				i: 'title'
@@ -473,7 +403,7 @@ class QueryBuilderView extends Component
 						height: 'fit-content'
 						fontSize: 13
 		else
-			
+			# log qi.search_key,@props.schema.keys[qi.search_key]
 			query_editor = h 'div',
 				className: 'full center flex-right'
 				h Input,
@@ -482,49 +412,81 @@ class QueryBuilderView extends Component
 					big: yes
 					btn_type: 'flat'
 					onInput: (e)=>
-						@props.updateQueryItemAndSet
+						@props.editQuery
 							keyword_input: e.target.value
-						,@props.query_item
 					value: qi.keyword_input
 					style: 
 						padding: '10px 20px'
-					placeholder: 'Search by '+@props.schema.keys[qi.key]?.label
+					placeholder: 'Search by '+@props.schema.keys[qi.search_key].label
 
+		if !qi.label
+			bookmark_label = h Bar,
+				btn: yes
+				big: yes
+				margin_right: yes
+				margin_left: no
+				style:
+					background: @context.secondary.inv[0]
+				h Input,
+					type: 'input'
+					i: 'bookmark'
+					big: yes
+					bar: yes
+					# btn_type: qi.label && 'primary'
+					onInput: @onBookmarkLabelInput
+					placeholder: 'Bookmark Name'
+					invalid: @state.bookmark_label_invalid
+					value: @state.bookmark_label
+				h Input,
+					type: 'checkbox'
+					btn_type: @state.save_bookmark_public && 'primary'
+					onClick: !qi.label && @toggleSavePublic
+					checked: @state.save_bookmark_public
+					checkbox_type: 'circle'
+					i: 'public'
 		
-		if qi.bookmark_label
+		else
+			bookmark_label = h Bar,
+				btn: yes
+				big: yes
+				margin_right: yes
+				margin_left: no
+				style:
+					background: @context.secondary.inv[0]
+				h Input,
+					type: 'input'
+					i: 'bookmark'
+					big: yes
+					bar: yes
+					disabled: yes
+					# invalid: false
+					value: qi.label
+					btn_type: 'primary'
+				h Input,
+					type: 'checkbox'
+					disabled: yes
+					big: yes
+					btn_type: 'primary'
+					checked: qi.is_public
+					checkbox_type: 'circle'
+					i: 'public'
+				
+
+
+
+		if qi.label
 			delete_bookmark_item = h Input,
 				type: 'button'
 				i: 'delete'
+				margin_left: yes
+				margin_right: yes
 				big: yes
-				onClick: @props.resetQueryItemLabel.bind(null,qi)
+				onClick: @props.deleteQuery
 				btn_type: 'false'
 				label: qi.input_value
 		else
 			save_bookmark_item = h 'div',
 				cn: 'flex-right'
-				h Bar,
-					btn: yes
-					big: yes
-					margin_right: yes
-					h Input,
-						type: 'input'
-						i: 'bookmark'
-						big: yes
-						bar: yes
-						onInput: @onBookmarkLabelInput
-						placeholder: '#bookmark-name'
-						# bar_color: @state.bookmark_label_valid && @context.primary.true || @state.bookmark_label_invalid && @context.primary.false || undefined
-						# valid: @state.bookmark_label_valid
-						invalid: @state.bookmark_label_invalid
-						value: @state.bookmark_label
-					h Input,
-						type: 'checkbox'
-						btn_type: @state.save_bookmark_public && 'primary'
-						onClick: @toggleSavePublic
-						checked: @state.save_bookmark_public
-						checkbox_type: 'circle'
-						# btn_type: 'true'
-						i: 'public'
 				h Input,
 					type: 'button'
 					i: 'save'
@@ -537,14 +499,26 @@ class QueryBuilderView extends Component
 					btn_type: 'true'
 					
 
-		
-		clone_query_btn = h Input,
-			type: 'button'
-			i: 'add'
-			margin_left: yes
-			btn_type: 'true'
-			big: yes
-			# label: 'new'
+		if qi.called_at
+			clone_query_btn = h Input,
+				type: 'button'
+				i: 'playlist_add'
+				onClick: @props.cloneQuery
+				margin_left: yes
+				margin_right: yes
+				btn_type: 'true'
+				big: yes
+		else
+			clone_query_btn = h Input,
+				type: 'button'
+				i: 'sync'
+				onClick: @props.clearQuery
+				margin_left: yes
+				margin_right: yes
+				btn_type: 'true'
+				big: yes
+
+
 
 		query_title_label = h Input,
 			type: 'label'
@@ -557,12 +531,7 @@ class QueryBuilderView extends Component
 		
 		h 'div',
 			className: 'flex-down full'
-			h 'div',
-				className: 'flex-right margin-bottom'
-				query_title_label
-				clone_query_btn
-				
-
+			key: @props.query_item._id
 			h 'div',
 				className: cn 'card full-w box-shadow'
 				style:
@@ -580,7 +549,6 @@ class QueryBuilderView extends Component
 							background: @context.primary.inv[0]
 						h DragDropContext,
 							onDragEnd: @onDragEnd
-							key: @props.query_item._id
 							h Droppable,
 								droppableId: 'drop-in-sorted'
 								droppableKey: @state.sorted_provider_key
@@ -615,14 +583,11 @@ class QueryBuilderView extends Component
 							i: 'code'
 							onClick: @onSetQueryType.bind(@,'json')
 							btn_type: @props.query_item.type == 'json' && 'primary' || 'flat'
-						# h Bar,
-						# 	vert: no
-						# 	btn: yes
 						h Input,
 							type: 'button'
 							i: 'search'
-							onClick: @onSetQueryType.bind(@,'key')
-							btn_type: @props.query_item.type == 'key' && 'primary' || 'flat'
+							onClick: @onSetQueryType.bind(@,'keyword')
+							btn_type: @props.query_item.type == 'keyword' && 'primary' || 'flat'
 					h 'div',
 						cn: 'top-left mpad'
 						select_query_key_btn
@@ -633,18 +598,13 @@ class QueryBuilderView extends Component
 							style:
 								color: @context.primary.color[2]
 							qi._id
-						# h Input,
-						# 	className: 'small-mono-fat'
-							
-						# 	label: qi._id
-						# 	type: 'label'
 						h Input,
 							type: 'button'
 							i: 'refresh'
 							btn_type: !qi.json_input && !qi.keyword_input && 'flat' || 'primary'
 							disabled: !qi.json_input && !qi.keyword_input
-							onClick: @props.clearQueryItemInput.bind(null,@props.query_item)
-							# btn_type: @props.query_item.type == 'json' && 'primary' || 'flat'
+							onClick: @props.clearQueryInput
+							
 					h 'div',
 						cn: 'bot-left pad'
 						h 'span',
@@ -664,8 +624,10 @@ class QueryBuilderView extends Component
 
 			h 'div',
 				className: 'flex-right margin-top'
+				bookmark_label
 				save_bookmark_item
 				delete_bookmark_item
+				clone_query_btn
 				
 						
 
