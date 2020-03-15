@@ -163,6 +163,7 @@ class ModelGridExample extends Component
 			selected_model_index: 0
 			schema_data_sync_id: Date.now()
 			user_id: '1'
+			show_debug: no
 
 		
 
@@ -200,9 +201,9 @@ class ModelGridExample extends Component
 						background: '#fde400'
 						color: '#000'
 						overflow: 'visible'
-					dim: 400
+					dim: @state.show_debug && 400 || DIM
 					vert: no
-					h Slide,
+					@state.show_debug && h Slide,
 						className: 'flex-down'
 						h DebugView,
 							ref: (ref)=>
@@ -223,6 +224,14 @@ class ModelGridExample extends Component
 											schema_data_sync_id: Date.now()
 									i: 'refresh'
 									type: 'button'
+								h Input,
+									key: 'hide'
+									onClick: ()=>
+										await @setState
+											show_debug: !@state.show_debug
+										@forceUpdate()
+									i: 'code'
+									type: 'button'
 
 			h Slide,
 				beta: 100
@@ -239,8 +248,9 @@ class ModelGridExample extends Component
 					setHoverBox: @props.setHoverBox
 					renderHoverBox: @props.renderHoverBox
 
-					onUpdate: (state)=>
-						@_debug_view.setJSON(state)
+					onUpdate: @state.show_debug && ((state)=>
+						@_debug_view?.setJSON(state)
+					)
 				
 					onError: (err)->
 						console.error err
