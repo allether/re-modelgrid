@@ -602,6 +602,7 @@ class ModelGrid extends Component
 
 
 
+
 	getKeywordQueryObject: (keyword,query_item)=>
 		keyword_parts = keyword.split(' ').map (part)->
 			"\b"+part
