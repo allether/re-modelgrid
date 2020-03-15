@@ -14,9 +14,9 @@ var cfg = {
 			},"coffee-loader"]},
 			{ test: /\.(xml|html|txt|md|glsl|svg)$/, loader: "raw-loader" },
 			{ test: /\.(less)$/, exclude: /^(https?:)?\/\//,use: ['style-loader',{loader:'css-loader',options: {
-			    modules: true,
-			    // importLoaders: 1,
-			    localIdentName: 'lui-g-[local]'
+			    modules:{
+			    	localIdentName: 'lui-g-[local]'
+				}
 			  }},{
 			  	loader: 'less-loader',
 			  	options: {
