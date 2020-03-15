@@ -335,6 +335,7 @@ class QueryBuilderView extends Component
 		,@props.query_item
 
 
+
 	onSetQueryType: (type)=>
 		@props.editQuery
 			type: type
