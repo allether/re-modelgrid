@@ -110,6 +110,7 @@ class ModelGrid extends Component
 			# cloneQueryItem: @cloneQueryItem
 			runQuery: @runQuery
 			selectQuery: @selectQuery
+			selectQueryByLabel: @selectQueryByLabel
 			# runDataItemMethod: @runDataItemMethod
 			# runStaticMethod: @runStaticMethod
 			updateSelectedDocument: @updateSelectedDocument
@@ -124,6 +125,8 @@ class ModelGrid extends Component
 			
 			navPrevQuery: @navPrevQuery
 			navNextQuery: @navNextQuery
+
+			editQuery: @editQuery
 
 
 	log: =>
@@ -267,12 +270,15 @@ class ModelGrid extends Component
 
 		@state.schema_queries[@state.schema.name] = @state.schema_queries[@state.schema.name] || []
 
-
+		query_index = Math.min(query_index,@state.schema_queries[@state.schema.name].length-1)
 		
+		@state.schema_queries_indices[@state.schema.name] = query_index
+
 		if !@state.schema_queries[@state.schema.name].length
 			@state.query_item = @createNewQuery(@state.schema)
 		else
 			@state.query_item = @state.schema_queries[@state.schema.name][query_index]
+
 
 
 		@state.scroll_top = @state.query_item.scroll_top
@@ -322,6 +328,20 @@ class ModelGrid extends Component
 		@state.query_item = query_item
 		@runQuery()
 
+	selectQueryByLabel: (query_label)=>
+		# log query_label
+		public_queries = @state.public_schema_queries[@state.schema.name]
+		private_queries = @state.private_schema_queries[@state.schema.name]
+
+		f_query = _.find public_queries,label:query_label
+		if f_query
+			return @selectQuery(f_query)
+
+		f_query = _.find private_queries,label:query_label
+		if f_query
+			return @selectQuery(f_query)
+
+
 
 
 
@@ -352,9 +372,10 @@ class ModelGrid extends Component
 	pushQuery: (qi)->
 		schema_queries = @state.schema_queries[@state.schema.name]
 		schema_queries.push qi
-		@state.schema_queries_indices[@state.schema.name] = schema_queries.length-1
+		
 		if schema_queries.length > @props.max_save_local_query_count
-			@state.schema_queries[@state.schema.name] = schema_queries.slice(Math.max(schema_query.length-@props.max_save_local_query_count,0),schema_queries.length-1)
+			@state.schema_queries[@state.schema.name] = schema_queries.slice(Math.max(schema_queries.length-@props.max_save_local_query_count,0),schema_queries.length-1)
+		@state.schema_queries_indices[@state.schema.name] = @state.schema_queries[@state.schema.name].length-1
 		@saveLocalState()
 
 	
@@ -384,6 +405,7 @@ class ModelGrid extends Component
 
 
 	runQuery: (run_next)=>
+		@log 'run query'
 		# log 'RUN QUERY',@state.query_item._id
 		@cleanQuery()
 
@@ -513,13 +535,22 @@ class ModelGrid extends Component
 
 
 	saveQuery: ()=>
-		log "SAVE QUERY",@state.query_item.is_public
 		if @state.query_item.is_public
-			@state.public_schema_queries[@state.schema.name].push @state.query_item
+			f_i = _.findIndex @state.public_schema_queries[@state.schema.name],_id:@state.query_item._id
+			if f_i >= 0
+				@state.public_schema_queries[@state.schema.name][f_i] = _.cloneDeep(@state.query_item)
+			else
+				@state.public_schema_queries[@state.schema.name].push @state.query_item
 		else
-			@state.private_schema_queries[@state.schema.name].push @state.query_item
+			f_i = _.findIndex @state.private_schema_queries[@state.schema.name],_id:@state.query_item._id
+			if f_i >= 0
+				@state.private_schema_queries[@state.schema.name][f_i] = _.cloneDeep(@state.query_item)
+			else
+				@state.private_schema_queries[@state.schema.name].push @state.query_item
 
 		@props.saveQuery @state.schema.name,@state.query_item
+		@saveLocalState()
+		@setState({})
 
 
 
@@ -549,6 +580,15 @@ class ModelGrid extends Component
 
 
 
+
+	getKeywordQueryObject: (keyword,query_item)=>
+		keyword_parts = keyword.split(' ').map (part)->
+			"\b"+part
+		q_obj = {}
+		q_obj[query_item.key]  = "//#{keyword_parts.join('|')}//ig"
+		return q_obj
+
+
 	editQuery: (edits)=>
 		qi = @state.query_item
 
@@ -560,7 +600,7 @@ class ModelGrid extends Component
 			if edits.type == 'json'
 				qi.type = 'json'
 				if qi.keyword_input && !qi.json_input
-					qi.json_input = JSON.stringify(@getKeywordQueryObject(qi.keyword_input,query_item),0,2)
+					qi.json_input = JSON.stringify(@getKeywordQueryObject(qi.keyword_input,qi),0,2)
 					qi.keyword_input = undefined
 			else
 				qi.type = 'key'
@@ -600,15 +640,6 @@ class ModelGrid extends Component
 
 
 
-
-	getKeywordQueryObject: (keyword,query_item)=>
-		keyword_parts = keyword.split(' ').map (part)->
-			"\b"+part
-		
-		q_obj = {}
-		q_obj[query_item.key]  = "//#{keyword_parts.join('|')}//ig"
-		
-		return q_obj
 
 
 	clearQueryInput: =>

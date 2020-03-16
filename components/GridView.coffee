@@ -186,24 +186,20 @@ class GridView extends Component
 			grid_w: 0
 			grid_h: 0
 			scroll_left: 0
-		# log @state
+	
 
 	
 	saveCellInput: (key_name,value)->
 		update = {}
 		update[key_name] = value
-		# log 'saveCellInput -> updateDataItem',update
 		@props.updateDataItem(update)
 
 	
 	
 	gridRef: (el)=>
-		# log "GRID REF",el
 		@_grid = el		
 	
 
-	# scrollLeft: ->
-		# @_grid += 
 
 	baseRef: (el)=>
 		@base = el?._outer
@@ -233,13 +229,11 @@ class GridView extends Component
 
 		
 		if @props.query_item.called_at
-			@props.cloneQueryItemAndSet
+			@props.editQuery
 				sort_keys: keys
-			,@props.query_item
 		else
-			@props.updateQueryItem
+			@props.editQuery
 				sort_keys: keys
-			,@props.query_item
 
 		setTimeout @props.runQuery,0
 		
