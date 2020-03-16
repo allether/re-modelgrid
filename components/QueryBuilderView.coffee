@@ -335,7 +335,6 @@ class QueryBuilderView extends Component
 		,@props.query_item
 
 
-
 	onSetQueryType: (type)=>
 		@props.editQuery
 			type: type
@@ -358,6 +357,7 @@ class QueryBuilderView extends Component
 		@props.editQuery
 			label: @state.bookmark_label
 			is_public: @state.save_bookmark_public
+		@props.runQuery()
 
 
 	onSelectQueryKey: (e)=>
@@ -504,7 +504,7 @@ class QueryBuilderView extends Component
 			clone_query_btn = h Input,
 				type: 'button'
 				i: 'playlist_add'
-				onClick: @props.cloneQuery
+				onClick: @props.cloneQueryAndSet
 				margin_left: yes
 				margin_right: yes
 				btn_type: 'true'

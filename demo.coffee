@@ -238,6 +238,11 @@ class ModelGridExample extends Component
 				style:
 					background: @context.primary.inv[0]
 					color: @context.primary.color[0]
+				vert: yes
+				h Slide,
+					dim: 64
+					style:
+						background: @context.primary.inv[4]
 				h ModelGrid,
 					schema: demo_models.models[@state.selected_model_index]
 					schema_data_sync_id: @state.schema_data_sync_id
@@ -295,7 +300,6 @@ class ModelGridExample extends Component
 							,500
 
 
-					
 					saveSchemaState: (schema_name,schema_state)=>
 						localStorage.setItem('schema-state-'+schema_name,JSON.stringify(schema_state))
 
@@ -306,7 +310,6 @@ class ModelGridExample extends Component
 								resolve(JSON.parse(localStorage.getItem('schema-state-'+schema_name)||'{}'))
 								# resolve(SCHEMA_STATES[schema_name])
 							,500
-
 
 
 					saveQuery: (schema_name,query_item)=>
@@ -326,8 +329,6 @@ class ModelGridExample extends Component
 							,1000
 
 
-
-
 					deleteQuery: (schema_name,query_item)=>
 						if query_item.is_public
 							queries = getPublicQueries(schema_name)
@@ -341,18 +342,13 @@ class ModelGridExample extends Component
 							if f_i >= 0
 								queries.splice(f_i,1)
 								setPrivateQueries(schema_name,@state.user_id,queries)
-						
 
-
-
-					
 
 					createDataItem: (doc)=>
 						return new Promise (resolve,reject)=>
 							setTimeout ()=>
 								reject(new Error 'test error - failed to create doc')
 							,1000
-
 
 
 					runDataItemMethod: (schema,data_item,method)=>

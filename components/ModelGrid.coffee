@@ -493,9 +493,12 @@ class ModelGrid extends Component
 		cloned_query._id = Date.now().toString(24)
 		cloned_query.label = undefined
 		@resetQuery(cloned_query)
+		return cloned_query
+
+	cloneQueryAndSet: =>
+		cloned_query = @cloneQuery()
 		@setState
 			query_item: cloned_query
-
 	
 	clearQuery: =>
 		@log 'clear query'
@@ -573,7 +576,7 @@ class ModelGrid extends Component
 
 		
 		@props.deleteQuery(@props.schema.name,@state.query_item)
-		@cloneQuery()
+		@state.query_item = @cloneQuery()
 		@saveLocalState()
 		@setState({})
 
@@ -593,7 +596,10 @@ class ModelGrid extends Component
 		qi = @state.query_item
 
 		if !qi.label && qi.called_at
-			@cloneQuery()
+			@state.query_item = @cloneQuery()
+			qi = @state.query_item
+
+		# log edits,qi._id,@state.query_item._id
 		
 
 		if edits.type
@@ -608,12 +614,13 @@ class ModelGrid extends Component
 
 		Object.assign qi,edits
 
+		# log qi._id,edits
 
 		if edits.label
 			qi.user_id = @props.user_id
 			@saveQuery()
-
-		@setState({})
+		else
+			@setState({})
 
 
 
@@ -1152,6 +1159,7 @@ class ModelGrid extends Component
 					clearQueryInput: @clearQueryInput
 					editQuery: @editQuery
 					cloneQuery: @cloneQuery
+					cloneQueryAndSet: @cloneQueryAndSet
 					cleanQuery: @clearQuery
 					matchQueryByLabelPart: @matchQueryByLabelPart
 					query_item: @state.query_item
@@ -1223,8 +1231,6 @@ class ModelGrid extends Component
 
 		@g_props.public_queries = @state.public_schema_queries[@state.schema.name]
 		@g_props.private_queries = @state.private_schema_queries[@state.schema.name]
-		# @g_props.setHoverBox = @props.setHoverBox
-		# @g_props.renderHoverBox = @props.renderHoverBox
 		@g_props._pc_is_dark = @_pc_is_dark
 
 		# log @state.bookmarks

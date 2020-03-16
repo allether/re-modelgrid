@@ -111,10 +111,11 @@ class QueryTabs extends Component
 
 
 		h 'div',
-			className: cn 'flex-right slim-scrollbar full-w mpad'
+			className: cn 'flex-right hide-scrollbar full-w'
 			style:
 				overflowY: 'hidden'
-				height: DIM+3.75*2+6
+				height: 'auto'
+				marginTop: 5.5
 				overflowX: 'scroll'
 				flexShrink: 0
 			h Input,
@@ -152,6 +153,7 @@ class SearchView extends Component
 		setTimeout ()=>
 			@_search.focus()
 		,0
+
 		if @state.run_query_interval
 			@toggleQueryInterval()
 		if @props.query_item.called_at && @props.reveal
@@ -164,6 +166,7 @@ class SearchView extends Component
 
 		if @state.query_item
 			return @props.runQuery()
+		
 		if @state.autofill_label == @props.query_item.label
 			@setState
 				query_item: @props.query_item
@@ -171,17 +174,17 @@ class SearchView extends Component
 				autofill_label: null
 			@props.runQuery()
 			return
+		
 		if @state.autofill_label
 			@props.selectQueryByLabel(@state.autofill_label)
+		
+		else if @state.search_value[0] != '#'
+			# log 'edit query item'
+			@props.editQuery
+				keyword_input: @state.search_value
+			@props.runQuery()
 
 
-
-		# if !@props.query_item.called_at && @props.query_item.type == 'bookmark'
-		# 	if @props.query_item.match_label
-		# 		@createOrUpdateQueryItem
-		# 			input_value: '#'+@props.query_item.match_label
-		# @_cell_cache.clearAll()
-		# setTimeout @props.onHide,0
 
 	componentDidUpdate: (props)->
 		if @props.query_item != props.query_item
@@ -245,6 +248,9 @@ class SearchView extends Component
 
 
 	render: ->
+
+		# log @props.query_item.keyword_input
+
 		props = @props
 		state = @state
 		qi = props.query_item
@@ -344,10 +350,12 @@ class SearchView extends Component
 
 		h Slide,
 			vert: yes
-			dim: DIM2*2+6+12
+			dim: DIM2*2+6+6+3
 			query_tabs
 			h 'div',
 				className: 'flex-right mpad'
+				style:
+					paddingTop: 0
 				search_input
 				edit_doc_json_button
 
