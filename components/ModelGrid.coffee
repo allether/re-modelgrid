@@ -38,6 +38,7 @@ require 'prismjs/themes/prism-twilight.css'
 global.DIM2 = 40
 global.DIM = 30
 SearchView = require './SearchView.coffee'
+TabsView = require './TabsView.coffee'
 # BookmarksView = require './BookmarksView.coffee'
 GridView = require './GridView.coffee'
 # CalendarView = require './CalendarView.coffee'
@@ -417,6 +418,8 @@ class ModelGrid extends Component
 		# if run_next
 		# 	@state.scroll_to_index = -1
 		
+		# if qi.keyword_input
+		# 	qi.
 
 
 		qi.called_at = Date.now()
@@ -447,7 +450,7 @@ class ModelGrid extends Component
 
 		@state.query_item.error = undefined
 		
-		@props.runQuery(q_i).then (data)=>
+		@props.runQuery(@props.schema.name,q_i).then (data)=>
 			# log 'QUERY RAN'
 
 			if q_i._id != @state.query_item._id
@@ -538,6 +541,7 @@ class ModelGrid extends Component
 
 
 	saveQuery: ()=>
+		# log @state.query_item
 		if @state.query_item.is_public
 			f_i = _.findIndex @state.public_schema_queries[@state.schema.name],_id:@state.query_item._id
 			if f_i >= 0
@@ -588,7 +592,7 @@ class ModelGrid extends Component
 		keyword_parts = keyword.split(' ').map (part)->
 			"\b"+part
 		q_obj = {}
-		q_obj[query_item.key]  = "//#{keyword_parts.join('|')}//ig"
+		q_obj[query_item.search_key]  = "//#{keyword_parts.join('|')}//ig"
 		return q_obj
 
 
@@ -934,6 +938,8 @@ class ModelGrid extends Component
 				action: 'update'
 				called_at: Date.now()
 
+
+
 		@props.updateDataItem(@state.editor_value_id,@state.editor_patches).then (doc)=>
 			# @log 'updated data_item',doc
 			@state.editor_value_id = null
@@ -943,6 +949,9 @@ class ModelGrid extends Component
 					data_item: doc
 			@runQuery()
 		.catch @setActionMethodError.bind(@,@state.data_item)
+
+
+
 
 
 	getDataItem: ()=>
@@ -960,7 +969,7 @@ class ModelGrid extends Component
 
 		# log @state.data_item_id
 		
-		@props.getDataItem(@state.data_item_id).then (doc)=>
+		@props.getDataItem(@props.schema.name,@state.data_item_id).then (doc)=>
 			# log doc
 			@state.action_query.completed_at = Date.now()
 			@state.editor_value_id = null
@@ -1153,14 +1162,18 @@ class ModelGrid extends Component
 			show_delay: 0
 			hide_delay: 0
 			flat: yes
-			renderContent: =>
+			renderContent: (offset_left,offset_top)=>
+				# log offset_left,offset_top
 				h QueryBuilderView,
+					offset_left: offset_left
+					offset_top: offset_top
 					deleteQuery: @deleteQuery
 					clearQueryInput: @clearQueryInput
 					editQuery: @editQuery
 					cloneQuery: @cloneQuery
 					cloneQueryAndSet: @cloneQueryAndSet
 					cleanQuery: @clearQuery
+					runQuery: @runQuery
 					matchQueryByLabelPart: @matchQueryByLabelPart
 					query_item: @state.query_item
 					keys_array: @state.schema.keys_array
@@ -1170,7 +1183,7 @@ class ModelGrid extends Component
 			getSize: ()->
 				return
 					width: 600
-					height: 560
+					height: 650
 			getBindElement: ()=>
 				return bind_el
 
@@ -1258,10 +1271,10 @@ class ModelGrid extends Component
 				onClickOverlay: @state.hoverbox.onClickOverlay || @state.hoverbox.onClose
 				box_pointer_events: @state.hoverbox.pointer_events
 				offset_y: 0
-				snap_x: 1
+				snap_x: -1
 				align_x: -1
-				align_y: 1
-				snap_y: 0
+				align_y: -1
+				snap_y: -1
 				offset_x: 0
 				flat: @state.hoverbox.flat
 				background: @context.primary.inv[0]
@@ -1357,8 +1370,14 @@ class ModelGrid extends Component
 				style:
 					transform: 'translate(0)'
 				beta: @state.show_json_view && 50 || 100
-				h SearchView,@g_props
+				h TabsView,@g_props
 				h GridView,@g_props
+				h Style,
+					primary:'#2c2e30'
+					primary_inv: '#fff'
+					secondary: '#fff'
+					secondary_inv: '#386277'
+					h SearchView,@g_props
 					
 
 

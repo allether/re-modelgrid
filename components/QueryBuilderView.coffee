@@ -55,14 +55,23 @@ class KeyChip extends Component
 			color = @context.primary.color[0]
 
 		# log key_name+(key_sort_down&&'d'||key_sort_up&&'u'||'-')
+		
+
 
 		h Draggable,
 			draggableId: key_name#key_name+(key_sort_down&&'d'||key_sort_up&&'u'||'-')
 			index: index
 			(provided,snapshot)=>
+				item_style = Object.assign {},provided.draggableProps.style
+				
+				if item_style.left && @props.offset_left
+					item_style.left -= @props.offset_left
+				if item_style.top && @props.offset_top
+					item_style.top -= @props.offset_top
+
 				item_props = Object.assign {ref: provided.innerRef},provided.draggableProps,provided.dragHandleProps,
 					className: css['chip-layout-editor-chip-wrap']
-					style: Object.assign {},provided.draggableProps.style
+					style: item_style
 					key: key_obj.label
 				
 				h 'div',item_props,
@@ -209,8 +218,7 @@ class QueryBuilderView extends Component
 					h 'span',{className: css['model-grid-opaque']},String(layout.keys.length).padStart(3)
 				]
 
-	
-	
+
 	onDragEnd: (e,n,a)=>
 		if !e.destination
 			return
@@ -291,6 +299,8 @@ class QueryBuilderView extends Component
 				h KeyChip,
 					key: key_name+'-sorted-'+String(+@props.query_item.sort_keys[sort_key_i].dir)
 					index:i
+					offset_top: @props.offset_top
+					offset_left: @props.offset_left
 					setKeyIndex: @setKeyIndex
 					key_obj: @props.keys[key_name]
 					query_item: @props.query_item
@@ -319,6 +329,8 @@ class QueryBuilderView extends Component
 				h KeyChip,
 					key: key_name
 					index:i
+					offset_top: @props.offset_top
+					offset_left: @props.offset_left
 					setKeyIndex: @setKeyIndex
 					key_obj: @props.keys[key_name]
 					query_item: @props.query_item
@@ -330,15 +342,21 @@ class QueryBuilderView extends Component
 
 
 	onEditorValueChange: (val)=>
-		@props.updateQueryItemAndSet
+		@props.editQuery
 			json_input: val
-		,@props.query_item
-
+		
 
 	onSetQueryType: (type)=>
 		@props.editQuery
 			type: type
+	
+
+	onBookmarkDecriptionInput: (e)=>
+		v = e.target.value
+		@setState
+			bookmark_description:v
 			
+
 
 	onBookmarkLabelInput: (e)=>
 		v = e.target.value
@@ -354,15 +372,18 @@ class QueryBuilderView extends Component
 
 
 	onSaveBookmark: =>
+		if !@state.bookmark_label || !@state.bookmark_description
+			return false
 		@props.editQuery
 			label: @state.bookmark_label
+			bookmark_description: @state.bookmark_description || @props.query_item.bookmark_description
 			is_public: @state.save_bookmark_public
 		@props.runQuery()
 
 
 	onSelectQueryKey: (e)=>
-		@props.updateQueryItemAndSet
-			key: e.target.value
+		@props.editQuery
+			search_key: e.target.value
 		,@props.query_item
 
 
@@ -392,7 +413,7 @@ class QueryBuilderView extends Component
 
 		if qi.type == 'json'
 			query_editor = h 'div',
-				className: cn css['react-json-container'],css['light']
+				className: cn css['react-json-container'],css['light'],'hide-scrollbar'
 				h CodeEditor,
 					value: @props.query_item.json_input || ''
 					onValueChange: @onEditorValueChange
@@ -424,10 +445,6 @@ class QueryBuilderView extends Component
 			bookmark_label = h Bar,
 				btn: yes
 				big: yes
-				margin_right: yes
-				margin_left: no
-				style:
-					background: @context.secondary.inv[0]
 				h Input,
 					type: 'input'
 					i: 'bookmark'
@@ -450,8 +467,8 @@ class QueryBuilderView extends Component
 			bookmark_label = h Bar,
 				btn: yes
 				big: yes
-				margin_right: yes
-				margin_left: no
+				# margin_right: yes
+				# margin_left: no
 				style:
 					background: @context.secondary.inv[0]
 				h Input,
@@ -471,7 +488,16 @@ class QueryBuilderView extends Component
 					checked: qi.is_public
 					checkbox_type: 'circle'
 					i: 'public'
-				
+		
+		bookmark_description = h Input,
+			type: 'textarea'
+			label: 'bookmark description'
+			value: @state.bookmark_description
+			onBlur: @onSaveBookmark
+			style:
+				maxHeight: '60px'
+			placeholder: 'add a descriptive name to save the bookmark'
+			onInput: @onBookmarkDecriptionInput
 
 
 
@@ -479,8 +505,8 @@ class QueryBuilderView extends Component
 			delete_bookmark_item = h Input,
 				type: 'button'
 				i: 'delete'
-				margin_left: yes
-				margin_right: yes
+				# margin_left: yes
+				# margin_right: yes
 				big: yes
 				onClick: @props.deleteQuery
 				btn_type: 'false'
@@ -491,11 +517,11 @@ class QueryBuilderView extends Component
 				h Input,
 					type: 'button'
 					i: 'save'
-					margin_left: yes
-					margin_right: yes
+					# margin_left: yes
+					# margin_right: yes
 					big: yes
 					onClick: @onSaveBookmark
-					disabled: !@state.bookmark_label || @state.bookmark_label_invalid
+					disabled: !@state.bookmark_label || @state.bookmark_label_invalid || !@state.bookmark_description
 					label: 'save'
 					btn_type: 'true'
 					
@@ -505,8 +531,8 @@ class QueryBuilderView extends Component
 				type: 'button'
 				i: 'playlist_add'
 				onClick: @props.cloneQueryAndSet
-				margin_left: yes
-				margin_right: yes
+				# margin_left: yes
+				# margin_right: yes
 				btn_type: 'true'
 				big: yes
 		else
@@ -514,8 +540,8 @@ class QueryBuilderView extends Component
 				type: 'button'
 				i: 'sync'
 				onClick: @props.clearQuery
-				margin_left: yes
-				margin_right: yes
+				# margin_left: yes
+				# margin_right: yes
 				btn_type: 'true'
 				big: yes
 
@@ -542,10 +568,10 @@ class QueryBuilderView extends Component
 				h 'div',
 					className: 'flex-right full'
 					style:
-						height: 300
+						height: 350-DIM*2
 						background: @context.primary.inv[1]
 					h 'div',
-						className: cn 'flex-down full',css['chip-layout-editor-dropbox']
+						className: cn 'flex-down full',css['chip-layout-editor-dropbox'],'slim-scrollbar'
 						style:
 							background: @context.primary.inv[0]
 						h DragDropContext,
@@ -571,14 +597,13 @@ class QueryBuilderView extends Component
 				h 'div',
 					className: 'flex-down'
 					style:
-						height: DIM*4
+						height: DIM*6
 						transform: 'translate(0)'
 						borderTop: '2px solid '+@context.primary.inv[2]
 						background: @context.primary.inv[0]
 					query_editor
 					h 'div',
 						cn: 'top-right mpad flex-left'
-						
 						h Input,
 							type: 'button'
 							i: 'code'
@@ -618,17 +643,23 @@ class QueryBuilderView extends Component
 							style:
 								color: @props.query_item.error && @context.primary.false || @context.primary.true
 							@props.query_item.error || 'ok'
+				h 'div',
+					className: 'flex-down pad'
+					style:
+						background: @context.primary.inv[0]
+						height: '100%'
+					bookmark_description
+					h 'div',
+						className: 'flex-right'
+						bookmark_label
+						save_bookmark_item
+						delete_bookmark_item
+						clone_query_btn
 
-						
-						
-					
-
-			h 'div',
-				className: 'flex-right margin-top'
-				bookmark_label
-				save_bookmark_item
-				delete_bookmark_item
-				clone_query_btn
+			# h 'div',
+			# 	className: 'flex-right margin-top'
+			# 	bookmark_label
+				
 				
 						
 

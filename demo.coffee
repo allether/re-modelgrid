@@ -250,8 +250,7 @@ class ModelGridExample extends Component
 					user_id: @state.user_id
 					key: @state.grid_id
 					onSchemaStateUpdated: setStateConfig.bind(null,demo_models.models[@state.selected_model_index])
-					setHoverBox: @props.setHoverBox
-					renderHoverBox: @props.renderHoverBox
+
 
 					onUpdate: @state.show_debug && ((state)=>
 						@_debug_view?.setJSON(state)
@@ -265,10 +264,7 @@ class ModelGridExample extends Component
 						@setState
 							data_item_id: doc_id
 					
-					filter: (schema)=>
-						@setState
-							test_filter:schema.name
-
+					
 
 
 	
