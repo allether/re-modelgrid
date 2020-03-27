@@ -15,13 +15,9 @@ Color = require 'color'
 
 class KeyChip extends Component
 	sortKey: (key_name,sort_dir)=>
-		# log 'SORT DIR',sort_dir
-		# log sort_dir
 		k_i = @props.query_item.layout_keys.indexOf key_name
 		await @props.setKeyIndex(key_name,k_i,sort_dir)
-		# setTimeout ()=>
-		# 	@forceUpdate()
-		# ,0
+		
 
 	removeKey: (key_name)=>
 		@props.setKeyIndex(key_name,-1)
@@ -54,12 +50,9 @@ class KeyChip extends Component
 			bg = @context.primary.inv[1]
 			color = @context.primary.color[0]
 
-		# log key_name+(key_sort_down&&'d'||key_sort_up&&'u'||'-')
-		
-
 
 		h Draggable,
-			draggableId: key_name#key_name+(key_sort_down&&'d'||key_sort_up&&'u'||'-')
+			draggableId: key_name
 			index: index
 			(provided,snapshot)=>
 				item_style = Object.assign {},provided.draggableProps.style
@@ -99,6 +92,7 @@ class KeyChip extends Component
 							sort_dir_btn
 							sort_index_btn
 
+
 KeyChip.contextType = StyleContext
 
 
@@ -109,10 +103,20 @@ class QueryBuilderView extends Component
 	constructor: (props)->
 		super(props)
 		@state = 
-			unused_keys: @props.keys_array.filter (key)=>
-				@props.query_item?.layout_keys.indexOf(key) < 0
-		
+			edit_v: 0
+			save_bookmark_public: @props.query_item.is_public
+			bookmark_description: @props.query_item.description
+			unused_keys: props.keys_array.filter (key)=>
+				props.query_item?.layout_keys.indexOf(key) < 0
+			bookmark_label: @props.query_item.label
+			# query_saved: props.isSavedQuery(props.query_item)
 
+	compoonentDidUpdate: (props)->
+		if @props.query_item != props.query_item
+			@setState
+				# query_saved: @props.isSavedQuery(@props.query_item)
+				unused_keys: @props.keys_array.filter (key)=>
+					@props.query_item?.layout_keys.indexOf(key) < 0
 
 	renderUnusedChip: (key_name)=>
 		key = @props.keys[key_name]	
@@ -232,6 +236,9 @@ class QueryBuilderView extends Component
 
 
 		if e.destination.droppableId == 'drop-in-sorted'
+			if !@props.schema.keys[e.draggableId].indexed
+				return false
+			# if _.find(@props.query_item.sort_keys,key:e.draggableId)
 			if e.source.droppableId == 'drop-in-sorted'
 				@setKeyIndex(e.draggableId,e.destination.index,_.find(@props.query_item.sort_keys,key:e.draggableId).dir)
 			else
@@ -354,6 +361,7 @@ class QueryBuilderView extends Component
 	onBookmarkDecriptionInput: (e)=>
 		v = e.target.value
 		@setState
+			edit_v: @state.edit_v+1
 			bookmark_description:v
 			
 
@@ -363,21 +371,25 @@ class QueryBuilderView extends Component
 		bookmark_exists = @props.matchQueryByLabelPart(v)?
 		@setState
 			bookmark_label:v
+			edit_v: @state.edit_v+1
 			bookmark_label_invalid: if (bookmark_exists || v.length) < 4 then yes else if (!bookmark_exists && v.length >= 4) then no else undefined
 
 
 	toggleSavePublic: =>
 		@setState
+			edit_v: @state.edit_v+1
 			save_bookmark_public: !@state.save_bookmark_public
 
 
-	onSaveBookmark: =>
+	onSaveQuery: =>
 		if !@state.bookmark_label || !@state.bookmark_description
 			return false
+		
 		@props.editQuery
 			label: @state.bookmark_label
-			bookmark_description: @state.bookmark_description || @props.query_item.bookmark_description
+			description: @state.bookmark_description
 			is_public: @state.save_bookmark_public
+		@props.saveQuery()
 		@props.runQuery()
 
 
@@ -389,10 +401,19 @@ class QueryBuilderView extends Component
 
 	render: ->
 		qi = @props.query_item
+
+
+
 		if @_pc != @context.primary.color[0]
 			@_pc = @context.primary.color[0]
 			@_pc_is_dark = !Color(@_pc).isDark()
 			@_pc_opaque = Color(@_pc).alpha(0.8).rgb().string()
+
+		# if !@state.bookmark_description?
+		# 	@state.bookmark_description = qi.description
+
+		# if !@state.bookmark_label?
+		# 	@state.bookmark_label = qi.label
 
 		@state.unused_keys = @props.keys_array.filter (key)=>
 			@props.query_item.layout_keys.indexOf(key) < 0
@@ -441,89 +462,51 @@ class QueryBuilderView extends Component
 						padding: '10px 20px'
 					placeholder: 'Search by '+@props.schema.keys[qi.search_key].label
 
-		if !qi.label
-			bookmark_label = h Bar,
-				btn: yes
-				big: yes
-				h Input,
-					type: 'input'
-					i: 'bookmark'
-					big: yes
-					bar: yes
-					# btn_type: qi.label && 'primary'
-					onInput: @onBookmarkLabelInput
-					placeholder: 'Bookmark Name'
-					invalid: @state.bookmark_label_invalid
-					value: @state.bookmark_label
-				h Input,
-					type: 'checkbox'
-					btn_type: @state.save_bookmark_public && 'primary'
-					onClick: !qi.label && @toggleSavePublic
-					checked: @state.save_bookmark_public
-					checkbox_type: 'circle'
-					i: 'public'
 		
-		else
-			bookmark_label = h Bar,
-				btn: yes
-				big: yes
-				# margin_right: yes
-				# margin_left: no
-				style:
-					background: @context.secondary.inv[0]
-				h Input,
-					type: 'input'
-					i: 'bookmark'
-					big: yes
-					bar: yes
-					disabled: yes
-					# invalid: false
-					value: qi.label
-					btn_type: 'primary'
-				h Input,
-					type: 'checkbox'
-					disabled: yes
-					big: yes
-					btn_type: 'primary'
-					checked: qi.is_public
-					checkbox_type: 'circle'
-					i: 'public'
-		
+
 		bookmark_description = h Input,
 			type: 'textarea'
 			label: 'bookmark description'
 			value: @state.bookmark_description
-			onBlur: @onSaveBookmark
+			# onBlur: @onSaveQuery
 			style:
 				maxHeight: '60px'
 			placeholder: 'add a descriptive name to save the bookmark'
 			onInput: @onBookmarkDecriptionInput
 
 
+		bookmark_label_input = h Bar,
+			btn: yes
+			big: yes
+			h Input,
+				type: 'input'
+				i: 'bookmark'
+				big: yes
+				bar: yes
+				onInput: @onBookmarkLabelInput
+				placeholder: 'Bookmark Name'
+				invalid: @state.bookmark_label_invalid
+				value: @state.bookmark_label
+			h Input,
+				type: 'checkbox'
+				btn_type: @state.save_bookmark_public && 'primary'
+				onClick: @toggleSavePublic
+				checked: @state.save_bookmark_public
+				checkbox_type: 'circle'
+				i: 'public'
 
-		if qi.label
-			delete_bookmark_item = h Input,
+
+
+
+		if qi.updated_at
+			delete_bookmark_button = h Input,
 				type: 'button'
 				i: 'delete'
-				# margin_left: yes
-				# margin_right: yes
 				big: yes
 				onClick: @props.deleteQuery
 				btn_type: 'false'
-				label: qi.input_value
-		else
-			save_bookmark_item = h 'div',
-				cn: 'flex-right'
-				h Input,
-					type: 'button'
-					i: 'save'
-					# margin_left: yes
-					# margin_right: yes
-					big: yes
-					onClick: @onSaveBookmark
-					disabled: !@state.bookmark_label || @state.bookmark_label_invalid || !@state.bookmark_description
-					label: 'save'
-					btn_type: 'true'
+				label: 'delete'
+
 					
 
 		if qi.called_at
@@ -531,19 +514,34 @@ class QueryBuilderView extends Component
 				type: 'button'
 				i: 'playlist_add'
 				onClick: @props.cloneQueryAndSet
-				# margin_left: yes
-				# margin_right: yes
-				btn_type: 'true'
+				margin_left: no
+				margin_right: yes
+				# btn_type: 'true'
+				label: 'clone'
 				big: yes
 		else
 			clone_query_btn = h Input,
 				type: 'button'
 				i: 'sync'
+				label: 'reset'
 				onClick: @props.clearQuery
-				# margin_left: yes
-				# margin_right: yes
-				btn_type: 'true'
+				margin_left: no
+				margin_right: yes
+				# btn_type: 'true'
 				big: yes
+
+
+
+		if @state.edit_v && @state.bookmark_description && @state.bookmark_label
+			save_query_btn = h Input,
+				i: 'save'
+				label: 'save'
+				big: yes
+				margin_left: yes
+				margin_right: no
+				type: 'button'
+				btn_type: 'true'
+				onClick: @onSaveQuery
 
 
 
@@ -559,6 +557,18 @@ class QueryBuilderView extends Component
 		h 'div',
 			className: 'flex-down full'
 			key: @props.query_item._id
+			h 'div',
+				className: 'flex-right pad-bottom'
+				h 'div',
+					className: 'flex-right'
+					style:
+						width: '100%'
+					clone_query_btn
+				h 'div',
+					className: 'flex-left'
+					style:
+						width: '100%'
+					save_query_btn
 			h 'div',
 				className: cn 'card full-w box-shadow'
 				style:
@@ -651,20 +661,10 @@ class QueryBuilderView extends Component
 					bookmark_description
 					h 'div',
 						className: 'flex-right'
-						bookmark_label
-						save_bookmark_item
-						delete_bookmark_item
-						clone_query_btn
+						bookmark_label_input
+						delete_bookmark_button
 
-			# h 'div',
-			# 	className: 'flex-right margin-top'
-			# 	bookmark_label
-				
-				
-						
 
-					
-					
 				
 			
 QueryBuilderView.contextType = StyleContext

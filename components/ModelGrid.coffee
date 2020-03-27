@@ -84,6 +84,8 @@ class ModelGrid extends Component
 			private_schema_queries: {}
 			schema_states: {}
 
+			schema_state_scrolls: {}
+
 
 			hoverbox:
 				visible: no
@@ -97,6 +99,8 @@ class ModelGrid extends Component
 
 		# log @state
 		
+		
+
 		@g_props = 
 			selectDataItem: @selectDataItem
 			updateDataItem: @updateDataItem
@@ -127,7 +131,18 @@ class ModelGrid extends Component
 			navPrevQuery: @navPrevQuery
 			navNextQuery: @navNextQuery
 
+
+			onRenderedSearchLabels: @onRenderedSearchLabels
+
 			editQuery: @editQuery
+			saveQuery: @saveQuery
+			
+			setFirstSearchQuery: @setFirstSearchQuery
+			onSearchInputLabel: @onSearchInputLabel
+
+			cloneQueryAndSet: @cloneQueryAndSet
+
+			selectFirstSearchQuery: @selectFirstSearchQuery
 
 
 	log: =>
@@ -142,9 +157,10 @@ class ModelGrid extends Component
 
 
 	saveLocalState: ()->
-		@log 'saving local state'
+		# @log 'saving local state'
 		save_str = JSON.stringify
 			schema_queries: @state.schema_queries
+			schema_state_scrolls: @state.schema_state_scrolls
 			schema_queries_indices: @state.schema_queries_indices
 
 		localStorage.setItem('re-moodelgrid-local-state',save_str)
@@ -172,6 +188,7 @@ class ModelGrid extends Component
 		@loadLocalState()
 		@decideQueryItem()
 		await @getAllSchemaData()
+		@state.scroll_top = @state.schema_state_scrolls[@props.schema.name]
 		@runQuery()
 
 
@@ -238,10 +255,13 @@ class ModelGrid extends Component
 
 
 		if props.schema != @props.schema || @props.schema_data_sync_id != props.schema_data_sync_id
+			# log "CHANGE SCHEMA"
 			@state.schema = @props.schema
 			@fillSchemaState()
 			@decideQueryItem()
 			@getAllSchemaData()
+			# log 'SET SCORLL STOP',@state.schema_state_scrolls[@props.schema.name]
+			@state.scroll_top = @state.schema_state_scrolls[@props.schema.name]
 			@runQuery()
 
 		if @props.onUpdate
@@ -282,7 +302,7 @@ class ModelGrid extends Component
 
 
 
-		@state.scroll_top = @state.query_item.scroll_top
+		
 
 
 
@@ -292,6 +312,7 @@ class ModelGrid extends Component
 			return false
 		if @state.schema_queries[@state.schema.name][current_query_index+1]?
 			@state.schema_queries_indices[@state.schema.name]+=1
+			@state.schema_state_scrolls[@state.schema.name] = 0
 			@state.query_item = @state.schema_queries[@state.schema.name]?[current_query_index+1]
 			@setState({})
 			@runQuery()
@@ -306,6 +327,7 @@ class ModelGrid extends Component
 		
 		if @state.schema_queries[@state.schema.name][current_query_index-1]?
 			@state.schema_queries_indices[@state.schema.name]-=1
+			@state.schema_state_scrolls[@state.schema.name] = 0
 			@state.query_item = @state.schema_queries[@state.schema.name]?[current_query_index-1]
 			@setState({})
 			@runQuery()
@@ -314,7 +336,6 @@ class ModelGrid extends Component
 
 
 	resetQuery: (qi)->
-		qi.called_at = undefined
 		qi.call_count = 0
 		qi.skip = 0
 		qi.limit = @props.query_limit || 100
@@ -322,7 +343,9 @@ class ModelGrid extends Component
 
 
 	selectQuery: (query_item)=>
-		if @state.query_item._id == query_item._id
+		# log 'SELECT QUERY'
+		@state.schema_state_scrolls[@state.schema.name] = 0
+		if @state.query_item._id == query_item._id && query_item._v == @state.query_item._id
 			return false
 		@resetQuery(query_item)
 		@clearQueryIndex()
@@ -348,7 +371,9 @@ class ModelGrid extends Component
 
 
 	clearQueryIndex: ->
-		@state.schema_queries_indices[@state.schema.name] = Math.max(@state.schema_queries[@state.schema.name].length-1,0)
+		# log 'CLEAR QUERY INDEX'
+		@state.schema_queries[@state.schema.name].splice(@state.schema_queries_indices[@state.schema.name]+1)
+		# @state.schema_queries_indices[@state.schema.name] = Math.max(@state.schema_queries[@state.schema.name].length-1,0)
 
 
 
@@ -357,7 +382,8 @@ class ModelGrid extends Component
 		schema_name = @state.schema.name
 		public_queries = await @props.getSchemaPublicQueries(schema_name,@props.user_id)
 		@state.public_schema_queries[schema_name] = public_queries || []
-		@log 'getSchemaPublicQueries',public_queries
+		# @log 'getSchemaPublicQueries',public_queries
+		@mapSchemaQueries(schema_name)
 		@setState({})
 
 
@@ -367,10 +393,12 @@ class ModelGrid extends Component
 		schema_name = @state.schema.name
 		private_queries = await @props.getSchemaPrivateQueries(schema_name,@props.user_id)
 		@state.private_schema_queries[schema_name] = private_queries || []
-		@log 'getSchemaPrivateQueries',private_queries
+		# @log 'getSchemaPrivateQueries',private_queries
+		@mapSchemaQueries(schema_name)
 		@setState({})
 
 	pushQuery: (qi)->
+		# log 'PUSH QUERY TO HISTORY'
 		schema_queries = @state.schema_queries[@state.schema.name]
 		schema_queries.push qi
 		
@@ -406,7 +434,9 @@ class ModelGrid extends Component
 
 
 	runQuery: (run_next)=>
-		@log 'run query'
+		if @state.scroll_top
+			_scroll_top = @state.scroll_top
+		# @log 'run query'
 		# log 'RUN QUERY',@state.query_item._id
 		@cleanQuery()
 
@@ -449,6 +479,9 @@ class ModelGrid extends Component
 
 
 		@state.query_item.error = undefined
+
+		@setState({})
+
 		
 		@props.runQuery(@props.schema.name,q_i).then (data)=>
 			# log 'QUERY RAN'
@@ -461,8 +494,10 @@ class ModelGrid extends Component
 			current_data = @state.data.get(@state.query_item._id) || []
 			if !run_next
 				current_data = []
-				# @log 'scroll top SET'
-				@state.scroll_top = q_i.scroll_top || undefined
+				log _scroll_top
+				if _scroll_top
+					@state.scroll_top = _scroll_top
+				
 			else
 				
 				
@@ -488,23 +523,32 @@ class ModelGrid extends Component
 		@saveLocalState()
 		@setState({})
 
-
+	resetQuerySaveState: (qi)->
+		qi.called_at = undefined
+		qi.updated_at = undefined
+		qi.created_at = undefined
+		qi._id = Date.now().toString(24)
 
 	cloneQuery: =>
-		@log 'clone query'
+		# @log 'clone query'
 		cloned_query = _.cloneDeep(@state.query_item)
-		cloned_query._id = Date.now().toString(24)
-		cloned_query.label = undefined
+		@resetQuerySaveState(cloned_query)
 		@resetQuery(cloned_query)
 		return cloned_query
 
-	cloneQueryAndSet: =>
+	cloneQueryAndSet: (edits)=>
+		log 'clone query'
 		cloned_query = @cloneQuery()
+		log 'cloned query'
+		@clearQueryIndex()
+		if edits
+			Object.assign cloned_query,edits
+		# @resetQuerySaveState(clearQueryIndex)
 		@setState
 			query_item: cloned_query
 	
 	clearQuery: =>
-		@log 'clear query'
+		# @log 'clear query'
 		@setState
 			query_item: @createNewQuery()
 
@@ -522,11 +566,13 @@ class ModelGrid extends Component
 			limit: @props.query_limit || 100
 			call_count: 0
 			_id: Date.now().toString(24)
+			_v: 0
+			is_public: no
 			called_at: null
 			json_input: null
 			keyword_input: null
 
-		@log 'create new query',query
+		# @log 'create new query',query
 		return query
 
 
@@ -538,22 +584,30 @@ class ModelGrid extends Component
 			query_item: query_item
 
 
-
-
 	saveQuery: ()=>
-		# log @state.query_item
+		pub_queries = @state.public_schema_queries[@state.schema.name]
+		priv_queries = @state.private_schema_queries[@state.schema.name]
+		# @log 'save query'
+		fpubqi = _.findIndex pub_queries,{_id:@state.query_item._id}
+		fpriqi = _.findIndex priv_queries,{_id:@state.query_item._id}
+		if fpubqi >= 0
+			pub_queries.splice(fpubqi,1)
+		if fpriqi >= 0
+			priv_queries.splice(fpriqi,1)
+
+
 		if @state.query_item.is_public
-			f_i = _.findIndex @state.public_schema_queries[@state.schema.name],_id:@state.query_item._id
-			if f_i >= 0
-				@state.public_schema_queries[@state.schema.name][f_i] = _.cloneDeep(@state.query_item)
+			if fpubqi >= 0
+				pub_queries.splice(fpubqi,0,@state.query_item)
 			else
-				@state.public_schema_queries[@state.schema.name].push @state.query_item
+				pub_queries.unshift(@state.query_item)
+		
 		else
-			f_i = _.findIndex @state.private_schema_queries[@state.schema.name],_id:@state.query_item._id
-			if f_i >= 0
-				@state.private_schema_queries[@state.schema.name][f_i] = _.cloneDeep(@state.query_item)
+			if fpriqi >= 0
+				priv_queries.splice(fpriqi,0,@state.query_item)
 			else
-				@state.private_schema_queries[@state.schema.name].push @state.query_item
+				priv_queries.unshift(@state.query_item)
+
 
 		@props.saveQuery @state.schema.name,@state.query_item
 		@saveLocalState()
@@ -563,18 +617,16 @@ class ModelGrid extends Component
 
 
 	deleteQuery: ()=>
-		if @state.query_item.is_public
-			f_i = _.findIndex @state.public_schema_queries[@state.schema.name],_id:@state.query_item._id
-			if f_i >= 0
-				@state.public_schema_queries[@state.schema.name].splice(f_i,1)
+		# if @state.query_item.is_public
+		f_i = _.findIndex @state.public_schema_queries[@state.schema.name],_id:@state.query_item._id
+		if f_i >= 0
+			@state.public_schema_queries[@state.schema.name].splice(f_i,1)
 		else
 			f_i = _.findIndex @state.private_schema_queries[@state.schema.name],_id:@state.query_item._id
 			if f_i >= 0
 				@state.private_schema_queries[@state.schema.name].splice(f_i,1)
 
 
-		f_i = _.findIndex @state.schema_queries[@state.schema.name],_id:@state.query_item._id
-		# log f_i
 		if f_i >= 0
 			@state.schema_queries[@state.schema.name].splice(f_i,1)
 
@@ -587,7 +639,6 @@ class ModelGrid extends Component
 
 
 
-
 	getKeywordQueryObject: (keyword,query_item)=>
 		keyword_parts = keyword.split(' ').map (part)->
 			"\b"+part
@@ -596,12 +647,18 @@ class ModelGrid extends Component
 		return q_obj
 
 
+
+
 	editQuery: (edits)=>
 		qi = @state.query_item
 
-		if !qi.label && qi.called_at
-			@state.query_item = @cloneQuery()
-			qi = @state.query_item
+		if qi.label && @props.user_id != qi.user_id
+			console.warn('cant edit query thats not yours')
+			return false
+
+		# if !qi.label && qi.called_at
+		# 	@state.query_item = @cloneQuery()
+		# 	qi = @state.query_item
 
 		# log edits,qi._id,@state.query_item._id
 		
@@ -620,13 +677,29 @@ class ModelGrid extends Component
 
 		# log qi._id,edits
 
-		if edits.label
-			qi.user_id = @props.user_id
-			@saveQuery()
-		else
-			@setState({})
+		# if edits.label
+		qi.user_id = @props.user_id
+			
+		@setState({})
 
 
+	mapSchemaQueries: (schema_name,bookmarks)->
+		priv_books = @state.private_schema_queries[schema_name]
+		pub_books = @state.public_schema_queries[schema_name]
+
+		@state.mapped_queries_v = Date.now()
+		queries = @state.schema_queries[schema_name]
+		
+
+		for query_item,i in queries	
+			f_q = _.find(priv_books,{_id:query_item._id})
+			if f_q && f_q._v != query_item._v
+				@resetQuerySaveState(query_item)
+			else
+				f_q = _.find(pub_books,{_id:query_item._id})
+				if f_q && f_q._v != query_item._v
+					@resetQuerySaveState(query_item)
+					
 
 
 
@@ -641,6 +714,7 @@ class ModelGrid extends Component
 			return false
 		# log 'GOT SCHEMA STATE'
 		Object.assign @state.schema_states[schema_name],schema_state
+		
 		@setState({})
 
 
@@ -676,14 +750,18 @@ class ModelGrid extends Component
 
 	onScrollTop: (scroll_top)=>
 		# log scroll_top
-		if !@state.query_item.scroll_top
-			@state.query_item.scroll_top = scroll_top
+		# @state.schema_state_scrolls[@state.schema_name] = scroll_top
+		# if !scroll_top
+		# 	return false
+		
+		if !@state.schema_state_scrolls[@state.schema.name]
+			@state.schema_state_scrolls[@state.schema.name] = scroll_top
 			@saveLocalState()
 		else if Math.abs(@state.query_item.scroll_top - scroll_top) > 200
-			# log Math.abs(@state.query_item.scroll_top - scroll_top)
-			@state.query_item.scroll_top = scroll_top
+			@state.schema_state_scrolls[@state.schema.name] = scroll_top
 			@saveLocalState()
-
+		else
+			@state.schema_state_scrolls[@state.schema.name] = scroll_top
 
 
 
@@ -699,8 +777,8 @@ class ModelGrid extends Component
 	selectNextDataItem: (skip)=>
 		skip = skip || 1
 		data = @state.data.get(@state.query_item._id)
-		if @state.data_item
-			i = _.findIndex data,_id:@state.data_item._id
+		if @props.data_item_id
+			i = _.findIndex data,_id:@props.data_item_id
 			if data.length > 0
 				n_i = Math.min(data.length-1,i+skip)
 				@selectDataItem(data[n_i])
@@ -712,8 +790,8 @@ class ModelGrid extends Component
 	selectPrevDataItem: (skip)=>
 		skip = skip || 1
 		data = @state.data.get(@state.query_item._id)
-		if @state.data_item
-			i = _.findIndex data,_id:@state.data_item._id
+		if @props.data_item_id
+			i = _.findIndex data,_id:@props.data_item_id
 			if data.length > 0
 				n_i = Math.max(0,i-skip)
 				@selectDataItem(data[n_i])
@@ -723,55 +801,6 @@ class ModelGrid extends Component
 
 
 
-
-
-	# resetQueryItemLabel: (query_item)->
-		
-	# 	keys = Object.keys(query_item.value)
-	# 	query_item.label = undefined
-	# 	is_key = true
-	# 	for key in keys
-	# 		if key != query_item.key #&& filter_keys.indexOf(key) == -1
-	# 			is_key = false
-	# 			break
-		
-
-	# 	if is_key	
-	# 		query_item.type = 'key'
-	# 		query_item.input_value = query_item.input_value
-	# 	else
-	# 		query_item.type = 'json'
-	# 		query_item.input_value = JSON.stringify(query_item.value)
-
-
-
-
-
-	
-	# saveQueryItemLabel: (bookmark_label,is_public,query_item)->
-	# 	query_item.bookmark_label = bookmark_label
-	# 	query_item.is_public = is_public || false
-	# 	@props.saveQueryItemLabel(Object.assign({},query_item))
-
-	# updateQueryItemAndSet: (schema,query_item)=>
-	# 	@updateQueryItem(schema,query_item)
-	# 	@setQueryItem(query_item)
-
-
-
-
-
-
-
-
-	# setQueryItemFilter: (query_item)->
-	# 	if @props.filter
-	# 		query_item.filter_value = @props.filter(@state.schema,query_item)
-
-
-
-
-		# @setQueryItem(query_item)
 
 
 
@@ -1151,6 +1180,19 @@ class ModelGrid extends Component
 
 		return null
 
+
+
+	setFirstSearchQuery: (search_first_query)=>
+		if @state.search_first_query != search_first_query
+			@setState
+				search_first_query: search_first_query
+
+
+	selectFirstSearchQuery: =>
+		# if @state.search_first_query != search_first_query
+		@selectQuery(@state.search_first_query)
+
+
 	
 
 	showQueryBuilderHoverBox: (bind_el)=>
@@ -1173,6 +1215,7 @@ class ModelGrid extends Component
 					cloneQuery: @cloneQuery
 					cloneQueryAndSet: @cloneQueryAndSet
 					cleanQuery: @clearQuery
+					saveQuery: @saveQuery
 					runQuery: @runQuery
 					matchQueryByLabelPart: @matchQueryByLabelPart
 					query_item: @state.query_item
@@ -1183,9 +1226,10 @@ class ModelGrid extends Component
 			getSize: ()->
 				return
 					width: 600
-					height: 650
+					height: 688
 			getBindElement: ()=>
 				return bind_el
+
 
 
 	setHoverBox: ({visible,flat,getBindElement,renderContent,getSize,show_delay,hide_delay})=>
@@ -1200,11 +1244,18 @@ class ModelGrid extends Component
 
 
 
+	onSearchInputLabel: (val)=>
+		if @_tabs_view
+			@_tabs_view?.setState
+				search_label: val
+
+
+
 	render: ->
 
 		# if @state.query_item != @state.schema_queries[@state.schema.name][]
-		if @state.scroll_top
-			@log 'scroll top',@state.scroll_top
+		# if @state.scroll_top
+			# @log 'scroll top',@state.scroll_top
 		
 
 		# log @state.schema.name,@state.schema_states[@state.schema.name]
@@ -1231,6 +1282,7 @@ class ModelGrid extends Component
 		@g_props.show_static_methods = @props.show_static_methods
 		@g_props.data_item_id = @props.data_item_id
 		@g_props.new_doc = @state.new_doc
+		@g_props.mapped_queries_v = @state.mapped_queries_v
 		@g_props.queries = @state.schema_queries[@state.schema.name]
 		@g_props.query_index = @state.schema_queries_indices[@state.schema.name]
 		@g_props.action_query = @state.action_query
@@ -1271,8 +1323,8 @@ class ModelGrid extends Component
 				onClickOverlay: @state.hoverbox.onClickOverlay || @state.hoverbox.onClose
 				box_pointer_events: @state.hoverbox.pointer_events
 				offset_y: 0
-				snap_x: -1
-				align_x: -1
+				snap_x: 1
+				align_x: 1
 				align_y: -1
 				snap_y: -1
 				offset_x: 0
@@ -1370,7 +1422,14 @@ class ModelGrid extends Component
 				style:
 					transform: 'translate(0)'
 				beta: @state.show_json_view && 50 || 100
-				h TabsView,@g_props
+				h TabsView,
+					selectQuery: @selectQuery
+					setFirstSearchQuery: @setFirstSearchQuery
+					query_item: @state.query_item
+					public_queries: @g_props.public_queries
+					private_queries: @g_props.private_queries
+					ref: (el)=>
+						@_tabs_view = el 
 				h GridView,@g_props
 				h Style,
 					primary:'#2c2e30'

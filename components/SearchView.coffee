@@ -16,191 +16,130 @@ class SearchView extends Component
 	constructor: (props)->
 		super(props)
 		@state = 
-			query_item: props.query_item.label && props.query_item
-			search_value: (props.query_item.label && "#"+props.query_item.label) || props.query_item.keyword_input || ""
-			autofill_label: null
+			search_v: 0
+			search_value: (props.query_item?.updated_at && '#'+props.query_item.label) || props.query_item?.keyword_input || ""
 
-	
+		
 	onFocus: =>
 		setTimeout ()=>
+			@_search.select()
 			@_search.focus()
+
 		,0
 
 		if @state.run_query_interval
 			@toggleQueryInterval()
-		if @props.query_item.called_at && @props.reveal
-			@props.cloneQueryItemAndSet(label: false,@props.query_item)
-			
-		@props.onClick?()
 
 
 	onSearchEnter: =>
-
-		if @state.query_item
-			return @props.runQuery()
+		# log @state.search_value
+		if @state.search_value[0] == '#' && @state.search_v
+			@props.selectFirstSearchQuery()
 		
-		if @state.autofill_label == @props.query_item.label
-			@setState
-				query_item: @props.query_item
-				search_value: (@props.query_item.label && "#"+@props.query_item.label) || @props.query_item.keyword_input || ""
-				autofill_label: null
-			@props.runQuery()
-			return
-		
-		if @state.autofill_label
-			@props.selectQueryByLabel(@state.autofill_label)
-		
-		else if @state.search_value[0] != '#'
-			# log 'edit query item'
-			@props.editQuery
-				keyword_input: @state.search_value
-			@props.runQuery()
+		else
+			if @props.query_item
+				if @props.query_item.called_at
+					await @props.cloneQueryAndSet
+						keyword_input: @state.search_value
+				else 
+					await @props.editQuery
+						keyword_input: @state.search_value
+				@props.runQuery()
 
 
-
-	componentDidUpdate: (props)->
-		if @props.query_item != props.query_item
-			@setState
-				query_item: @props.query_item.label && @props.query_item
-				search_value: (@props.query_item.label && "#"+@props.query_item.label) || @props.query_item.keyword_input || ""
-
+	UNSAFE_componentWillUpdate:(props,state)->
+		if @props.query_item != props.query_item || @props.mapped_queries_v != props.mapped_queries_v
+			if props.query_item.updated_at
+				state.search_value  = '#'+props.query_item.label
+			else
+				state.search_value = props.query_item.keyword_input || ""
 
 
 
 	setSearchValue: (e)=>
 		@setState
 			query_item: undefined
+			search_v: @state.search_v+1
 			search_value: e.target.value
+		if e.target.value?[0] == '#'
+			@props.onSearchInputLabel(e.target.value && e.target.value.substring(1) || "")
 
-	onKeyDown: (e)=>
-		if e.keyCode == 27
-			@_search.blur()
-			@props.onHide(e)
-	
+
+
 	searchRef: (el)=>
 		if !el
 			return
 		@_search = el._input
 
+
+
+
 	toggleQueryInterval: =>	
 		if @state.run_query_interval
 			clearInterval @state.run_query_interval
-			@setState
+			return @setState
 				run_query_interval: undefined
 		else
 			q_i = setInterval @props.runQuery,3000
-			@setState
+			return @setState
 				run_query_interval: q_i
-	
-	onRunQuery: =>
-		@props.runQuery()
+
 
 	onShowLayoutHoverBox: (e)=>
 		@props.showQueryBuilderHoverBox(@_week_btn)
 
 
-	navPrevQuery: =>
-		@props.navPrevQuery()
-
-	navNextQuery: =>
-		@props.navNextQuery()
-
-
-	onRenderedSearchLabels: (labels)=>
-		# log labels
-		if !labels.length
-			if @state.autofill_label
-				@setState
-					autofill_label: null
-			return
-		
-		if @state.autofill_label != labels[0]
-			@setState
-				autofill_label: labels[0]
-
-
 	render: ->
-
-		# log @props.query_item.keyword_input
-
 		props = @props
 		state = @state
 		qi = props.query_item
 		query_item_is_loading = qi.called_at && !qi.completed_at
 		
-		if @state.query_item && @state.query_item.label
-			bar_style = 
-				background: @context.primary.true_inv
 
 		if qi.error
 			bar_style = 
 				background: @context.secondary.false
+		
 		if query_item_is_loading
 			bar_style = 
 				background: qi.error && @context.secondary.false || @context.secondary.color[2]
 
-	
-		
-
 		if @state.search_value[0] == '#'
-			search_label = @state.search_value.substring(1)
 			if @state.autofill_label
 				autofill_label = '#'+@state.autofill_label
 
 
+		search_input = h Bar,
+			big: yes
+			btn: yes
+			className: 'shadow '+css['search-input']
+			h Input,
+				onFocus: @onFocus
+				ref: @searchRef
+				type: 'text'
+				input_props:
+					autoComplete: 'false'
+					spellCheck: 'false'
+					autoCorrect: 'false'
+					autoCapitalize: 'false'
+					onKeyDown: (e)=>
+						# log e.nativeEvent.code
+						if e.nativeEvent.code == "Escape"
+							@_search.blur()
+						else if e.nativeEvent.code == "Enter"
+							@onSearchEnter()
+				i: 'search'
 
-
-		search_input = h 'div',
-			cn: 'flex-right'
-			h Bar,
-				btn: yes
-				big: yes
-				className: 'shadow'
-				style:
-					background: @context.primary.inv[0]
-				h Input,
-					type: 'button'
-					i: 'keyboard_arrow_left'
-					disabled: @props.query_index == 0
-					onClick: @navPrevQuery
-				h Input,
-					type: 'button'
-					disabled: @props.query_index == @props.queries.length-1
-					i: 'keyboard_arrow_right'
-					onClick: @navNextQuery
-			h Bar,
-				big: yes
-				btn: yes
-				className: 'shadow'
-				h Input,
-					onFocus: @onFocus
-					ref: @searchRef
-					type: 'text'
-					btn_type: @state.query_item && 'true'
-					input_props:
-						autoComplete: 'false'
-						spellCheck: 'false'
-						autoCorrect: 'false'
-						autoCapitalize: 'false'
-					i: 'search'
-					style: 
-						width: SEARCH_BAR_WIDTH - 40 - 40
-					value: @state.search_value
-					overlay_input: autofill_label
-					bar_style: bar_style
-					onInput: @setSearchValue
-					onEnter: @onSearchEnter
-					bar: yes
-					placeholder: 'keyword | #saved'
-				h Input,
-					type: 'button'
-					btn_type: @state.query_item && 'true'
-					i: 'menu_open'
-					big: yes
-					ref: (el)=>
-						if el
-							@_week_btn = el._outer
-					onClick: @onShowLayoutHoverBox
+				style: 
+					width: SEARCH_BAR_WIDTH - 40 - 40
+				value: @state.search_value
+				overlay_input: autofill_label
+				bar_style: bar_style
+				onInput: @setSearchValue
+				# onEnter: @onSearchEnter
+				bar: yes
+				placeholder: 'keyword | #saved'
+			
 
 
 
@@ -211,28 +150,43 @@ class SearchView extends Component
 			className: 'shadow'
 			btn_type: !@props.data_item_id && 'flat'
 			big: yes
-			disabled: !@props.data_item_id
+			disabled: yes
+			# disabled: !@props.data_item_id
 		
 		
-		
-		
-
-		# query_tabs = h QueryTabs,
-		# 	private_queries: @props.private_queries
-		# 	public_queries: @props.public_queries
-		# 	query_item: @props.query_item
-		# 	search_label: !@state.query_item && search_label
-		# 	selectQuery: @props.selectQuery
-		# 	onRenderedSearchLabels: @onRenderedSearchLabels
-
 
 		h 'div',
 			className: 'overlay'
 			h 'div',
+				cn: 'flex-right pad2 bot-left'
+				style:
+					paddingTop: 0
+				h Input,
+					type: 'button'
+					onClick: @onShowLayoutHoverBox
+					btn_type: @props.query_item.updated_at && 'true'
+					# label: @props.query_item.updated_at && @props.query_item.label
+					i: 'build'
+					big: yes
+					ref: (el)=>
+						if el
+							@_week_btn = el._outer
+					
+			h 'div',
 				className: 'flex-right pad2 bot-center'
 				style:
 					paddingTop: 0
+				h Input,
+					type: 'button'
+					i: 'keyboard_arrow_left'
+					disabled: @props.query_index == 0
+					onClick: @props.navPrevQuery
 				search_input
+				h Input,
+					type: 'button'
+					disabled: @props.query_index == @props.queries.length-1
+					i: 'keyboard_arrow_right'
+					onClick: @props.navNextQuery
 			h 'div',
 				className: 'pad2 bot-right'
 				edit_doc_json_button

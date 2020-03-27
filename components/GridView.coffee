@@ -80,14 +80,6 @@ InputCell.contextType = StyleContext
 
 
 
-# class ScrollValue extends Component
-# 	render: ->
-
-# 		@props.value.substring(0,max_l-2)+'..'
-
-
-
-
 class MoveGuide extends Component
 	constructor: (props)->
 		super(props)
@@ -207,33 +199,22 @@ class GridView extends Component
 
 	toggleSortKey: (key,dir)=>
 
-		@props.query_item.sort_keys = @props.query_item.sort_keys || []
-		keys = [].concat(@props.query_item.sort_keys)
-
-
-		found_key = _.find keys,key:key
+		found_key = _.find @props.query_item.sort_keys,key:key
 		
 		if found_key
 			found_key.dir = dir
-			keys.splice(keys.indexOf(found_key),1)
-			if dir == -1 || dir == 1
-				keys.push found_key
 		else
-			if dir == -1 || dir == 1
-				n_key = 
-					key: key
-					dir: dir
-		
-				keys.push n_key
-
-
-		
+			console.warn('cant toggle sort key, key not found.')
+			return false
+			
 		if @props.query_item.called_at
 			@props.editQuery
-				sort_keys: keys
+				sort_keys: @props.query_item.sort_keys
+			@props.saveQuery()
 		else
 			@props.editQuery
-				sort_keys: keys
+				sort_keys: @props.query_item.sort_keys
+			@props.saveQuery()
 
 		setTimeout @props.runQuery,0
 		
@@ -463,7 +444,8 @@ class GridView extends Component
 			if @state.focus_key == key
 				g_style.background = @context.primary.inv[2]
 
-			if key.indexed
+			# log sort_key
+			if key.indexed && sort_key
 				sort_up = (sort_key && sort_key.dir == 1)
 				sort_down = (sort_key && sort_key.dir == -1)
 				if sort_up
@@ -471,25 +453,26 @@ class GridView extends Component
 				else if sort_down
 					g_style.background = 'rgb(0,255,255,0.3)'
 
+				if sort_up
+					sort_icon = h 'i',
+						style:
+							color: 'yellow'
+							opacity: 1
+						onClick: @toggleSortKey.bind(null,key_name,-1)
+						className: cn 'material-icons'
+						'keyboard_arrow_up'
+				else if sort_down
+					sort_icon = h 'i',
+						style:
+							color: 'cyan'
+							opacity: 1
+						onClick: @toggleSortKey.bind(null,key_name,1)
+						className: cn 'material-icons'
+						'keyboard_arrow_down'
+
 				sort_opts = h 'div',
 					className: cn css['model-grid-key-toggle']
-					h 'i',
-						style:
-							color: (sort_up && 'yellow') || @context.primary.color[2]
-						onClick: @toggleSortKey.bind(null,key_name,1)
-						className: cn 'material-icons',sort_up && css['active']
-						'keyboard_arrow_up'
-					h 'i',
-						style:
-							color: (sort_key && sort_key.dir == -1 && 'cyan') || @context.primary.color[2]
-						onClick: @toggleSortKey.bind(null,key_name,-1)
-						className: cn 'material-icons',sort_down && css['active']
-						'keyboard_arrow_down'
-					# h 'i',
-					# 	style:
-					# 		color: @context.primary.color[2]
-					# 	className: 'material-icons'
-					# 	'remove'
+					sort_icon
 			
 			key._left = g_opts.style.left
 
@@ -505,7 +488,7 @@ class GridView extends Component
 		
 			key_label = h 'div',
 				className: css['model-grid-label']
-				onClick: @toggleSortKey.bind(null,key_name,0)
+				onClick: ( sort_up && @toggleSortKey.bind(null,key_name,-1) ) || ( sort_down && @toggleSortKey.bind(null,key_name,1) ) || null
 				label_string
 
 			resize_bar = h 'i',
@@ -557,7 +540,7 @@ class GridView extends Component
 				key: g_opts.key
 				sort_index_label
 				key_label
-				lock_icon
+				# lock_icon
 				sort_opts
 				resize_bar
 		
@@ -615,9 +598,12 @@ class GridView extends Component
 		if props.scroll_top != @props.scroll_top
 			state.trigger_scroll_top = props.scroll_top
 
-		if props.data_item != @props.data_item
-			if props.data_item
-				state.scroll_to_row = _.findIndex(props.data,_id:props.data_item._id)
+		if props.data_item_id != @props.data_item_id
+			# log props.data_item_id,props.data,_.findIndex(props.data,_id:props.data_item_id)
+			if props.data_item_id
+				# log props.data_item_id
+				# log  _.findIndex(props.data,_id:props.data_item._id)
+				state.scroll_to_row = _.findIndex(props.data,_id:props.data_item_id)
 			else
 				state.scroll_to_row = undefined
 
@@ -773,10 +759,11 @@ class GridView extends Component
 
 
 		if @state.scroll_to_col?
-			scroll_to_col = Math.min(Math.max(scroll_to_col,1),query_item.layout_keys.length+2)
+			# log query_item.layout_keys.length
+			scroll_to_col = Math.min(Math.max(@state.scroll_to_col,1),query_item.layout_keys.length+2)
 
 		# log @props.scroll_top
-		
+		# log scroll_to_col
 		
 		grid = h MultiGrid,
 			styleTopRightGrid:
