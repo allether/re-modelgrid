@@ -19,53 +19,73 @@ class TabsView extends Component
 			@_first_query = qi
 
 		part_spans = []
-		if @state.search_label
-			search_parts = @state.search_label.split(' ')
-			qi.label.split(' ').map (label_part,i)=>
-				for search_part in search_parts
-					f_i = label_part.indexOf(search_part)
-					if f_i >= 0
-						found_part = search_part
-						break
 
-				if f_i >= 0
-					part_spans.push label_part.substring(0,f_i)
+		cstyle = @props.query_style_map[qi._id] || @context
+		
+		if @state.search_label
+			f_i = qi.label.indexOf(@state.search_label)
+			if f_i >= 0
+				if f_i > 0
 					part_spans.push h 'span',
-						key: found_part
-						style:
-							color: 'black'
-							background: 'yellow'
-						found_part
-					part_spans.push label_part.substring(f_i+found_part.length,label_part.length)
-				else
-					part_spans.push h 'span',
-						key: label_part
+						key: 'pre'
 						className: 'pre'
-						(i!=0 && ' ' ||'')+label_part+' '
+						qi.label.substr(0,f_i)
+				part_spans.push h 'span',
+					key: 'found'
+					className: 'pre'
+					style:
+						color: 'black'
+						background: 'yellow'
+					qi.label.substr(f_i,@state.search_label.length)
+				if f_i+@state.search_label.length < qi.label.length
+					part_spans.push h 'span',
+						key: 'post'
+						className: 'pre'
+						qi.label.substr(f_i+@state.search_label.length)
+
 		else
 			part_spans = [qi.label]
 
 
 
-		if @props.query_item._id == qi._id && qi._v == @props.query_item._v
-			i_color = @context.primary.inv[3]
-			btn_style = 
-				background: @context.primary.color[0]
-				color: @context.primary.inv[0]
-				width: 260
-				cursor: 'default'
+
+		if qi.color
+			i_color = cstyle.primary.inv[3]
+			color_dot = h 'div',
+				className: 'pad bot-left'
+				h 'div',
+					className: 'circle'
+					style:
+						background: cstyle.primary.inv[0]
+						# border: "2px solid "+cstyle.primary.color[0]
 		else
-			i_color = @context.primary.color[3]
+			i_color = cstyle.primary.color[3]
+
+		if @props.query_item._id == qi._id && qi._v == @props.query_item._v
+			if qi.color
+				btn_style = 
+					background: @state.hover_tab == qi._id && cstyle.primary.inv[1] || cstyle.primary.inv[0]
+					color: cstyle.primary.color[0]
+					width: 260
+					cursor: 'pointer'
+			else
+				btn_style = 
+					background: @context.primary.color[0]
+					color: @context.primary.inv[0]
+					width: 260
+					cursor: 'pointer'
+
+		else
 			btn_style = 
 				background: @state.hover_tab == qi._id && @context.primary.inv[2] || @context.primary.inv[1]
 				color: @context.primary.color[0]
 				width: 260
 				cursor: 'pointer'
-		# if !part_spans && @state.search_label
+
 
 
 		h 'div',
-			className: 'lui-btn pad flex-down flex-start '+css['tab-btn']
+			className: 'lui-btn flex-down flex-start '+css['tab-btn']
 			key: qi._id
 			style: btn_style
 			onMouseEnter: =>
@@ -76,12 +96,14 @@ class TabsView extends Component
 
 			onClick: @selectQuery.bind(@,qi)
 			h 'span',
-				className: cn 'mid-reg-fat',css['tab-title']
+				className: cn 'mid-mono-fat',css['tab-title']
 				style:
-					borderColor: btn_style.color
+					borderColor: cstyle.primary.inv[3]
 				part_spans
 			h 'span',
-				className: 'small-mono'
+				className: 'small-reg'
+				style:
+					whiteSpace: 'normal'
 				qi.description
 			qi.is_public && (h 'span',
 				className: 'material-icons top-right pad'
@@ -90,42 +112,54 @@ class TabsView extends Component
 					fontSize: '16px'
 				'public'
 			) || null
+			color_dot
 
-
+	renderSeperator: =>
+		h 'div',
+			key: 'sep'
+			height: '100%'
+			className: 'center'
+			h 'div',
+				className: 'vert-bar'
+				style:
+					background: @context.primary.inv[2]
+					margin: DIM/2
+					height: DIM*.75
+					marginRight: DIM2/2-10
 
 
 	filterAndCombineQueries: ->
-		@state.rendered_labels_str = []
 		arr = [].concat(@props.private_queries,@props.public_queries)
-		if @state.search_label
-			search_label_parts = @state.search_label.split(' ').map (part)->
-				"\\b"+part
-			
-			match_regex = new RegExp("#{search_label_parts.join('|')}","ig")
-
-			@_first_query = null
-			return arr.filter (qi,i)=>
-				
-				test = match_regex.test(qi.label)
-				# log test
-				if test
-					@state.rendered_labels_str.push qi.label
-				return test
-
-				
-			.map @renderTab
-		else
-			arr.map @renderTab
-
-	componentDidUpdate: ->
-		# log @state.rendered_labels_str
 		
+	
+		@_first_query = null
+		arr = arr.filter (qi,i)=>
+			if !@state.search_label
+				if qi._id == @props.query_item?._id
+					return false
+				return true
+			else if qi.label.indexOf(@state.search_label) >= 0
+				return true
+			return false
+
+			
+		.map @renderTab
+		
+		if @props.query_item?.updated_at && !@state.search_label
+			arr.unshift @renderSeperator()
+			arr.unshift(@renderTab(@props.query_item))
+
+
+		return arr
+
 
 	componentDidUpdate: (props)->
 		if props.query_item != @props.query_item
 			@setState
 				search_label: null
+			@_list?.scrollLeft = 0
 		@props.setFirstSearchQuery(@_first_query)
+
 
 	render: ->
 		query_tabs = @filterAndCombineQueries()
@@ -144,24 +178,21 @@ class TabsView extends Component
 							className: 'material-icons'
 							style:
 								paddingLeft: PAD
-							'menu_open'
-					# h Input,
-					# 	i: 'menu_open'
-					# 	type: 'label'
-					# 	btn_type: 'flat'
+							'add'
+
 			else
 				query_tabs = h 'div',
 					className: 'flex-right pad2'
-					'no results for #'+@state.search_label
+					'no results for /'+@state.search_label
 		
 		
-
-
 		h Slide,
 			dim: DIM2*3
 			vert: no
 			scroll: yes
-			className: 'scrollbar pad'
+			className: 'hide-scrollbar'
+			ref: (el)=>
+				@_list = el?._outer
 			query_tabs
 
 

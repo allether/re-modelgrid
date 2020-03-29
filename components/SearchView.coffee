@@ -17,7 +17,7 @@ class SearchView extends Component
 		super(props)
 		@state = 
 			search_v: 0
-			search_value: (props.query_item?.updated_at && '#'+props.query_item.label) || props.query_item?.keyword_input || ""
+			search_value: (props.query_item?.updated_at && '/'+props.query_item.label) || props.query_item?.keyword_input || ""
 
 		
 	onFocus: =>
@@ -32,9 +32,10 @@ class SearchView extends Component
 
 
 	onSearchEnter: =>
-		# log @state.search_value
-		if @state.search_value[0] == '#' && @state.search_v
-			@props.selectFirstSearchQuery()
+		if @state.search_value[0] == '/' && @state.search_v
+			if !@props.selectFirstSearchQuery()
+				@setState
+					search_value:'/'+@props.query_item.label
 		
 		else
 			if @props.query_item
@@ -50,7 +51,7 @@ class SearchView extends Component
 	UNSAFE_componentWillUpdate:(props,state)->
 		if @props.query_item != props.query_item || @props.mapped_queries_v != props.mapped_queries_v
 			if props.query_item.updated_at
-				state.search_value  = '#'+props.query_item.label
+				state.search_value  = '/'+props.query_item.label
 			else
 				state.search_value = props.query_item.keyword_input || ""
 
@@ -61,7 +62,7 @@ class SearchView extends Component
 			query_item: undefined
 			search_v: @state.search_v+1
 			search_value: e.target.value
-		if e.target.value?[0] == '#'
+		if e.target.value?[0] == '/'
 			@props.onSearchInputLabel(e.target.value && e.target.value.substring(1) || "")
 
 
@@ -86,7 +87,11 @@ class SearchView extends Component
 
 
 	onShowLayoutHoverBox: (e)=>
-		@props.showQueryBuilderHoverBox(@_week_btn)
+		@props.showQueryBuilderHoverBox(@_layout_btn)
+
+	onShowSaveHoverBox: (e)=>
+		@props.showQuerySaverHoverBox(@_save_btn)
+
 
 
 	render: ->
@@ -104,9 +109,9 @@ class SearchView extends Component
 			bar_style = 
 				background: qi.error && @context.secondary.false || @context.secondary.color[2]
 
-		if @state.search_value[0] == '#'
+		if @state.search_value[0] == '/'
 			if @state.autofill_label
-				autofill_label = '#'+@state.autofill_label
+				autofill_label = '/'+@state.autofill_label
 
 
 		search_input = h Bar,
@@ -123,7 +128,6 @@ class SearchView extends Component
 					autoCorrect: 'false'
 					autoCapitalize: 'false'
 					onKeyDown: (e)=>
-						# log e.nativeEvent.code
 						if e.nativeEvent.code == "Escape"
 							@_search.blur()
 						else if e.nativeEvent.code == "Enter"
@@ -138,7 +142,7 @@ class SearchView extends Component
 				onInput: @setSearchValue
 				# onEnter: @onSearchEnter
 				bar: yes
-				placeholder: 'keyword | #saved'
+				placeholder: 'keyword | /bookmark'
 			
 
 
@@ -151,31 +155,43 @@ class SearchView extends Component
 			btn_type: !@props.data_item_id && 'flat'
 			big: yes
 			disabled: yes
-			# disabled: !@props.data_item_id
 		
 		
 
 		h 'div',
 			className: 'overlay'
 			h 'div',
-				cn: 'flex-right pad2 bot-left'
+				cn: 'flex-right pad bot-left'
 				style:
+					# bottom: '12px'
 					paddingTop: 0
-				h Input,
-					type: 'button'
-					onClick: @onShowLayoutHoverBox
-					btn_type: @props.query_item.updated_at && 'true'
-					# label: @props.query_item.updated_at && @props.query_item.label
-					i: 'build'
+				h Bar,
+					btn: yes
 					big: yes
-					ref: (el)=>
-						if el
-							@_week_btn = el._outer
+					h Input,
+						type: 'button'
+						onClick: @onShowLayoutHoverBox
+						btn_type: @props.query_item.updated_at && 'true'
+						i: 'view_week'
+						big: yes
+						ref: (el)=>
+							if el
+								@_layout_btn = el._outer
+					h Input,
+						type: 'button'
+						onClick: @onShowSaveHoverBox
+						btn_type: @props.query_item.updated_at && 'true'
+						i: @props.query_item.updated_at && 'bookmark' || 'add'
+						big: yes
+						ref: (el)=>
+							if el
+								@_save_btn = el._outer
 					
 			h 'div',
-				className: 'flex-right pad2 bot-center'
+				className: 'flex-right pad bot-center'
 				style:
 					paddingTop: 0
+					# bottom: '12px'
 				h Input,
 					type: 'button'
 					i: 'keyboard_arrow_left'
@@ -188,7 +204,9 @@ class SearchView extends Component
 					i: 'keyboard_arrow_right'
 					onClick: @props.navNextQuery
 			h 'div',
-				className: 'pad2 bot-right'
+				className: 'pad bot-right'
+				# style:
+					# bottom: '12px'
 				edit_doc_json_button
 
 

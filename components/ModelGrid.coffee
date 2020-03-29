@@ -6,7 +6,7 @@ Slide = require 're-slide'
 Color = require 'color'
 css = require './ModelGrid.less'
 cn = require 'classnames'
-{Input,MenuTab,Menu,Bar,Overlay,AlertOverlay,StyleContext,AlertDot,HoverBox,Style} = require 're-lui'
+{Input,MenuTab,Menu,Bar,Overlay,AlertOverlay,StyleContext,AlertDot,HoverBox,Style,generateStyle} = require 're-lui'
 JsonView = require './JsonView.coffee'
 _ = require 'lodash' 
 
@@ -44,7 +44,7 @@ GridView = require './GridView.coffee'
 # CalendarView = require './CalendarView.coffee'
 
 QueryBuilderView = require './QueryBuilderView'
-
+QuerySaverView = require './QuerySaverView'
 
 
 
@@ -64,6 +64,8 @@ class ModelGrid extends Component
 			editor_patches: []
 			editor_error: null
 			editor_value: '{}'
+
+			query_style_map: {}
 			
 
 			data_item: null
@@ -97,8 +99,6 @@ class ModelGrid extends Component
 
 		@fillSchemaState()
 
-		# log @state
-		
 		
 
 		@g_props = 
@@ -107,41 +107,25 @@ class ModelGrid extends Component
 			deleteDataItem: @deleteDataItem
 			createDataItem: @createDataItem
 			showJSONView: @showJSONView
-			# setQueryItem: @setQueryItem
-			# updateQueryItemAndSet: @updateQueryItemAndSet
-			# updateQueryItemTypeAndSet: @updateQueryItemTypeAndSet
-			# updateQueryItem: @updateQueryItem
-			# cloneQueryItemAndSet: @cloneQueryItemAndSet
-			# cloneQueryItem: @cloneQueryItem
 			runQuery: @runQuery
 			selectQuery: @selectQuery
 			selectQueryByLabel: @selectQueryByLabel
-			# runDataItemMethod: @runDataItemMethod
-			# runStaticMethod: @runStaticMethod
 			updateSelectedDocument: @updateSelectedDocument
 			renderDataItemMethod: @renderDataItemMethod
-			# setBookmarkQueryItem: @setBookmarkQueryItem
 			selectNextDataItem: @selectNextDataItem
 			selectPrevDataItem: @selectPrevDataItem
 			showQueryBuilderHoverBox: @showQueryBuilderHoverBox
+			showQuerySaverHoverBox: @showQuerySaverHoverBox
 			onScrollTop: @onScrollTop
-
 			saveSchemaState: @saveSchemaState
-			
 			navPrevQuery: @navPrevQuery
 			navNextQuery: @navNextQuery
-
-
 			onRenderedSearchLabels: @onRenderedSearchLabels
-
 			editQuery: @editQuery
 			saveQuery: @saveQuery
-			
 			setFirstSearchQuery: @setFirstSearchQuery
 			onSearchInputLabel: @onSearchInputLabel
-
 			cloneQueryAndSet: @cloneQueryAndSet
-
 			selectFirstSearchQuery: @selectFirstSearchQuery
 
 
@@ -149,6 +133,10 @@ class ModelGrid extends Component
 		console.log('%c [modelgrid]','color:yellow',arguments[0]||'',arguments[1]||'',arguments[2]||'',arguments[3]||'',arguments[4]||'',arguments[5]||'')
 
 
+	closeHoverBox: ()=>
+		@state.hoverbox.visible = false
+		@setState({})
+		@runQuery()
 			
 
 	loadLocalState: ()->
@@ -157,7 +145,7 @@ class ModelGrid extends Component
 
 
 	saveLocalState: ()->
-		# @log 'saving local state'
+
 		save_str = JSON.stringify
 			schema_queries: @state.schema_queries
 			schema_state_scrolls: @state.schema_state_scrolls
@@ -194,54 +182,6 @@ class ModelGrid extends Component
 
 
 
-	# componentWillUpdate: (props,state)=>
-		# state.data_item = props.data_item
-		# if !props.data_item_id
-		# 	state.data_item = null
-
-	
-		
-		# if state.schema_state_id != state.schema_state_id
-		# 	state.schema_state_id = state.schema_state_id
-		# 	Object.assign state,@getDefaultConfig(props)
-		# 	Object.assign state,state.schema_state
-
-		# 	# log 'NEW ID'
-		# 	# if state.data_item
-		# 	# 	@props.onSelectDataItem?(state.data_item)
-
-		# 	# log 'RUN QUERY ONCE'
-		# 	state.run_query_once = true
-
-		# if props.query_state_id != @props.query_state_id
-		# 	state.run_query_once = true
-
-			
-
-		
-		# if !state.data_item
-		# 	state.show_json_view = false
-		
-		# if state.query_item != @state.query_item
-		# 	state.show_json_view = false
-
-
-
-		# if state.data_item
-		# 	if state.data_item._id != state.editor_value_id
-		# 		if state.data_item
-		# 			state.editor_value = JSON.stringify(state.data_item,null,4)
-		# 			state.editor_patches = []
-		# 		else
-		# 			state.editor_value = "{}"
-		# 			state.editor_patches = []
-
-		# 		state.editor_value_id = state.data_item._id
-		# else
-		# 	state.editor_value = '{}'
-		# 	state.editor_patches = []
-
-
 	componentDidUpdate: (props,state)->
 		@state.scroll_top = undefined
 		
@@ -255,12 +195,10 @@ class ModelGrid extends Component
 
 
 		if props.schema != @props.schema || @props.schema_data_sync_id != props.schema_data_sync_id
-			# log "CHANGE SCHEMA"
 			@state.schema = @props.schema
 			@fillSchemaState()
 			@decideQueryItem()
 			@getAllSchemaData()
-			# log 'SET SCORLL STOP',@state.schema_state_scrolls[@props.schema.name]
 			@state.scroll_top = @state.schema_state_scrolls[@props.schema.name]
 			@runQuery()
 
@@ -343,17 +281,17 @@ class ModelGrid extends Component
 
 
 	selectQuery: (query_item)=>
-		# log 'SELECT QUERY'
 		@state.schema_state_scrolls[@state.schema.name] = 0
 		if @state.query_item._id == query_item._id && query_item._v == @state.query_item._id
 			return false
 		@resetQuery(query_item)
 		@clearQueryIndex()
+		@state.scroll_top = 0
 		@state.query_item = query_item
 		@runQuery()
+		return true
 
 	selectQueryByLabel: (query_label)=>
-		# log query_label
 		public_queries = @state.public_schema_queries[@state.schema.name]
 		private_queries = @state.private_schema_queries[@state.schema.name]
 
@@ -366,39 +304,28 @@ class ModelGrid extends Component
 			return @selectQuery(f_query)
 
 
-
-
-
-
-	clearQueryIndex: ->
-		# log 'CLEAR QUERY INDEX'
+	clearQueryIndex: ->		
 		@state.schema_queries[@state.schema.name].splice(@state.schema_queries_indices[@state.schema.name]+1)
-		# @state.schema_queries_indices[@state.schema.name] = Math.max(@state.schema_queries[@state.schema.name].length-1,0)
-
-
 
 
 	getSchemaPublicQueries: ()->
 		schema_name = @state.schema.name
 		public_queries = await @props.getSchemaPublicQueries(schema_name,@props.user_id)
 		@state.public_schema_queries[schema_name] = public_queries || []
-		# @log 'getSchemaPublicQueries',public_queries
 		@mapSchemaQueries(schema_name)
+		@setSchemaQueryStyles(schema_name)
 		@setState({})
-
-
 
 
 	getSchemaPrivateQueries: ()->
 		schema_name = @state.schema.name
 		private_queries = await @props.getSchemaPrivateQueries(schema_name,@props.user_id)
 		@state.private_schema_queries[schema_name] = private_queries || []
-		# @log 'getSchemaPrivateQueries',private_queries
 		@mapSchemaQueries(schema_name)
+		@setSchemaQueryStyles(schema_name)
 		@setState({})
 
 	pushQuery: (qi)->
-		# log 'PUSH QUERY TO HISTORY'
 		schema_queries = @state.schema_queries[@state.schema.name]
 		schema_queries.push qi
 		
@@ -434,10 +361,8 @@ class ModelGrid extends Component
 
 
 	runQuery: (run_next)=>
-		if @state.scroll_top
+		if @state.scroll_top?
 			_scroll_top = @state.scroll_top
-		# @log 'run query'
-		# log 'RUN QUERY',@state.query_item._id
 		@cleanQuery()
 
 		qi = @state.query_item
@@ -445,19 +370,12 @@ class ModelGrid extends Component
 		if qi.error
 			return
 
-		# if run_next
-		# 	@state.scroll_to_index = -1
-		
-		# if qi.keyword_input
-		# 	qi.
-
 
 		qi.called_at = Date.now()
 		qi.completed_at = null
 		qi.call_count = @state.query_item.call_count || 0
 		qi.call_count += 1
 
-		# if run_all
 		if run_next == true
 			qi.skip += qi.limit
 			qi.limit = @props.query_limit
@@ -484,24 +402,21 @@ class ModelGrid extends Component
 
 		
 		@props.runQuery(@props.schema.name,q_i).then (data)=>
-			# log 'QUERY RAN'
+
 
 			if q_i._id != @state.query_item._id
 				console.warn 'previously ran query does not match current state query'
 				return false
-				# return @setQueryItemRunError(q_i,new Error('previously ran query does not match current state query '+q_i._id+' != '+@state.query_item._id))
-			
+	
 			current_data = @state.data.get(@state.query_item._id) || []
 			if !run_next
 				current_data = []
-				log _scroll_top
 				if _scroll_top
 					@state.scroll_top = _scroll_top
 				
 			else
 				
-				
-			# log @state.query_item._id,current_data.concat(data)
+			
 			@state.data.set(@state.query_item._id,current_data.concat(data))
 
 			@state.query_item.completed_at = Date.now()
@@ -511,11 +426,6 @@ class ModelGrid extends Component
 
 			@mapDataItems()
 
-			# log current_data.length
-			# if !run_next
-			# 	@setScrollIndex()
-			
-			# log @state.scroll_to_index
 			
 			@forceUpdate()
 		.catch @setQueryItemRunError.bind(@,qi)
@@ -527,28 +437,28 @@ class ModelGrid extends Component
 		qi.called_at = undefined
 		qi.updated_at = undefined
 		qi.created_at = undefined
+		qi.color = undefined
+		qi.description = undefined
+		qi.label = undefined
 		qi._id = Date.now().toString(24)
 
 	cloneQuery: =>
-		# @log 'clone query'
+
 		cloned_query = _.cloneDeep(@state.query_item)
+
 		@resetQuerySaveState(cloned_query)
 		@resetQuery(cloned_query)
 		return cloned_query
 
 	cloneQueryAndSet: (edits)=>
-		log 'clone query'
 		cloned_query = @cloneQuery()
-		log 'cloned query'
 		@clearQueryIndex()
 		if edits
 			Object.assign cloned_query,edits
-		# @resetQuerySaveState(clearQueryIndex)
 		@setState
 			query_item: cloned_query
 	
 	clearQuery: =>
-		# @log 'clear query'
 		@setState
 			query_item: @createNewQuery()
 
@@ -572,7 +482,6 @@ class ModelGrid extends Component
 			json_input: null
 			keyword_input: null
 
-		# @log 'create new query',query
 		return query
 
 
@@ -587,7 +496,7 @@ class ModelGrid extends Component
 	saveQuery: ()=>
 		pub_queries = @state.public_schema_queries[@state.schema.name]
 		priv_queries = @state.private_schema_queries[@state.schema.name]
-		# @log 'save query'
+		
 		fpubqi = _.findIndex pub_queries,{_id:@state.query_item._id}
 		fpriqi = _.findIndex priv_queries,{_id:@state.query_item._id}
 		if fpubqi >= 0
@@ -596,22 +505,26 @@ class ModelGrid extends Component
 			priv_queries.splice(fpriqi,1)
 
 
-		if @state.query_item.is_public
+		query_item = await @props.saveQuery @state.schema.name,@state.query_item
+		log query_item
+
+		if query_item.is_public
 			if fpubqi >= 0
-				pub_queries.splice(fpubqi,0,@state.query_item)
+				pub_queries.splice(fpubqi,0,query_item)
 			else
-				pub_queries.unshift(@state.query_item)
+				pub_queries.unshift(query_item)
 		
 		else
 			if fpriqi >= 0
-				priv_queries.splice(fpriqi,0,@state.query_item)
+				priv_queries.splice(fpriqi,0,query_item)
 			else
-				priv_queries.unshift(@state.query_item)
+				priv_queries.unshift(query_item)
 
-
-		@props.saveQuery @state.schema.name,@state.query_item
+		@setState
+			query_item: query_item
+		
 		@saveLocalState()
-		@setState({})
+		
 
 
 
@@ -656,12 +569,7 @@ class ModelGrid extends Component
 			console.warn('cant edit query thats not yours')
 			return false
 
-		# if !qi.label && qi.called_at
-		# 	@state.query_item = @cloneQuery()
-		# 	qi = @state.query_item
 
-		# log edits,qi._id,@state.query_item._id
-		
 
 		if edits.type
 			if edits.type == 'json'
@@ -675,15 +583,12 @@ class ModelGrid extends Component
 
 		Object.assign qi,edits
 
-		# log qi._id,edits
-
-		# if edits.label
 		qi.user_id = @props.user_id
 			
 		@setState({})
 
 
-	mapSchemaQueries: (schema_name,bookmarks)->
+	mapSchemaQueries: (schema_name)->
 		priv_books = @state.private_schema_queries[schema_name]
 		pub_books = @state.public_schema_queries[schema_name]
 
@@ -699,7 +604,26 @@ class ModelGrid extends Component
 				f_q = _.find(pub_books,{_id:query_item._id})
 				if f_q && f_q._v != query_item._v
 					@resetQuerySaveState(query_item)
-					
+	
+	setQueryStyle: (query_item)=>
+		if query_item.color
+			color = new Color(query_item.color)
+			@state.query_style_map[query_item._id] = generateStyle
+				step_count: 6
+				primary: color.isDark() && 'white' || 'black'
+				primary_inv: color.hex()
+				secondary: 'black' 
+				secondary_inv: 'white' 
+
+
+	setSchemaQueryStyles: (schema_name)->
+		@state.query_style_map = {}
+		priv_books = @state.private_schema_queries[schema_name]
+		pub_books = @state.public_schema_queries[schema_name]
+		priv_books?.map(@setQueryStyle)
+		pub_books?.map(@setQueryStyle)
+			
+
 
 
 
@@ -712,7 +636,7 @@ class ModelGrid extends Component
 		if @state.schema.name != schema_name
 			@log 'getSchemaState (reload - interrupted)'
 			return false
-		# log 'GOT SCHEMA STATE'
+		
 		Object.assign @state.schema_states[schema_name],schema_state
 		
 		@setState({})
@@ -734,25 +658,8 @@ class ModelGrid extends Component
 
 
 
-
-
-	# findBookmarkByLabel: (bookmark_label)=>
-	# 	return _.find(@props.bookmarks,bookmark_label:bookmark_label)
-
-
-
-	# matchBookmarks: (label)=>
-	# 	matched_queries = @props.bookmarks.filter (q)->
-	# 		if q.bookmark_label.indexOf(label) >= 0
-	# 			return true
-	
-
-
 	onScrollTop: (scroll_top)=>
-		# log scroll_top
-		# @state.schema_state_scrolls[@state.schema_name] = scroll_top
-		# if !scroll_top
-		# 	return false
+
 		
 		if !@state.schema_state_scrolls[@state.schema.name]
 			@state.schema_state_scrolls[@state.schema.name] = scroll_top
@@ -766,9 +673,9 @@ class ModelGrid extends Component
 
 
 	selectDataItem: (item)=>
-		# log scroll_top
+		
 		@state.query_item.selected_data_item_id = item._id
-		# @state.query_item.scroll_top = scroll_top
+		
 		@props.selectDataItem(item._id)
 		@saveLocalState()
 		@saveSchemaState()
@@ -836,7 +743,7 @@ class ModelGrid extends Component
 
 
 	runStaticMethod: (method)=>
-		# log 'RUN STATIC METHOD',method
+	
 	
 		@setState
 			action_query:
@@ -880,12 +787,10 @@ class ModelGrid extends Component
 
 
 	renderDataItemMethod: (method,get_method_res_callback,method_res)=>
-		# log get_method_res_callback
 		method_exec = @runDataItemMethod.bind(@,method,get_method_res_callback)
 		return method.render(@state.schema,@state.data_item,method_exec,method_res)
 
 	renderStaticMethod: (method,get_method_res_callback,method_res)=>
-		# log get_method_res_callback
 		method_exec = @runStaticMethod.bind(@,method,get_method_res_callback)
 		return method.render(@state.schema,method_exec,method_res)
 
@@ -912,44 +817,6 @@ class ModelGrid extends Component
 		@props.onError?(error)
 			
 
-	# clearActionQueryError: =>
-	# 	@setState
-	# 		action_query: {}
-	# 		# action_error: null
-
-
-	# createDataItem: =>
-	# 	# @log 'create data item'
-	# 	@setState
-	# 		action_query:
-	# 			data_item_id: JSON.stringify(@state.new_doc)
-	# 			action: 'create'
-	# 			called_at: Date.now()
-	# 	@props.createDataItem(@state.new_doc).then (created_doc)=>
-	# 		# @log 'created data_item',created_doc
-	# 		@state.action_query.completed_at = Date.now()
-	# 		@state.data_item = Object.assign {},created_doc
-	# 		@runQuery()
-	# 	.catch @setActionMethodError.bind(@,@state.new_doc)
-
-	# deleteDataItem: =>
-	# 	# @log 'delete data item'
-	# 	@setState
-	# 		action_query:
-	# 			data_item_id: @state.data_item._id
-	# 			data_item_label: @state.data_item._label
-	# 			action: 'delete'
-	# 			called_at: Date.now()
-
-		
-	# 	@props.deleteDataItem(@state.data_item._id).then (deleted_doc_id)=>
-	# 		# @log 'deleted data_item',deleted_doc_id
-	# 		@state.action_query.completed_at = Date.now()
-	# 		if @state.data_item._id == deleted_doc_id
-	# 			@setState
-	# 				data_item: null
-	# 		@runQuery()
-	# 	.catch @setActionMethodError.bind(@,@state.data_item)
 
 	updateDataItem: ()=>
 	
@@ -970,7 +837,6 @@ class ModelGrid extends Component
 
 
 		@props.updateDataItem(@state.editor_value_id,@state.editor_patches).then (doc)=>
-			# @log 'updated data_item',doc
 			@state.editor_value_id = null
 			@state.action_query.completed_at = Date.now()
 			if @state.data_item._id == doc._id
@@ -996,10 +862,8 @@ class ModelGrid extends Component
 				called_at: Date.now()
 				action: 'get'
 
-		# log @state.data_item_id
 		
 		@props.getDataItem(@props.schema.name,@state.data_item_id).then (doc)=>
-			# log doc
 			@state.action_query.completed_at = Date.now()
 			@state.editor_value_id = null
 			if @state.data_item_id == doc._id
@@ -1011,113 +875,10 @@ class ModelGrid extends Component
 		.catch @setActionMethodError.bind(@,@state.data_item)
 
 
-	# componentWillUpdate: (props,state)->
-	# 	# log state.schema_state
-	# 	if @state.schema_state != state.schema_state && state.schema_state
-	# 		Object.assign state,@state.schema_state
-	# 		if state.schema_state.queries.length
-	# 			state.query_item = state.schema_state.queries[state.schema_state.queries.length-1]
-
-
-	# componentDidUpdate: (props,state)->
-	# 	log 'ModelGrid componentDidUpdate'
-
-
-	# 	@state.queries = @state.queries.slice(0,5)
-	# 	save_state = Object.assign {},
-	# 		key_col_widths: @state.key_col_widths
-	# 		queries: @state.queries
-	# 		bookmarks: @state.private_bookmarks
-	# 		data_item_id: @state.data_item_id
-	# 		show_json_view: @state.show_json_view
-	# 		new_doc: @state.new_doc
-		
-
-	# 	@props.onSchemaStateUpdated?(save_state)
-
-	# 	if @state.get_data_item || (@state.data_item && @state.show_json_view && ((@state.show_json_view != state.show_json_view) || @state.action_query.data_item_id != @state.data_item._id))
-	# 		@state.get_data_item = false
-	# 		@getDataItem()
-
-	# 	split_vert = if (@base && @base.clientHeight > @base.clientWidth) then true else false
-	# 	if split_vert != @state.split_vert
-	# 		@setState
-	# 			split_vert: split_vert
-
-	# 	if @state.show_json_view != state.show_json_view
-	# 		@forceUpdate()
-
-	# 	if props.run_query_item != @props.run_query_item
-	# 		# @log "RUN PROPS QUERY ITEM"
-	# 		@cloneQueryItemAndSet(@props.run_query_item,@state.query_item,true)
-
-
-	# 	if !@props.data_item_id && @state.data_item
-	# 		@setState
-	# 			data_item: null
-
-		
-	# 	if @state.schema_state_id != state.schema_state_id || @props.query_state_id != props.query_state_id 
-	# 		@runQuery()
-
-	# 	# if state.queries_updated_at != @state.queries_updated_at
-	# 	# 	@mapQueryItems()
-
-
-	# 	if (!@state.data_item || state.query_item != @state.query_item || !state.data_item ) && @state.show_json_view
-	# 		@hideJsonView()
-
-
-
-	# 	if @state.data_item
-	# 		if @state.data_item._id != @state.editor_value_id
-	# 			if @state.data_item
-	# 				state.editor_value = JSON.stringify(@state.data_item,null,4)
-	# 				state.editor_patches = []
-	# 			else
-	# 				state.editor_value = "{}"
-	# 				state.editor_patches = []
-	# 			@setState
-	# 				editor_value_id: @state.data_item._id
-
-	# 	else
-	# 		if @state.editor_value != '{}' || @state.editor_patches.length
-	# 			@setState
-	# 				editor_value: '{}'
-	# 				editor_patches: []
-
-
 
 	hideJsonView: =>
 		@setState
 			show_json_view: false
-
-	
-
-	# componentDidMount: =>
-	# 	Object.assign @state,@state.schema_state
-	# 	for q in @state.queries
-	# 		if q.called_at && !q.completed_at
-	# 			q.called_at = q.completed_at = 0
-
-	# 	log 'run query'
-	# 	@runQuery()
-		
-
-
-	# setScrollIndex: (state)=>
-	# 	state = state || @state
-	# 	if state.query_item && state.data_item
-	# 		state.scroll_to_index = -1
-	# 		data = state.data.get(state.query_item._id)
-	# 		if data
-	# 			for data_item,i in data
-	# 				if data_item._id == state.data_item._id
-	# 					state.scroll_to_index = i
-	# 					break
-
-
-
 
 	showJSONView: ()=>
 		@setState 
@@ -1134,9 +895,6 @@ class ModelGrid extends Component
 
 
 
-
-
-
 	onEditorValueChange: (val)=>
 		try
 			new_data_item = JSON.parse(val)
@@ -1149,7 +907,6 @@ class ModelGrid extends Component
 				editor_value: val
 				editor_error: editor_error || null
 		catch err
-			# console.error err
 			@setState
 				editor_value: val
 				editor_error: err.message
@@ -1189,15 +946,12 @@ class ModelGrid extends Component
 
 
 	selectFirstSearchQuery: =>
-		# if @state.search_first_query != search_first_query
-		@selectQuery(@state.search_first_query)
+		return @selectQuery(@state.search_first_query)
 
 
-	
-
-	showQueryBuilderHoverBox: (bind_el)=>
-		@setState
-			show_query_builder_view: yes
+	showQuerySaverHoverBox: (bind_el)=>
+		# @setState
+		# 	show_query_saver_view: yes
 
 		@setHoverBox
 			visible: yes
@@ -1205,8 +959,8 @@ class ModelGrid extends Component
 			hide_delay: 0
 			flat: yes
 			renderContent: (offset_left,offset_top)=>
-				# log offset_left,offset_top
-				h QueryBuilderView,
+				h QuerySaverView,
+					key: @state.query_item._id
 					offset_left: offset_left
 					offset_top: offset_top
 					deleteQuery: @deleteQuery
@@ -1223,10 +977,47 @@ class ModelGrid extends Component
 					keys: @state.schema.keys
 					schema: @state.schema
 					renderHoverBox: @props.renderHoverBox
+					closeHoverBox:  @closeHoverBox
 			getSize: ()->
 				return
 					width: 600
-					height: 688
+					height: 300
+			getBindElement: ()=>
+				return bind_el	
+
+	showQueryBuilderHoverBox: (bind_el)=>
+		# @setState
+		# 	show_query_builder_view: yes
+
+		@setHoverBox
+			visible: yes
+			show_delay: 0
+			hide_delay: 0
+			flat: yes
+			renderContent: (offset_left,offset_top)=>
+				h QueryBuilderView,
+					key: @state.query_item._id
+					offset_left: offset_left
+					offset_top: offset_top
+					deleteQuery: @deleteQuery
+					clearQueryInput: @clearQueryInput
+					editQuery: @editQuery
+					cloneQuery: @cloneQuery
+					cloneQueryAndSet: @cloneQueryAndSet
+					cleanQuery: @clearQuery
+					saveQuery: @saveQuery
+					runQuery: @runQuery
+					matchQueryByLabelPart: @matchQueryByLabelPart
+					query_item: @state.query_item
+					keys_array: @state.schema.keys_array
+					keys: @state.schema.keys
+					schema: @state.schema
+					renderHoverBox: @props.renderHoverBox
+					closeHoverBox:  @closeHoverBox
+			getSize: ()->
+				return
+					width: 600
+					height: 500
 			getBindElement: ()=>
 				return bind_el
 
@@ -1252,14 +1043,7 @@ class ModelGrid extends Component
 
 
 	render: ->
-
-		# if @state.query_item != @state.schema_queries[@state.schema.name][]
-		# if @state.scroll_top
-			# @log 'scroll top',@state.scroll_top
-		
-
-		# log @state.schema.name,@state.schema_states[@state.schema.name]
-
+	
 		if !@state.query_item
 			@log 'query item missing, skip render'
 			return false
@@ -1273,7 +1057,6 @@ class ModelGrid extends Component
 		@g_props.scroll_to_index = @state.scroll_to_index
 		@g_props.bounding_box = @base?.getBoundingClientRect()
 		@g_props.data = @state.data.get(@state.query_item._id) || []
-		# log @g_props.data
 		@g_props.scroll_top = @state.scroll_top
 		@g_props.query_map = @state.query_map
 		@g_props.query_item = @state.query_item
@@ -1297,13 +1080,14 @@ class ModelGrid extends Component
 		@g_props.public_queries = @state.public_schema_queries[@state.schema.name]
 		@g_props.private_queries = @state.private_schema_queries[@state.schema.name]
 		@g_props._pc_is_dark = @_pc_is_dark
+		@g_props.query_style_map = @state.query_style_map
 
-		# log @state.bookmarks
+
 
 
 		style = {}
 		style.visiblity = @state.is_visible && 'visible' || 'hidden'
-		# style.transform = 'translate(0px)'
+		
 		
 		style.height = '100%'
 		style.width = '100%'
@@ -1428,6 +1212,7 @@ class ModelGrid extends Component
 					query_item: @state.query_item
 					public_queries: @g_props.public_queries
 					private_queries: @g_props.private_queries
+					query_style_map: @g_props.query_style_map
 					ref: (el)=>
 						@_tabs_view = el 
 				h GridView,@g_props

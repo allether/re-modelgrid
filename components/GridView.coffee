@@ -594,6 +594,7 @@ class GridView extends Component
 			state.grid_key = g_k
 			state.force_update_grid = true
 
+		
 
 		if props.scroll_top != @props.scroll_top
 			state.trigger_scroll_top = props.scroll_top
@@ -752,7 +753,7 @@ class GridView extends Component
 
 
 		
-		if !@props.scroll_top
+		if !@props.scroll_top?
 			if @state.scroll_to_row?
 				scroll_to_row = @state.scroll_to_row+1
 				scroll_to_row = Math.min(Math.max(scroll_to_row,1),data.length+1)
@@ -776,10 +777,10 @@ class GridView extends Component
 			columnWidth: @columnWidth
 			columnCount: (query_item.layout_keys.length + 1) || 0
 			fixedRowCount:1
-			scrollToRow: scroll_to_row || undefined
+			scrollToRow: if @state.scroll_to_row? then @state.scroll_to_row else undefined
 			scrollToAlignment: 'auto'
-			scrollTop: @state.trigger_scroll_top || undefined
-			scrollToColumn: scroll_to_col || undefined
+			scrollTop: if @state.trigger_scroll_top? then @state.trigger_scroll_top else undefined
+			scrollToColumn: if @state.scroll_to_col? then @state.scroll_to_col else undefined
 			height: @state.grid_h
 			width: @state.grid_w
 			rowHeight: @rowHeight
@@ -815,7 +816,7 @@ class GridView extends Component
 			outer_props:
 				onMouseMove: @onOuterMouseMove
 			outerChildren: move_guide 
-			className: css['model-grid-wrap']
+			className: cn css['model-grid-wrap'],'hide-scrollbar'
 			grid
 			
 				

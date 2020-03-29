@@ -104,12 +104,9 @@ class QueryBuilderView extends Component
 		super(props)
 		@state = 
 			edit_v: 0
-			save_bookmark_public: @props.query_item.is_public
-			bookmark_description: @props.query_item.description
 			unused_keys: props.keys_array.filter (key)=>
 				props.query_item?.layout_keys.indexOf(key) < 0
-			bookmark_label: @props.query_item.label
-			# query_saved: props.isSavedQuery(props.query_item)
+			
 
 	compoonentDidUpdate: (props)->
 		if @props.query_item != props.query_item
@@ -390,7 +387,7 @@ class QueryBuilderView extends Component
 			description: @state.bookmark_description
 			is_public: @state.save_bookmark_public
 		@props.saveQuery()
-		@props.runQuery()
+		# @props.runQuery()
 
 
 	onSelectQueryKey: (e)=>
@@ -409,11 +406,6 @@ class QueryBuilderView extends Component
 			@_pc_is_dark = !Color(@_pc).isDark()
 			@_pc_opaque = Color(@_pc).alpha(0.8).rgb().string()
 
-		# if !@state.bookmark_description?
-		# 	@state.bookmark_description = qi.description
-
-		# if !@state.bookmark_label?
-		# 	@state.bookmark_label = qi.label
 
 		@state.unused_keys = @props.keys_array.filter (key)=>
 			@props.query_item.layout_keys.indexOf(key) < 0
@@ -464,56 +456,15 @@ class QueryBuilderView extends Component
 
 		
 
-		bookmark_description = h Input,
-			type: 'textarea'
-			label: 'bookmark description'
-			value: @state.bookmark_description
-			# onBlur: @onSaveQuery
-			style:
-				maxHeight: '60px'
-			placeholder: 'add a descriptive name to save the bookmark'
-			onInput: @onBookmarkDecriptionInput
-
-
-		bookmark_label_input = h Bar,
-			btn: yes
-			big: yes
-			h Input,
-				type: 'input'
-				i: 'bookmark'
-				big: yes
-				bar: yes
-				onInput: @onBookmarkLabelInput
-				placeholder: 'Bookmark Name'
-				invalid: @state.bookmark_label_invalid
-				value: @state.bookmark_label
-			h Input,
-				type: 'checkbox'
-				btn_type: @state.save_bookmark_public && 'primary'
-				onClick: @toggleSavePublic
-				checked: @state.save_bookmark_public
-				checkbox_type: 'circle'
-				i: 'public'
-
-
-
-
-		if qi.updated_at
-			delete_bookmark_button = h Input,
-				type: 'button'
-				i: 'delete'
-				big: yes
-				onClick: @props.deleteQuery
-				btn_type: 'false'
-				label: 'delete'
 
 					
 
 		if qi.called_at
 			clone_query_btn = h Input,
 				type: 'button'
-				i: 'playlist_add'
-				onClick: @props.cloneQueryAndSet
+				i: 'file_copy'
+				onClick: ()=>
+					@props.cloneQueryAndSet()
 				margin_left: no
 				margin_right: yes
 				# btn_type: 'true'
@@ -556,7 +507,6 @@ class QueryBuilderView extends Component
 		
 		h 'div',
 			className: 'flex-down full'
-			key: @props.query_item._id
 			h 'div',
 				className: 'flex-right pad-bottom'
 				h 'div',
@@ -653,20 +603,11 @@ class QueryBuilderView extends Component
 							style:
 								color: @props.query_item.error && @context.primary.false || @context.primary.true
 							@props.query_item.error || 'ok'
-				h 'div',
-					className: 'flex-down pad'
-					style:
-						background: @context.primary.inv[0]
-						height: '100%'
-					bookmark_description
-					h 'div',
-						className: 'flex-right'
-						bookmark_label_input
-						delete_bookmark_button
 
 
-				
-			
+
+
+
 QueryBuilderView.contextType = StyleContext
 			
 
