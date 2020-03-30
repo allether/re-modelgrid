@@ -9,6 +9,7 @@ class QuerySaverView extends Component
 			bookmark_description: @props.query_item.description
 			bookmark_label: @props.query_item.label
 			bookmark_color: @props.query_item.color
+			bookmark_icon: @props.query_item.icon
 			edit_v: 0
 
 	onBookmarkDecriptionInput: (e)=>
@@ -54,6 +55,7 @@ class QuerySaverView extends Component
 			label: @state.bookmark_label
 			description: @state.bookmark_description
 			color: @state.bookmark_color
+			icon: @state.bookmark_icon
 			is_public: @state.save_bookmark_public
 		@props.saveQuery()
 		# if @props.query_item.updated_at
@@ -61,7 +63,7 @@ class QuerySaverView extends Component
 		# @props.runQuery()
 
 	onSetColor: (e)=>
-		log 'SET COLOR',e.target.value
+		# log 'SET COLOR',e.target.value
 		@setState
 			edit_v: @state.edit_v+1
 			bookmark_color: e.target.value
@@ -77,6 +79,7 @@ class QuerySaverView extends Component
 			placeholder: 'add a descriptive name to save the bookmark'
 			onInput: @onBookmarkDecriptionInput
 
+		# log @state.bookmark_color
 
 		bookmark_label_input = h Bar,
 			btn: yes
@@ -92,10 +95,12 @@ class QuerySaverView extends Component
 				value: @state.bookmark_label
 			h Input,
 				type: 'checkbox'
-				btn_type: @state.save_bookmark_public && 'primary'
+				big: yes
+				# btn_type: @state.save_bookmark_public && 'primary'
 				onClick: @toggleSavePublic
 				checked: @state.save_bookmark_public
 				checkbox_type: 'circle'
+				label: 'public'
 				i: 'public'
 			h Input,
 				type: 'color'
@@ -117,7 +122,26 @@ class QuerySaverView extends Component
 				label: 'delete'
 
 		
-		
+		bookmark_icon_input = h 'div',
+			className: 'flex-right'
+			h Input,
+				type: 'button'
+				label: 'icon browser'
+				i: 'link'
+				btn_type: 'flat'
+				onClick: ->
+					window.open 'https://material.io/resources/icons/?style=baseline'
+				href: 'https://material.io/resources/icons/?style=baseline'
+			h Input,
+				type: 'text'
+				i: 'grade'
+				value: @state.bookmark_icon
+				placeholder: 'icon_name'
+				onInput: (e)=>
+					@setState
+						edit_v: @state.edit_v+1
+						bookmark_icon: e.target.value
+
 		save_query_btn = h Input,
 			i: !qi.updated_at && 'bookmark' || 'save'
 			label: !qi.updated_at && 'create' || 'save'
@@ -152,6 +176,7 @@ class QuerySaverView extends Component
 					height: '100%'
 					background: @context.primary.inv[0]
 				bookmark_label_input
+				bookmark_icon_input
 				bookmark_description
 
 			

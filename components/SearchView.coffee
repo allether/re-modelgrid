@@ -1,5 +1,5 @@
 Slide = require 're-slide'
-{AlertDot,Input,MenuTab,Menu,Bar,SquareLoader,StyleContext} = require 're-lui'
+{AlertDot,Input,MenuTab,Menu,Bar,TriangleLoader,StyleContext} = require 're-lui'
 css = require './ModelGrid.less'
 cn = require 'classnames'
 
@@ -17,6 +17,7 @@ class SearchView extends Component
 		super(props)
 		@state = 
 			search_v: 0
+			q_v: props.query_item?._v
 			search_value: (props.query_item?.updated_at && '/'+props.query_item.label) || props.query_item?.keyword_input || ""
 
 		
@@ -42,18 +43,23 @@ class SearchView extends Component
 				if @props.query_item.called_at
 					await @props.cloneQueryAndSet
 						keyword_input: @state.search_value
+						
 				else 
 					await @props.editQuery
 						keyword_input: @state.search_value
+						json_input: undefined
+						type: 'keyword'
 				@props.runQuery()
 
 
 	UNSAFE_componentWillUpdate:(props,state)->
-		if @props.query_item != props.query_item || @props.mapped_queries_v != props.mapped_queries_v
+		if @state.q_v != props.query_item._v || @props.query_item != props.query_item || @props.mapped_queries_v != props.mapped_queries_v
 			if props.query_item.updated_at
 				state.search_value  = '/'+props.query_item.label
+				state.q_v = props.query_item._v
 			else
 				state.search_value = props.query_item.keyword_input || ""
+				state.q_v = props.query_item._v
 
 
 
@@ -103,11 +109,15 @@ class SearchView extends Component
 
 		if qi.error
 			bar_style = 
-				background: @context.secondary.false
+				background: @context.primary.false
 		
-		if query_item_is_loading
+		else if query_item_is_loading
 			bar_style = 
-				background: qi.error && @context.secondary.false || @context.secondary.color[2]
+				background: @context.primary.color[1]
+		else
+			bar_style = 
+				background: @context.primary.inv[3]
+
 
 		if @state.search_value[0] == '/'
 			if @state.autofill_label
@@ -118,6 +128,33 @@ class SearchView extends Component
 			big: yes
 			btn: yes
 			className: 'shadow '+css['search-input']
+			style:
+				background: @context.primary.inv[0]
+				color: @context.primary.color[0]
+			h Slide,
+				width: DIM2
+				height: DIM2
+				style:
+					width: DIM2
+					height: DIM2
+					cursor: 'pointer'
+				slide: yes
+				vert: yes
+				pos: if query_item_is_loading then 0 else 1
+				onClick: @onSearchEnter
+				h Slide,
+					beta: 100
+					center: yes
+					h TriangleLoader,
+						dim: DIM
+						color: @context.primary.color[3]
+						is_loading: query_item_is_loading
+				h Slide,
+					beta: 100
+					center: yes
+					h 'i',
+						className: 'material-icons'
+						'search'
 			h Input,
 				onFocus: @onFocus
 				ref: @searchRef
@@ -132,7 +169,7 @@ class SearchView extends Component
 							@_search.blur()
 						else if e.nativeEvent.code == "Enter"
 							@onSearchEnter()
-				i: 'search'
+				# i: 'search'
 
 				style: 
 					width: SEARCH_BAR_WIDTH - 40 - 40
@@ -140,6 +177,7 @@ class SearchView extends Component
 				overlay_input: autofill_label
 				bar_style: bar_style
 				onInput: @setSearchValue
+				onBlur: @onSearchEnter
 				# onEnter: @onSearchEnter
 				bar: yes
 				placeholder: 'keyword | /bookmark'

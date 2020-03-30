@@ -95,7 +95,6 @@ class ModelGrid extends Component
 				onClose: ()=>
 					@state.hoverbox.visible = false
 					@setState({})
-					@runQuery()
 
 		@fillSchemaState()
 
@@ -136,7 +135,6 @@ class ModelGrid extends Component
 	closeHoverBox: ()=>
 		@state.hoverbox.visible = false
 		@setState({})
-		@runQuery()
 			
 
 	loadLocalState: ()->
@@ -367,8 +365,8 @@ class ModelGrid extends Component
 
 		qi = @state.query_item
 
-		if qi.error
-			return
+		# if qi.error
+		# 	return
 
 
 		qi.called_at = Date.now()
@@ -384,19 +382,24 @@ class ModelGrid extends Component
 			qi.skip = 0
 			qi.end_reached = false
 
+		qi.error = undefined
+
 
 		q_i = Object.assign {},@state.query_item
 
+		if q_i.keyword_input
+			q_i.json_input = JSON.stringify(@getKeywordQueryObject(q_i.keyword_input,q_i))
+		
+		q_i.value = eval('('+q_i.json_input+')')
+		
 
-		if q_i.json_input && q_i.type == 'json'
-			q_i.value = eval('('+q_i.json_input+')')
-
+		# log q_i.value
 
 		if qi.call_count == 1
 			@pushQuery(qi)
 
 
-		@state.query_item.error = undefined
+		
 
 		@setState({})
 
@@ -453,10 +456,10 @@ class ModelGrid extends Component
 	cloneQueryAndSet: (edits)=>
 		cloned_query = @cloneQuery()
 		@clearQueryIndex()
+		@state.query_item = cloned_query
 		if edits
-			Object.assign cloned_query,edits
-		@setState
-			query_item: cloned_query
+			@editQuery(edits)
+		@setState({})
 	
 	clearQuery: =>
 		@setState
@@ -506,7 +509,7 @@ class ModelGrid extends Component
 
 
 		query_item = await @props.saveQuery @state.schema.name,@state.query_item
-		log query_item
+		# log query_item
 
 		if query_item.is_public
 			if fpubqi >= 0
@@ -520,10 +523,12 @@ class ModelGrid extends Component
 			else
 				priv_queries.unshift(query_item)
 
+		@setSchemaQueryStyles(@state.schema.name)
 		@setState
 			query_item: query_item
 		
 		@saveLocalState()
+
 		
 
 
@@ -553,10 +558,8 @@ class ModelGrid extends Component
 
 
 	getKeywordQueryObject: (keyword,query_item)=>
-		keyword_parts = keyword.split(' ').map (part)->
-			"\b"+part
 		q_obj = {}
-		q_obj[query_item.search_key]  = "//#{keyword_parts.join('|')}//ig"
+		q_obj[query_item.search_key]  = "//#{keyword.split(' ').join('|')}//ig"
 		return q_obj
 
 
@@ -564,28 +567,21 @@ class ModelGrid extends Component
 
 	editQuery: (edits)=>
 		qi = @state.query_item
+		qi._v += 1
+
+		if edits.layout_keys || edits.sort_keys
+			if @state.data.get(qi._id)?
+				@state.data.delete(qi._id)
 
 		if qi.label && @props.user_id != qi.user_id
 			console.warn('cant edit query thats not yours')
 			return false
 
-
-
-		if edits.type
-			if edits.type == 'json'
-				qi.type = 'json'
-				if qi.keyword_input && !qi.json_input
-					qi.json_input = JSON.stringify(@getKeywordQueryObject(qi.keyword_input,qi),0,2)
-					qi.keyword_input = undefined
-			else
-				qi.type = 'key'
-				qi.keyword_input = qi.keyword_input || ''
-
 		Object.assign qi,edits
-
-		qi.user_id = @props.user_id
-			
+		qi.user_id = @props.user_id			
 		@setState({})
+
+
 
 
 	mapSchemaQueries: (schema_name)->
@@ -603,6 +599,8 @@ class ModelGrid extends Component
 			else
 				f_q = _.find(pub_books,{_id:query_item._id})
 				if f_q && f_q._v != query_item._v
+					@resetQuerySaveState(query_item)
+				else if !f_q
 					@resetQuerySaveState(query_item)
 	
 	setQueryStyle: (query_item)=>
@@ -949,20 +947,19 @@ class ModelGrid extends Component
 		return @selectQuery(@state.search_first_query)
 
 
-	showQuerySaverHoverBox: (bind_el)=>
-		# @setState
-		# 	show_query_saver_view: yes
 
+	showQuerySaverHoverBox: (bind_el)=>
 		@setHoverBox
 			visible: yes
 			show_delay: 0
 			hide_delay: 0
 			flat: yes
-			renderContent: (offset_left,offset_top)=>
+			renderContent: (offset_left,offset_top,ref_fn)=>
 				h QuerySaverView,
 					key: @state.query_item._id
 					offset_left: offset_left
 					offset_top: offset_top
+					ref: ref_fn
 					deleteQuery: @deleteQuery
 					clearQueryInput: @clearQueryInput
 					editQuery: @editQuery
@@ -985,20 +982,19 @@ class ModelGrid extends Component
 			getBindElement: ()=>
 				return bind_el	
 
-	showQueryBuilderHoverBox: (bind_el)=>
-		# @setState
-		# 	show_query_builder_view: yes
 
+	showQueryBuilderHoverBox: (bind_el)=>
 		@setHoverBox
 			visible: yes
 			show_delay: 0
 			hide_delay: 0
 			flat: yes
-			renderContent: (offset_left,offset_top)=>
+			renderContent: (offset_left,offset_top,ref_fn)=>
 				h QueryBuilderView,
 					key: @state.query_item._id
 					offset_left: offset_left
 					offset_top: offset_top
+					ref: ref_fn
 					deleteQuery: @deleteQuery
 					clearQueryInput: @clearQueryInput
 					editQuery: @editQuery
@@ -1014,10 +1010,11 @@ class ModelGrid extends Component
 					schema: @state.schema
 					renderHoverBox: @props.renderHoverBox
 					closeHoverBox:  @closeHoverBox
+
 			getSize: ()->
 				return
 					width: 600
-					height: 500
+					height: 520
 			getBindElement: ()=>
 				return bind_el
 
@@ -1219,8 +1216,8 @@ class ModelGrid extends Component
 				h Style,
 					primary:'#2c2e30'
 					primary_inv: '#fff'
-					secondary: '#fff'
-					secondary_inv: '#386277'
+					secondary: @context.secondary.color[0]
+					secondary_inv: @context.secondary.inv[0]
 					h SearchView,@g_props
 					
 

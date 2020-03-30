@@ -15,7 +15,7 @@ Color = require 'color'
 
 class KeyChip extends Component
 	sortKey: (key_name,sort_dir)=>
-		k_i = @props.query_item.layout_keys.indexOf key_name
+		k_i = @props.layout_keys.indexOf key_name
 		await @props.setKeyIndex(key_name,k_i,sort_dir)
 		
 
@@ -87,7 +87,7 @@ class KeyChip extends Component
 								type: 'button'
 								i: 'close'
 								btn_type: sort_key && 'primary' || 'default'
-								disabled: @props.query_item.layout_keys.length <= 1
+								disabled: @props.layout_keys.length <= 1
 								onClick: @removeKey.bind(@,key_name)
 							sort_dir_btn
 							sort_index_btn
@@ -102,18 +102,24 @@ KeyChip.contextType = StyleContext
 class QueryBuilderView extends Component
 	constructor: (props)->
 		super(props)
-		@state = 
-			edit_v: 0
-			unused_keys: props.keys_array.filter (key)=>
-				props.query_item?.layout_keys.indexOf(key) < 0
-			
+		@state = @getInitialState()
+		# @props.onClose(@onClose)
+
+	getInitialState: ()->
+		layout_keys: [].concat @props.query_item?.layout_keys
+		sort_keys: _.cloneDeep(@props.query_item?.sort_keys || [])
+		search_key: @props.query_item.search_key
+		json_input: @props.query_item.json_input
+		query_type: @props.query_item.type
+		keyword_input: @props.query_item.keyword_input
+		edit_v: 0
+
 
 	compoonentDidUpdate: (props)->
 		if @props.query_item != props.query_item
-			@setState
-				# query_saved: @props.isSavedQuery(@props.query_item)
-				unused_keys: @props.keys_array.filter (key)=>
-					@props.query_item?.layout_keys.indexOf(key) < 0
+			@setState @getInitialState()
+				
+
 
 	renderUnusedChip: (key_name)=>
 		key = @props.keys[key_name]	
@@ -131,29 +137,56 @@ class QueryBuilderView extends Component
 			
 
 	addKey: (key_name)=>
-		@setKeyIndex(key_name,@props.query_item.layout_keys.length)
+		@setKeyIndex(key_name,@state.layout_keys.length)
 
+
+	editQuery: ->
+		@props.editQuery
+			keyword_input: @state.keyword_input
+			json_input: @state.json_input
+			type: @state.query_type
+			search_key: @state.search_key
+			layout_keys: @state.layout_keys
+			sort_keys: @state.sort_keys
+
+
+	onClose: ()=>
+		if !@props.query_item.updated_at && @state.edit_v
+			@editQuery()
+
+		if @state.edit_v > 0
+			@props.runQuery()
+		
+
+	saveQuery: ()=>
+		if @state.edit_v > 0
+			@editQuery()
+			@state.edit_v = 0
+			@props.saveQuery()
+			@props.runQuery()
+		@props.closeHoverBox()
 
 
 	setKeyIndex: (key_name,index,sort_dir)=>
-		key_arr = [].concat @props.query_item.layout_keys
-		k_i = key_arr.indexOf key_name
-		sort_keys = @props.query_item.sort_keys
+		# log @state.layout_keys
+		layout_keys = @state.layout_keys
+		k_i = layout_keys.indexOf key_name
+		sort_keys = @state.sort_keys
 
 		if index >= 0
 			if k_i >= 0
-				key_arr.splice(k_i,1)
+				layout_keys.splice(k_i,1)
 			
-			f_i = _.findIndex @props.query_item.sort_keys,key:key_name
+			f_i = _.findIndex sort_keys,key:key_name
 
 			if sort_dir?
 				if f_i >= 0
 					sort_keys.splice(f_i,1)
 			
 				sort_keys = [].concat sort_keys
-				insert_index = Math.min(index,@props.query_item.sort_keys.length)
+				insert_index = Math.min(index,sort_keys.length)
 				
-				key_arr.splice(insert_index,0,key_name)
+				layout_keys.splice(insert_index,0,key_name)
 				
 				sort_keys.splice insert_index,0,
 					key: key_name
@@ -165,21 +198,24 @@ class QueryBuilderView extends Component
 					sort_keys.splice(f_i,1)
 
 				insert_index = index+sort_keys.length
-				key_arr.splice(insert_index,0,key_name)
+				layout_keys.splice(insert_index,0,key_name)
 
 
 		else
-			key_arr.splice(k_i,1)
-			f_i = _.findIndex @props.query_item.sort_keys,key:key_name
+			layout_keys.splice(k_i,1)
+			f_i = _.findIndex sort_keys,key:key_name
 			if f_i >= 0
-				@props.query_item.sort_keys.splice(f_i,1)
+				sort_keys.splice(f_i,1)
 			
 
-		await @props.editQuery
-			layout_keys: key_arr
-			sort_keys: sort_keys
+		# await @props.editQuery
+		# 	layout_keys: key_arr
+		# 	sort_keys: sort_keys
 
 		@setState
+			edit_v: @state.edit_v+1
+			sort_keys: sort_keys
+			layout_keys: layout_keys
 			sorted_provider_key: Date.now()
 		
 
@@ -237,7 +273,7 @@ class QueryBuilderView extends Component
 				return false
 			# if _.find(@props.query_item.sort_keys,key:e.draggableId)
 			if e.source.droppableId == 'drop-in-sorted'
-				@setKeyIndex(e.draggableId,e.destination.index,_.find(@props.query_item.sort_keys,key:e.draggableId).dir)
+				@setKeyIndex(e.draggableId,e.destination.index,_.find(@state.sort_keys,key:e.draggableId).dir)
 			else
 				@setKeyIndex(e.draggableId,e.destination.index,-1)
 
@@ -297,19 +333,19 @@ class QueryBuilderView extends Component
 		
 
 		h 'div',props,
-			@props.query_item.sort_keys.map (key,i)=>
+			@state.sort_keys.map (key,i)=>
 				key_name = key.key
-				sort_key_i = _.findIndex @props.query_item.sort_keys,key:key_name
+				sort_key_i = _.findIndex @state.sort_keys,key:key_name
 				h KeyChip,
-					key: key_name+'-sorted-'+String(+@props.query_item.sort_keys[sort_key_i].dir)
+					key: key_name+'-sorted-'+String(+@state.sort_keys[sort_key_i].dir)
 					index:i
 					offset_top: @props.offset_top
 					offset_left: @props.offset_left
 					setKeyIndex: @setKeyIndex
 					key_obj: @props.keys[key_name]
-					query_item: @props.query_item
+					layout_keys: @state.layout_keys
 					sort_key_i: sort_key_i
-					sort_key: @props.query_item.sort_keys[sort_key_i]
+					sort_key: @state.sort_keys[sort_key_i]
 					key_name: key_name
 			provided.placeholder
 
@@ -319,17 +355,17 @@ class QueryBuilderView extends Component
 			ref: provided.innerRef
 			className: css['chip-layout-editor-dropbox-part']
 
-		layout_keys = @props.query_item.layout_keys.filter (key_name)=>
+		layout_keys = @state.layout_keys.filter (key_name)=>
 			if !@props.keys[key_name]
 				return false
 
-			if _.find(@props.query_item.sort_keys,key:key_name)
+			if _.find(@state.sort_keys,key:key_name)
 				return false
 			return true
 
 		h 'div',props,
 			layout_keys.map (key_name,i)=>	
-				sort_key_i = _.findIndex @props.query_item.sort_keys,key:key_name		
+				sort_key_i = _.findIndex @state.sort_keys,key:key_name		
 				h KeyChip,
 					key: key_name
 					index:i
@@ -337,63 +373,62 @@ class QueryBuilderView extends Component
 					offset_left: @props.offset_left
 					setKeyIndex: @setKeyIndex
 					key_obj: @props.keys[key_name]
-					query_item: @props.query_item
 					sort_key_i: sort_key_i
-					sort_key: @props.query_item.sort_keys[sort_key_i]
+					layout_keys: @state.layout_keys
+					sort_key: @state.sort_keys[sort_key_i]
 					key_name: key_name
 			provided.placeholder
+	
 
+	getKeywordQueryObject: (keyword,search_key)=>
+		q_obj = {}
+		q_obj[search_key] = "//#{keyword.split(' ').join('|')}//ig"
+		return q_obj
 
 
 	onEditorValueChange: (val)=>
-		@props.editQuery
+		@state.json_error = undefined
+		@setState
+			edit_v: @state.edit_v+1
 			json_input: val
+		try
+			eval('('+val+')')
+		catch error
+			@setState
+				json_error: error
+
 		
+	clearQueryInput: ()=>
+		@setState
+			edit_v: @state.edit_v+1
+			json_error: undefined
+			json_input: undefined
+			keyword_input: undefined
 
 	onSetQueryType: (type)=>
-		@props.editQuery
-			type: type
-	
-
-	onBookmarkDecriptionInput: (e)=>
-		v = e.target.value
-		@setState
-			edit_v: @state.edit_v+1
-			bookmark_description:v
-			
-
-
-	onBookmarkLabelInput: (e)=>
-		v = e.target.value
-		bookmark_exists = @props.matchQueryByLabelPart(v)?
-		@setState
-			bookmark_label:v
-			edit_v: @state.edit_v+1
-			bookmark_label_invalid: if (bookmark_exists || v.length) < 4 then yes else if (!bookmark_exists && v.length >= 4) then no else undefined
-
-
-	toggleSavePublic: =>
-		@setState
-			edit_v: @state.edit_v+1
-			save_bookmark_public: !@state.save_bookmark_public
-
-
-	onSaveQuery: =>
-		if !@state.bookmark_label || !@state.bookmark_description
+		if @state.query_type == type
 			return false
+
+		if type == 'json'
+			@setState
+				edit_v: @state.edit_v+1
+				query_type: 'json'
+				json_input: @state.keyword_input && JSON.stringify(@getKeywordQueryObject(@state.keyword_input,@state.search_key || '_label'))
+				keyword_input: undefined
 		
-		@props.editQuery
-			label: @state.bookmark_label
-			description: @state.bookmark_description
-			is_public: @state.save_bookmark_public
-		@props.saveQuery()
-		# @props.runQuery()
+		else if type == 'keyword'
+			@setState
+				edit_v: @state.edit_v+1
+				query_type: 'keyword'
+				keyword_input: undefined
+				json_input: undefined
+				
 
 
 	onSelectQueryKey: (e)=>
-		@props.editQuery
+		@setState
+			edit_v: @state.edit_v+1
 			search_key: e.target.value
-		,@props.query_item
 
 
 	render: ->
@@ -408,12 +443,12 @@ class QueryBuilderView extends Component
 
 
 		@state.unused_keys = @props.keys_array.filter (key)=>
-			@props.query_item.layout_keys.indexOf(key) < 0
+			@state.layout_keys.indexOf(key) < 0
 
-		if qi.type == 'keyword'
+		if @state.query_type == 'keyword'
 			select_query_key_btn = h Input,
 				type: 'select'
-				value: qi.search_key
+				value: @state.search_key
 				btn_type: 'primary'
 				onInput: @onSelectQueryKey
 				i: 'title'
@@ -424,11 +459,11 @@ class QueryBuilderView extends Component
 						value: key_name
 						key.label
 
-		if qi.type == 'json'
+		if @state.query_type == 'json'
 			query_editor = h 'div',
 				className: cn css['react-json-container'],css['light'],'hide-scrollbar'
 				h CodeEditor,
-					value: @props.query_item.json_input || ''
+					value: @state.json_input || ''
 					onValueChange: @onEditorValueChange
 					highlight: (code)->
 						return highlight(code,languages.javascript)
@@ -447,12 +482,13 @@ class QueryBuilderView extends Component
 					big: yes
 					btn_type: 'flat'
 					onInput: (e)=>
-						@props.editQuery
+						@setState
 							keyword_input: e.target.value
-					value: qi.keyword_input
+							edit_v: @state.edit_v+1
+					value: @state.keyword_input
 					style: 
 						padding: '10px 20px'
-					placeholder: 'Search by '+@props.schema.keys[qi.search_key].label
+					placeholder: 'Search by '+@props.schema.keys[@state.search_key].label
 
 		
 
@@ -483,7 +519,7 @@ class QueryBuilderView extends Component
 
 
 
-		if @state.edit_v && @state.bookmark_description && @state.bookmark_label
+		if @state.edit_v && !@state.json_error && @props.query_item.label
 			save_query_btn = h Input,
 				i: 'save'
 				label: 'save'
@@ -492,7 +528,7 @@ class QueryBuilderView extends Component
 				margin_right: no
 				type: 'button'
 				btn_type: 'true'
-				onClick: @onSaveQuery
+				onClick: @saveQuery
 
 
 
@@ -502,7 +538,7 @@ class QueryBuilderView extends Component
 			margin_right: yes
 			btn_type: 'flat'
 			big: yes
-			i: qi.type == 'json' && 'code' || 'search'
+			i: @state.query_type == 'json' && 'code' || 'search'
 		
 		
 		h 'div',
@@ -568,12 +604,12 @@ class QueryBuilderView extends Component
 							type: 'button'
 							i: 'code'
 							onClick: @onSetQueryType.bind(@,'json')
-							btn_type: @props.query_item.type == 'json' && 'primary' || 'flat'
+							btn_type: @state.query_type == 'json' && 'primary' || 'flat'
 						h Input,
 							type: 'button'
 							i: 'search'
 							onClick: @onSetQueryType.bind(@,'keyword')
-							btn_type: @props.query_item.type == 'keyword' && 'primary' || 'flat'
+							btn_type: @state.query_type == 'keyword' && 'primary' || 'flat'
 					h 'div',
 						cn: 'top-left mpad'
 						select_query_key_btn
@@ -587,9 +623,9 @@ class QueryBuilderView extends Component
 						h Input,
 							type: 'button'
 							i: 'refresh'
-							btn_type: !qi.json_input && !qi.keyword_input && 'flat' || 'primary'
-							disabled: !qi.json_input && !qi.keyword_input
-							onClick: @props.clearQueryInput
+							btn_type: !@state.json_input && !@state.keyword_input && 'flat' || 'primary'
+							disabled: !@state.json_input && !@state.keyword_input
+							onClick: @clearQueryInput
 							
 					h 'div',
 						cn: 'bot-left pad'
@@ -597,12 +633,12 @@ class QueryBuilderView extends Component
 							cn: 'small-mono'
 							style:
 								color: @context.primary.inv[3]
-							'using '+@props.query_item.type
-						@props.query_item.type == 'json' && h 'span',
+							'using '+@state.query_type
+						@state.query_type == 'json' && h 'span',
 							cn: 'small-mono-fat pad-left'
 							style:
-								color: @props.query_item.error && @context.primary.false || @context.primary.true
-							@props.query_item.error || 'ok'
+								color: @state.json_error && @context.primary.false || @context.primary.true
+							@state.json_error?.message || 'ok'
 
 
 

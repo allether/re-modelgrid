@@ -48,7 +48,7 @@ class InputCell extends Component
 		if e.keyCode == 13
 			@_ref.blur()
 	
-	componentWillUpdate: (props)->
+	UNSAFE_componentWillUpdate: (props)->
 		if @props.value != props.value
 			@state.value = props.value
 	
@@ -477,7 +477,7 @@ class GridView extends Component
 			key._left = g_opts.style.left
 
 			v_w = key.label.length * CHAR_W + CELL_PAD*2 + 70
-			max_l = Math.floor( (key._c_w- CELL_PAD*2 - 70) / CHAR_W)
+			max_l = Math.floor( (key._c_w- CELL_PAD*2 - 30) / CHAR_W)
 			if v_w > key._c_w
 				if max_l <= 2
 					label_string = ''
@@ -532,15 +532,14 @@ class GridView extends Component
 						h 'i',
 							className: 'material-icons'
 							'fiber_manual_record'
-		
-			# log e_style
+
+
 			return h 'div',
 				className: css['model-grid-cell']
 				style: Object.assign g_style,g_opts.style,e_style
 				key: g_opts.key
-				sort_index_label
+				# sort_index_label
 				key_label
-				# lock_icon
 				sort_opts
 				resize_bar
 		

@@ -14,14 +14,35 @@ class TabsView extends Component
 
 
 	
-	renderTab: (qi)=>
+	renderTab: (qi,index)=>
 		if !@_first_query
 			@_first_query = qi
 
 		part_spans = []
 
 		cstyle = @props.query_style_map[qi._id] || @context
-		
+
+		if !@state.search_label && qi._id == @props.query_item?._id && index != -1
+			return h 'div',
+				className: 'lui-btn '+css['tab-btn']+' center'
+				key: qi._id+'-selected'
+				style: 
+					background: @context.primary.inv[1]
+					color: @context.primary.inv[3]
+					width: 260
+					cursor: 'default'
+				onMouseEnter: =>
+					@setState
+						hover_tab: qi._id
+				onMouseLeave: =>
+					@setState(hover_tab:undefined)
+				h 'i',
+					className: 'material-icons'
+					style:
+						fontSize: 32
+					'visibility'
+
+
 		if @state.search_label
 			f_i = qi.label.indexOf(@state.search_label)
 			if f_i >= 0
@@ -49,8 +70,18 @@ class TabsView extends Component
 
 
 
+		
+
+
+
+
+
+
+
+
 		if qi.color
 			i_color = cstyle.primary.inv[3]
+			i_color2 = cstyle.primary.inv[2]
 			color_dot = h 'div',
 				className: 'pad bot-left'
 				h 'div',
@@ -60,18 +91,21 @@ class TabsView extends Component
 						# border: "2px solid "+cstyle.primary.color[0]
 		else
 			i_color = cstyle.primary.color[3]
+			i_color2 = cstyle.primary.inv[3]
 
 		if @props.query_item._id == qi._id && qi._v == @props.query_item._v
 			if qi.color
 				btn_style = 
 					background: @state.hover_tab == qi._id && cstyle.primary.inv[1] || cstyle.primary.inv[0]
 					color: cstyle.primary.color[0]
+					color2: cstyle.primary.inv[3]
 					width: 260
 					cursor: 'pointer'
 			else
 				btn_style = 
 					background: @context.primary.color[0]
 					color: @context.primary.inv[0]
+					color2: @context.primary.inv[3]
 					width: 260
 					cursor: 'pointer'
 
@@ -79,8 +113,13 @@ class TabsView extends Component
 			btn_style = 
 				background: @state.hover_tab == qi._id && @context.primary.inv[2] || @context.primary.inv[1]
 				color: @context.primary.color[0]
+				color2: @context.primary.color[3]
 				width: 260
 				cursor: 'pointer'
+
+		qi_user = face.state.user_map.get(qi.user_id)
+		if qi_user
+			qi_user_label = qi_user.first_name[0]+qi_user.last_name[0]
 
 
 
@@ -95,6 +134,15 @@ class TabsView extends Component
 				@setState(hover_tab:undefined)
 
 			onClick: @selectQuery.bind(@,qi)
+			qi.icon && (h 'div',
+				className: 'bot-right pad'
+				h 'span',
+					className: 'material-icons'
+					style:
+						color: i_color2
+						fontSize: '40px'
+					qi.icon
+			)
 			h 'span',
 				className: cn 'mid-mono-fat',css['tab-title']
 				style:
@@ -105,13 +153,22 @@ class TabsView extends Component
 				style:
 					whiteSpace: 'normal'
 				qi.description
-			qi.is_public && (h 'span',
-				className: 'material-icons top-right pad'
-				style:
-					color: i_color
-					fontSize: '16px'
-				'public'
+			
+			qi.is_public && (h 'div',
+				className: 'top-right pad flex-right'
+				h 'span',
+					className: 'reg-mono margin-right'
+					style:
+						color: btn_style.color2
+					qi_user_label
+				h 'span',
+					className: 'material-icons'
+					style:
+						color: i_color
+						fontSize: '16px'
+					'public'
 			) || null
+
 			color_dot
 
 	renderSeperator: =>
@@ -135,8 +192,8 @@ class TabsView extends Component
 		@_first_query = null
 		arr = arr.filter (qi,i)=>
 			if !@state.search_label
-				if qi._id == @props.query_item?._id
-					return false
+				# if qi._id == @props.query_item?._id
+				# 	return {_SELECT:qi}
 				return true
 			else if qi.label.indexOf(@state.search_label) >= 0
 				return true
@@ -147,7 +204,7 @@ class TabsView extends Component
 		
 		if @props.query_item?.updated_at && !@state.search_label
 			arr.unshift @renderSeperator()
-			arr.unshift(@renderTab(@props.query_item))
+			arr.unshift(@renderTab(@props.query_item,-1))
 
 
 		return arr
