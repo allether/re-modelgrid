@@ -21,7 +21,7 @@ class QuerySaverView extends Component
 
 
 	onBookmarkLabelInput: (e)=>
-		v = e.target.value
+		v = String(e.target.value).toLocaleLowerCase()
 		bookmark_exists = @props.matchQueryByLabelPart(v)?
 		@setState
 			bookmark_label:v

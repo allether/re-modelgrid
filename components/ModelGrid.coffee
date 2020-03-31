@@ -365,8 +365,6 @@ class ModelGrid extends Component
 
 		qi = @state.query_item
 
-		# if qi.error
-		# 	return
 
 
 		qi.called_at = Date.now()
@@ -390,10 +388,13 @@ class ModelGrid extends Component
 		if q_i.keyword_input
 			q_i.json_input = JSON.stringify(@getKeywordQueryObject(q_i.keyword_input,q_i))
 		
-		q_i.value = eval('('+q_i.json_input+')')
+		try
+			q_i.value = eval("#{q_i.json_input}")
+		catch error
+			@props.onError?(error)
+			return
 		
 
-		# log q_i.value
 
 		if qi.call_count == 1
 			@pushQuery(qi)

@@ -392,9 +392,10 @@ class QueryBuilderView extends Component
 			edit_v: @state.edit_v+1
 			json_input: val
 		try
-			eval('('+val+')')
+			eval("#{val}")
 		catch error
 			@setState
+				edit_v: @state.edit_v+1
 				json_error: error
 
 		
