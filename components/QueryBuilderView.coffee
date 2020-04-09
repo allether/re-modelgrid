@@ -154,6 +154,9 @@ class QueryBuilderView extends Component
 		if !@props.query_item.updated_at && @state.edit_v
 			@editQuery()
 
+		else if @state.edit_v
+			await @props.cloneQueryAndSet()
+
 		if @state.edit_v > 0
 			@props.runQuery()
 		

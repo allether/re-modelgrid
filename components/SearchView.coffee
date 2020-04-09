@@ -31,20 +31,52 @@ class SearchView extends Component
 		if @state.run_query_interval
 			@toggleQueryInterval()
 
+	
+	# onBlur: =>
+		# if @state.search_called
+		# 	return false
+		# else if @state.search_value[0] == '/'
+		# 	@setState
+		# 		search_value:'/'+@props.query_item.label
+			# @props.onSearchInputLabel("")
+		
+
+		# if @state.search_value[0] == '/' && @state.search_v && !@state.search_c
+		# 	# await @props.selectFirstSearchQuery()
+		# 	@setState
+		# 		search_value:'/'+@props.query_item.label
+		# 	@props.onSearchInputLabel("")
+			
+
+		# @onSearchEnter()
+
 
 	onSearchEnter: =>
+
+		# log @state.search_v
+		@setState
+			search_called: yes
+		
 		if @state.search_value[0] == '/' && @state.search_v
-			if !@props.selectFirstSearchQuery()
-				@setState
-					search_value:'/'+@props.query_item.label
+			log 'SELECT FIRST SEARCH QUERY'
+			await @props.selectFirstSearchQuery()
+			@setState
+				search_value:'/'+@props.query_item.label
+
 		
 		else
 			if @props.query_item
+
+				if @state.search_value[0] == '/'
+					@setState
+						search_value:'/'+@props.query_item.label
 				if @props.query_item.called_at
 					await @props.cloneQueryAndSet
 						keyword_input: @state.search_value
+						json_input: undefined
+						type: 'keyword'
 						
-				else 
+				else
 					await @props.editQuery
 						keyword_input: @state.search_value
 						json_input: undefined
@@ -65,7 +97,7 @@ class SearchView extends Component
 
 	setSearchValue: (e)=>
 		@setState
-			query_item: undefined
+			search_called: false
 			search_v: @state.search_v+1
 			search_value: e.target.value
 		if e.target.value?[0] == '/'
@@ -169,16 +201,12 @@ class SearchView extends Component
 							@_search.blur()
 						else if e.nativeEvent.code == "Enter"
 							@onSearchEnter()
-				# i: 'search'
-
 				style: 
 					width: SEARCH_BAR_WIDTH - 40 - 40
 				value: @state.search_value
 				overlay_input: autofill_label
 				bar_style: bar_style
 				onInput: @setSearchValue
-				onBlur: @onSearchEnter
-				# onEnter: @onSearchEnter
 				bar: yes
 				placeholder: 'keyword | /bookmark'
 			
@@ -199,7 +227,7 @@ class SearchView extends Component
 		h 'div',
 			className: 'overlay'
 			h 'div',
-				cn: 'flex-right pad bot-left'
+				cn: 'flex-right pad2 bot-left'
 				style:
 					# bottom: '12px'
 					paddingTop: 0
@@ -226,7 +254,7 @@ class SearchView extends Component
 								@_save_btn = el._outer
 					
 			h 'div',
-				className: 'flex-right pad bot-center'
+				className: 'flex-right pad2 bot-center'
 				style:
 					paddingTop: 0
 					# bottom: '12px'
@@ -242,7 +270,7 @@ class SearchView extends Component
 					i: 'keyboard_arrow_right'
 					onClick: @props.navNextQuery
 			h 'div',
-				className: 'pad bot-right'
+				className: 'pad2 bot-right'
 				# style:
 					# bottom: '12px'
 				edit_doc_json_button

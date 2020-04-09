@@ -247,7 +247,7 @@ class TabsView extends Component
 			dim: DIM2*3
 			vert: no
 			scroll: yes
-			className: 'hide-scrollbar'
+			className: 'slim-scrollbar'
 			ref: (el)=>
 				@_list = el?._outer
 			query_tabs
