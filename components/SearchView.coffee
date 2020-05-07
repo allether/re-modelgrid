@@ -271,8 +271,6 @@ class SearchView extends Component
 					onClick: @props.navNextQuery
 			h 'div',
 				className: 'pad2 bot-right'
-				# style:
-					# bottom: '12px'
 				edit_doc_json_button
 
 

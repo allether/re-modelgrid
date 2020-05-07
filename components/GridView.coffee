@@ -255,8 +255,9 @@ class GridView extends Component
 		key = @props.schema.keys[key_name]
 
 		if !key
-			console.error @props.schema.keys
-			throw new Error 'schema key not found: '+key_name
+			console.error  'schema key not found: '+key_name
+			return null
+			# throw new Error 'schema key not found: '+key_name
 
 		key._name = key_name
 		key.col_width = Math.max(key.min_width||100,key.label.length* CHAR_W + CELL_PAD*2 + 70)

@@ -142,7 +142,7 @@ class ModelGrid extends Component
 		Object.assign @state,m_state
 
 
-	saveLocalState: ()->
+	saveLocalState: ()=>
 
 		save_str = JSON.stringify
 			schema_queries: @state.schema_queries
@@ -240,10 +240,10 @@ class ModelGrid extends Component
 
 		if !@state.schema_queries[@state.schema.name].length
 			@state.query_item = @createNewQuery(@state.schema)
-			@log 'decideQueryItem',@state.query_item._id
+			# @log 'decideQueryItem NEW',@state.query_item._id
 		else
 			@state.query_item = @state.schema_queries[@state.schema.name][query_index]
-			@log 'decideQueryItem',@state.query_item._id
+			# @log 'decideQueryItem FROM STATE',@state.query_item._id
 
 
 
@@ -298,6 +298,10 @@ class ModelGrid extends Component
 		@state.scroll_top = 0
 		@state.query_item = query_item
 		@runQuery()
+		setTimeout @saveLocalState,0
+		@pushQuery(@state.query_item)
+		
+		# @saveSchemaState()
 		return true
 
 	selectQueryByLabel: (query_label)=>
@@ -318,6 +322,7 @@ class ModelGrid extends Component
 
 
 	getSchemaPublicQueries: ()->
+		# @log 'getSchemaPublicQueries'
 		schema_name = @state.schema.name
 		public_queries = await @props.getSchemaPublicQueries(schema_name,@props.user_id)
 		@state.public_schema_queries[schema_name] = public_queries || []
@@ -327,6 +332,7 @@ class ModelGrid extends Component
 
 
 	getSchemaPrivateQueries: ()->
+		# @log 'getSchemaPrivateQueries'
 		schema_name = @state.schema.name
 		private_queries = await @props.getSchemaPrivateQueries(schema_name,@props.user_id)
 		@state.private_schema_queries[schema_name] = private_queries || []
@@ -335,6 +341,8 @@ class ModelGrid extends Component
 		@setState({})
 
 	pushQuery: (qi)->
+		if !qi
+			return false
 		@log 'pushQuery'
 		schema_queries = @state.schema_queries[@state.schema.name]
 		schema_queries.push qi
@@ -615,20 +623,33 @@ class ModelGrid extends Component
 
 		@state.mapped_queries_v = Date.now()
 		queries = @state.schema_queries[schema_name]
-		
-		@log 'mapSchemaQueries'
+
+		# @log 'mapSchemaQueries',queries
 		for query_item,i in queries	
 			f_q = _.find(priv_books,{_id:query_item._id})
-			if f_q && f_q._v != query_item._v
-				@resetQuerySaveState(query_item)
-				@resetQueryId(query_item)
-			else
-				f_q = _.find(pub_books,{_id:query_item._id})
-				if f_q && f_q._v != query_item._v
+			if f_q
+				if f_q._v != query_item._v
 					@resetQuerySaveState(query_item)
 					@resetQueryId(query_item)
-				else if !f_q
+				else
+					# @log "SET FOUND QUERY"
+					@state.schema_queries[schema_name][i] = f_q
+					if @state.query_item?._id == f_q._id && @state.query_item._v == f_q._v
+						@state.query_item = f_q
+			else
+				f_q = _.find(pub_books,{_id:query_item._id})
+				if f_q 
+					if f_q._v != query_item._v
+						@resetQuerySaveState(query_item)
+						@resetQueryId(query_item)
+					else
+						# @log "SET FOUND QUERY"
+						@state.schema_queries[schema_name][i] = f_q
+						if @state.query_item?._id == f_q._id && @state.query_item._v == f_q._v
+							@state.query_item = f_q
+				else
 					@resetQuerySaveState(query_item)
+		
 		@saveLocalState()
 	
 	setQueryStyle: (query_item)=>

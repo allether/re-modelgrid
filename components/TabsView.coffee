@@ -156,15 +156,15 @@ class TabsView extends Component
 			
 			qi.is_public && (h 'div',
 				className: 'top-right pad flex-right'
-				h 'span',
-					className: 'reg-mono margin-right'
-					style:
-						color: btn_style.color2
-					qi_user_label
+				# h 'span',
+				# 	className: 'reg-mono margin-right'
+				# 	style:
+				# 		color: btn_style.color2
+				# 	qi_user_label
 				h 'span',
 					className: 'material-icons'
 					style:
-						color: i_color
+						# color: i_color
 						fontSize: '16px'
 					'public'
 			) || null
