@@ -464,7 +464,7 @@ class ModelGrid extends Component
 		qi._id = Date.now().toString(24)
 
 	resetQuerySaveState: (qi)->
-		@log 'resetQuerySaveState'
+		# @log 'resetQuerySaveState'
 		qi.called_at = undefined
 		qi.updated_at = undefined
 		qi.created_at = undefined
