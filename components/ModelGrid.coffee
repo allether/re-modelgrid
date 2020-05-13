@@ -1125,7 +1125,8 @@ class ModelGrid extends Component
 		@g_props.methods = @props.methods
 		@g_props.filter = @props.filter
 		@g_props.schema_state = @state.schema_states[@state.schema.name]
-
+		@g_props.window_height = @props.window_height
+		@g_props.window_width = @props.window_width
 		@g_props.public_queries = @state.public_schema_queries[@state.schema.name]
 		@g_props.private_queries = @state.private_schema_queries[@state.schema.name]
 		@g_props._pc_is_dark = @_pc_is_dark
@@ -1133,7 +1134,7 @@ class ModelGrid extends Component
 
 		# log @state.query_item._id
 
-
+		# log @props.window_width
 		style = {}
 		style.visiblity = @state.is_visible && 'visible' || 'hidden'
 		
@@ -1170,109 +1171,116 @@ class ModelGrid extends Component
 		# log @state.query_item._id
 
 
+		# h Slide,
+		# 	ref: @baseRef
+		# 	slide: yes
+		# 	beta: @props.beta
+		# 	style: Object.assign style,@props.style
+		# 	className: cn css['model-grid'],'scrollbar'
+		# 	pos: !@state.show_json_view && 1 || 0
+		# 	vert: no
+		# 	outerChildren: hover_box
+			
+			# h Slide,
+			# 	className: css['react-json-wrap']
+			# 	style:
+			# 		background: @context.primary.inv[1]
+			# 	beta: 50
+			# 	vert: yes
+			# 	h Bar,
+			# 		big: yes
+			# 		h Input,
+			# 			style:
+			# 				width: '50%'
+			# 				whiteSpace: 'nowrap'
+			# 			type: 'label'
+			# 			btn_type: 'primary'
+			# 			disabled: !@state.editor_error
+			# 			i: @state.editor_error && 'error' || 'check'
+			# 			label: @state.editor_error || 'ok'
+			# 		h Input,
+			# 			type: 'button'
+			# 			i : 'save'
+			# 			btn_type: 'primary'
+			# 			style:
+			# 				maxWidth: 'fit-content'
+			# 			label: String(@state.editor_patches.length).padEnd(2)
+			# 			disabled: !@state.editor_patches.length || @state.editor_error?
+			# 			onClick: @updateDataItem
+			# 			@state.editor_patches.length > 0 && h AlertDot
+			# 		h Input,
+			# 			type: 'button'
+			# 			i : 'refresh'
+			# 			onClick: @getDataItem
+			# 		h Input,
+			# 			type: 'button'
+			# 			i : 'close'
+			# 			onClick: @closeJSONView
+				
+			# 	h Slide,
+			# 		className: cn css['react-json-container'],@_pc_is_dark && css['dark'] || css['light']
+			# 		@state.show_json_view && @state.data_item && h CodeEditor,
+			# 			value: @state.editor_value || '{}'
+			# 			onValueChange: @onEditorValueChange
+			# 			highlight: (code)->
+			# 				return highlight(code,languages.json)
+			# 			padding: 13
+			# 			style:
+			# 				fontFamily: 'monor, monospace'
+			# 				height: 'fit-content'
+			# 				fontSize: 13
+				
+			# 	h Slide,
+			# 		dim: DIM2
+			# 		vert: yes
+			# 		scroll: yes
+			# 		style:
+			# 			background: @context.primary.inv.darker[4]
+			# 		@state.editor_patches.map (patch,i)=>
+			# 			h JsonView,
+			# 				key: 'patch-'+i
+			# 				style:
+			# 					width: '100%'
+			# 					background: i%2 != 0 && @context.primary.inv[2]
+			# 					padding: 13
+			# 				json: patch
+			# 				trim: yes
+			# 				colors:
+			# 					key: @context.primary.color[1]
+			# 					number: 'orange'
+			# 					string: @context.primary.true
+			# 					boolean: @context.primary.false
+
+			
 		h Slide,
 			ref: @baseRef
-			slide: yes
+			# slide: yes
 			beta: @props.beta
 			style: Object.assign style,@props.style
 			className: cn css['model-grid'],'scrollbar'
 			pos: !@state.show_json_view && 1 || 0
-			vert: no
+			vert: yes
 			outerChildren: hover_box
-			
-			h Slide,
-				className: css['react-json-wrap']
-				style:
-					background: @context.primary.inv[1]
-				beta: 50
-				vert: yes
-				h Bar,
-					big: yes
-					h Input,
-						style:
-							width: '50%'
-							whiteSpace: 'nowrap'
-						type: 'label'
-						btn_type: 'primary'
-						disabled: !@state.editor_error
-						i: @state.editor_error && 'error' || 'check'
-						label: @state.editor_error || 'ok'
-					h Input,
-						type: 'button'
-						i : 'save'
-						btn_type: 'primary'
-						style:
-							maxWidth: 'fit-content'
-						label: String(@state.editor_patches.length).padEnd(2)
-						disabled: !@state.editor_patches.length || @state.editor_error?
-						onClick: @updateDataItem
-						@state.editor_patches.length > 0 && h AlertDot
-					h Input,
-						type: 'button'
-						i : 'refresh'
-						onClick: @getDataItem
-					h Input,
-						type: 'button'
-						i : 'close'
-						onClick: @closeJSONView
+			# style:
+			# 	transform: 'translate(0)'
+			# beta: @state.show_json_view && 50 || 100
+			h TabsView,
+				selectQuery: @selectQuery
+				setFirstSearchQuery: @setFirstSearchQuery
+				query_item: @state.query_item
+				public_queries: @g_props.public_queries
+				private_queries: @g_props.private_queries
+				query_style_map: @g_props.query_style_map
+				ref: (el)=>
+					@_tabs_view = el 
+			h GridView,@g_props
+			h Style,
+				primary:'#2c2e30'
+				primary_inv: '#fff'
+				secondary: @context.secondary.color[0]
+				secondary_inv: @context.secondary.inv[0]
+				h SearchView,@g_props
 				
-				h Slide,
-					className: cn css['react-json-container'],@_pc_is_dark && css['dark'] || css['light']
-					@state.show_json_view && @state.data_item && h CodeEditor,
-						value: @state.editor_value || '{}'
-						onValueChange: @onEditorValueChange
-						highlight: (code)->
-							return highlight(code,languages.json)
-						padding: 13
-						style:
-							fontFamily: 'monor, monospace'
-							height: 'fit-content'
-							fontSize: 13
-				
-				h Slide,
-					dim: DIM2
-					vert: yes
-					scroll: yes
-					style:
-						background: @context.primary.inv.darker[4]
-					@state.editor_patches.map (patch,i)=>
-						h JsonView,
-							key: 'patch-'+i
-							style:
-								width: '100%'
-								background: i%2 != 0 && @context.primary.inv[2]
-								padding: 13
-							json: patch
-							trim: yes
-							colors:
-								key: @context.primary.color[1]
-								number: 'orange'
-								string: @context.primary.true
-								boolean: @context.primary.false
-
-			
-			h Slide,
-				vert: yes
-				style:
-					transform: 'translate(0)'
-				beta: @state.show_json_view && 50 || 100
-				h TabsView,
-					selectQuery: @selectQuery
-					setFirstSearchQuery: @setFirstSearchQuery
-					query_item: @state.query_item
-					public_queries: @g_props.public_queries
-					private_queries: @g_props.private_queries
-					query_style_map: @g_props.query_style_map
-					ref: (el)=>
-						@_tabs_view = el 
-				h GridView,@g_props
-				h Style,
-					primary:'#2c2e30'
-					primary_inv: '#fff'
-					secondary: @context.secondary.color[0]
-					secondary_inv: @context.secondary.inv[0]
-					h SearchView,@g_props
-					
 
 
 

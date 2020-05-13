@@ -620,6 +620,7 @@ class GridView extends Component
 	componentDidUpdate: (props)->
 		if @base
 			@_rect = @base?.getBoundingClientRect()
+			# log @_rect.width
 			if @state.grid_w != @base.clientWidth || @state.grid_h != @base.clientHeight
 				# log 'update grid size',@props.schema.name,@base.clientHeight,@base.clientWidth
 
