@@ -48,7 +48,9 @@ var cfg = {
 	externals: ["date-fns","re-lui","react-dom","hotkeys-js","react","lodash","classnames","color","re-slide","react-json-view","react-virtualized/dist/commonjs/MultiGrid","react-virtualized/dist/commonjs/List","react-virtualized/dist/commonjs/CellMeasurer"],
 	output: {
 		filename: "re-modelgrid.js",
-		libraryTarget: 'commonjs2'
+		libraryTarget: 'commonjs2',
+		path: path.join(__dirname,'..','/dist'),
+		publicPath: '/dist'
 	},
 	plugins:[extract_css]
 }

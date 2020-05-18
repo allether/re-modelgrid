@@ -408,8 +408,8 @@ class GridView extends Component
 		key = schema.keys[key_name]
 		edit_key = !is_key && @state.edit_key == key_name && is_selected
 		if !key
-			throw new Error 'invalid key '+key_name
-		
+			console.warn 'invalid key '+key_name
+			return null
 		
 		if !is_key
 			value = data[g_opts.rowIndex-1][key_name]
