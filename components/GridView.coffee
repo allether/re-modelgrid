@@ -248,7 +248,7 @@ class GridView extends Component
 		key_name = @props.query_item.layout_keys[g_opts.index]
 		if !key_name
 			console.warn g_opts.index,@props.query_item.layout_keys
-			return null
+			return 100
 		
 
 
@@ -256,7 +256,7 @@ class GridView extends Component
 
 		if !key
 			console.error  'schema key not found: '+key_name
-			return null
+			return 100
 			# throw new Error 'schema key not found: '+key_name
 
 		key._name = key_name
@@ -346,8 +346,12 @@ class GridView extends Component
 				style: Object.assign g_style,g_opts.style
 				key: g_opts.key
 				# h 'div',{},'test'
+		
+		key_name = @props.query_item.layout_keys[g_opts.columnIndex]
+		key = schema.keys[key_name]
+		edit_key = !is_key && @state.edit_key == key_name && is_selected
 
-			# return null
+		
 		
 		if !is_key && @props.data_item_id
 			is_selected = @props.data_item_id == doc._id
@@ -372,27 +376,34 @@ class GridView extends Component
 		if g_opts.rowIndex != 0 && is_selected
 			g_style.background = @context.secondary.color[1]
 	
+		if !is_key
+			if !data[g_opts.rowIndex-1].__filled_doc && ( key.fill || schema.fill)
+				data[g_opts.rowIndex-1].__filled_doc = _.cloneDeep(data[g_opts.rowIndex-1])
+				fill_fn = key.fill || schema.fill
+				fill_fn(data[g_opts.rowIndex-1].__filled_doc)
+				data_obj = data[g_opts.rowIndex-1].__filled_doc
+			else if data[g_opts.rowIndex-1].__filled_doc
+				data_obj = data[g_opts.rowIndex-1].__filled_doc
+			else
+				data_obj = data[g_opts.rowIndex-1]
+
 
 		if schema.rowColor && doc
-			r_color = schema.rowColor(schema,doc,g_opts.rowIndex)
+			r_color = schema.rowColor(schema,doc.__filled_doc,g_opts.rowIndex)
 			g_style.background = r_color[0]
 			g_style.color = r_color[1]
 
-		
+
 
 		if is_selected && schema.rowColorSelect
-			r_color = schema.rowColorSelect(schema,doc,g_opts.rowIndex)
+			r_color = schema.rowColorSelect(schema,doc.__filled_doc,g_opts.rowIndex)
 			g_style.background = r_color[0]
 			g_style.color = r_color[1]
-		
+
 
 		# if g_opts.columnIndex == 0
 		# 	if is_key
 		# 		return null
-			
-			
-			
-			
 		# 	# g_opts.style.width = '100%'
 		# 	return h 'div',
 		# 		style: Object.assign g_style,g_opts.style
@@ -404,9 +415,7 @@ class GridView extends Component
 		# 			is_selected && 'arrow_forward' || 'more_horiz'
 		# else
 		
-		key_name = @props.query_item.layout_keys[g_opts.columnIndex]
-		key = schema.keys[key_name]
-		edit_key = !is_key && @state.edit_key == key_name && is_selected
+		
 		if !key
 			console.warn 'invalid key '+key_name
 			return null
@@ -548,15 +557,7 @@ class GridView extends Component
 		
 		
 		
-		if !data[g_opts.rowIndex-1].__filled_doc && ( key.fill || schema.fill)
-			data[g_opts.rowIndex-1].__filled_doc = _.cloneDeep(data[g_opts.rowIndex-1])
-			fill_fn = key.fill || schema.fill
-			fill_fn(data[g_opts.rowIndex-1].__filled_doc)
-			data_obj = data[g_opts.rowIndex-1].__filled_doc
-		else if data[g_opts.rowIndex-1].__filled_doc
-			data_obj = data[g_opts.rowIndex-1].__filled_doc
-		else
-			data_obj = data[g_opts.rowIndex-1]
+	
 
 		# log data_obj.__filled
 			

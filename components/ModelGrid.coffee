@@ -386,6 +386,11 @@ class ModelGrid extends Component
 		qi = @state.query_item
 
 
+		qi.layout_keys = qi.layout_keys.filter (key,i)=>
+			if !@state.schema.keys[key]
+				return false
+			return true
+
 
 		qi.called_at = Date.now()
 		qi.completed_at = null
