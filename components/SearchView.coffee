@@ -17,6 +17,7 @@ class SearchView extends Component
 		super(props)
 		@state = 
 			search_v: 0
+			search_bar_hidden: true
 			q_v: props.query_item?._v
 			search_value: (props.query_item?.updated_at && '/'+props.query_item.label) || props.query_item?.keyword_input || ""
 
@@ -129,8 +130,13 @@ class SearchView extends Component
 
 	onShowSaveHoverBox: (e)=>
 		@props.showQuerySaverHoverBox(@_save_btn)
-
-
+	
+	showSearchBar: =>
+		@setState
+			search_bar_hidden: false
+	hideSearchBar: =>
+		@setState
+			search_bar_hidden: true
 
 	render: ->
 		props = @props
@@ -214,13 +220,32 @@ class SearchView extends Component
 
 
 
-		edit_doc_json_button = h Input,
-			type: 'button'
-			i: 'edit'
-			className: 'shadow'
-			btn_type: !@props.data_item_id && 'flat'
-			big: yes
-			disabled: yes
+		edit_doc_json_button =
+		h 'div',
+			className: 'pad2 bot-right'
+			if @state.search_bar_hidden
+				h Input,
+					type: 'button'
+					i: 'visibility'
+					className: 'shadow'
+					btn_type: !@props.data_item_id && 'flat'
+					big: yes
+					onClick: @showSearchBar
+			else
+				h Input,
+					type: 'button'
+					i: 'visibility_off'
+					className: 'shadow'
+					btn_type: !@props.data_item_id && 'flat'
+					big: yes
+					onClick: @hideSearchBar
+			h Input,
+				type: 'button'
+				i: 'edit'
+				className: 'shadow'
+				btn_type: !@props.data_item_id && 'flat'
+				big: yes
+				disabled: yes
 		
 		
 
@@ -252,26 +277,24 @@ class SearchView extends Component
 						ref: (el)=>
 							if el
 								@_save_btn = el._outer
-					
-			h 'div',
-				className: 'flex-right pad2 bot-center'
-				style:
-					paddingTop: 0
-					# bottom: '12px'
-				h Input,
-					type: 'button'
-					i: 'keyboard_arrow_left'
-					disabled: @props.query_index == 0
-					onClick: @props.navPrevQuery
-				search_input
-				h Input,
-					type: 'button'
-					disabled: @props.query_index == @props.queries.length-1
-					i: 'keyboard_arrow_right'
-					onClick: @props.navNextQuery
-			h 'div',
-				className: 'pad2 bot-right'
-				edit_doc_json_button
+			if !@state.search_bar_hidden		
+				h 'div',
+					className: 'flex-right pad2 bot-center'
+					style:
+						paddingTop: 0
+						# bottom: '12px'
+					h Input,
+						type: 'button'
+						i: 'keyboard_arrow_left'
+						disabled: @props.query_index == 0
+						onClick: @props.navPrevQuery
+					search_input
+					h Input,
+						type: 'button'
+						disabled: @props.query_index == @props.queries.length-1
+						i: 'keyboard_arrow_right'
+						onClick: @props.navNextQuery
+			edit_doc_json_button
 
 
 SearchView.contextType = StyleContext
