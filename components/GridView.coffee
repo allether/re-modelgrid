@@ -1,5 +1,6 @@
 
 {MultiGrid} = require 'react-virtualized/dist/commonjs/MultiGrid'
+{Grid} = require 'react-virtualized/dist/commonjs/Grid'
 cn = require 'classnames'
 Slide = require 're-slide'
 {Input,MenuTab,Menu,Bar,Overlay,StyleContext} = require 're-lui'
@@ -560,16 +561,17 @@ class GridView extends Component
 	
 
 		# log data_obj.__filled
-			
-
+		display_user = face.getCachedUser(data[g_opts.rowIndex-1].tracked_user)
 		return h 'div',
 			style: Object.assign g_style,g_opts.style,e_style
 			key: g_opts.key
 			h 'div',
 				onMouseDown: !is_selected && @selectDataItem.bind(null,data[g_opts.rowIndex-1]) || undefined
 				className: css['model-grid-cell']+' '+(is_selected && css['model-grid-cell-selected'] || '')
-				key.render && key.render(schema,data_obj) || value
-
+				if schema.name is 'week'
+					display_user.name+' '+data[g_opts.rowIndex-1].created_at
+				else 
+					key.render && key.render(schema,data_obj) || value
 
 	
 
@@ -767,26 +769,41 @@ class GridView extends Component
 
 		# log @props.scroll_top
 		# log scroll_to_col
-		
-		grid = h MultiGrid,
-			styleTopRightGrid:
-				background: @context.primary.inv[1]
-				borderBottom: '2px solid rgba(0,0,0,0.6)'
-			className: css['model-grid-list']
-			ref: @gridRef
-			onScroll: @onScroll
-			cellRenderer: @renderCell
-			columnWidth: @columnWidth
-			columnCount: (query_item.layout_keys.length + 1) || 0
-			fixedRowCount:1
-			scrollToRow: if @state.scroll_to_row? then @state.scroll_to_row else undefined
-			scrollToAlignment: 'auto'
-			scrollTop: if @state.trigger_scroll_top? then @state.trigger_scroll_top else undefined
-			scrollToColumn: if @state.scroll_to_col? then @state.scroll_to_col else undefined
-			height: @state.grid_h
-			width: @state.grid_w
-			rowHeight: @rowHeight
-			rowCount:Math.max(data.length+1,2)
+
+		if schema.name is 'week'
+			grid = h Grid,
+				styleTopRightGrid:
+					background: @context.primary.inv[1]
+					borderBottom: '2px solid rgba(0,0,0,0.6)'
+				className: css['model-grid-list']
+				ref: @gridRef
+				cellRenderer: @renderCell
+				columnCount: 1
+				columnWidth: @state.grid_w
+				height: @state.grid_h
+				rowCount: Math.max(data.length+1,2)
+				rowHeight: @rowHeight
+				width: @state.grid_w
+		else
+			grid = h MultiGrid,
+				styleTopRightGrid:
+					background: @context.primary.inv[1]
+					borderBottom: '2px solid rgba(0,0,0,0.6)'
+				className: css['model-grid-list']
+				ref: @gridRef
+				onScroll: @onScroll
+				cellRenderer: @renderCell
+				columnWidth: @columnWidth
+				columnCount: (query_item.layout_keys.length + 1) || 0
+				fixedRowCount:1
+				scrollToRow: if @state.scroll_to_row? then @state.scroll_to_row else undefined
+				scrollToAlignment: 'auto'
+				scrollTop: if @state.trigger_scroll_top? then @state.trigger_scroll_top else undefined
+				scrollToColumn: if @state.scroll_to_col? then @state.scroll_to_col else undefined
+				height: @state.grid_h
+				width: @state.grid_w
+				rowHeight: @rowHeight
+				rowCount:Math.max(data.length+1,2)
 
 
 
