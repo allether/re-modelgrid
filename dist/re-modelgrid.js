@@ -696,7 +696,10 @@ GridView = class GridView extends Component {
     }, h('div', {
       onMouseDown: !is_selected && this.selectDataItem.bind(null, data[g_opts.rowIndex - 1]) || void 0,
       className: css['model-grid-cell'] + ' ' + (is_selected && css['model-grid-cell-selected'] || '')
-    }, schema.name === 'week' ? display_user.name + ' ' + data[g_opts.rowIndex - 1].created_at : key.render && key.render(schema, data_obj) || value));
+    // if schema.name is 'week'
+    // 	display_user.name+' '+data[g_opts.rowIndex-1].created_at
+    // else 
+    }, key.render && key.render(schema, data_obj) || value));
   }
 
   getGridKey(props) {
@@ -930,45 +933,43 @@ GridView = class GridView extends Component {
     }
     // log @props.scroll_top
     // log scroll_to_col
-    if (schema.name === 'week') {
-      grid = h(Grid, {
-        styleTopRightGrid: {
-          background: this.context.primary.inv[1],
-          borderBottom: '2px solid rgba(0,0,0,0.6)'
-        },
-        className: css['model-grid-list'],
-        ref: this.gridRef,
-        cellRenderer: this.renderCell,
-        columnCount: 1,
-        columnWidth: this.state.grid_w,
-        height: this.state.grid_h,
-        rowCount: Math.max(data.length + 1, 2),
-        rowHeight: this.rowHeight,
-        width: this.state.grid_w
-      });
-    } else {
-      grid = h(MultiGrid, {
-        styleTopRightGrid: {
-          background: this.context.primary.inv[1],
-          borderBottom: '2px solid rgba(0,0,0,0.6)'
-        },
-        className: css['model-grid-list'],
-        ref: this.gridRef,
-        onScroll: this.onScroll,
-        cellRenderer: this.renderCell,
-        columnWidth: this.columnWidth,
-        columnCount: (query_item.layout_keys.length + 1) || 0,
-        fixedRowCount: 1,
-        scrollToRow: this.state.scroll_to_row != null ? this.state.scroll_to_row : void 0,
-        scrollToAlignment: 'auto',
-        scrollTop: this.state.trigger_scroll_top != null ? this.state.trigger_scroll_top : void 0,
-        scrollToColumn: this.state.scroll_to_col != null ? this.state.scroll_to_col : void 0,
-        height: this.state.grid_h,
-        width: this.state.grid_w,
-        rowHeight: this.rowHeight,
-        rowCount: Math.max(data.length + 1, 2)
-      });
-    }
+
+    // if schema.name is 'week'
+    // 	grid = h Grid,
+    // 		styleTopRightGrid:
+    // 			background: @context.primary.inv[1]
+    // 			borderBottom: '2px solid rgba(0,0,0,0.6)'
+    // 		className: css['model-grid-list']
+    // 		ref: @gridRef
+    // 		cellRenderer: @renderCell
+    // 		columnCount: 3
+    // 		columnWidth: @columnWidth
+    // 		height: @state.grid_h
+    // 		rowCount: Math.max(data.length+1,2)
+    // 		rowHeight: @rowHeight
+    // 		width: @state.grid_w
+    // else
+    grid = h(MultiGrid, {
+      styleTopRightGrid: {
+        background: this.context.primary.inv[1],
+        borderBottom: '2px solid rgba(0,0,0,0.6)'
+      },
+      className: css['model-grid-list'],
+      ref: this.gridRef,
+      onScroll: this.onScroll,
+      cellRenderer: this.renderCell,
+      columnWidth: this.columnWidth,
+      columnCount: (query_item.layout_keys.length + 1) || 0,
+      fixedRowCount: 1,
+      scrollToRow: this.state.scroll_to_row != null ? this.state.scroll_to_row : void 0,
+      scrollToAlignment: 'auto',
+      scrollTop: this.state.trigger_scroll_top != null ? this.state.trigger_scroll_top : void 0,
+      scrollToColumn: this.state.scroll_to_col != null ? this.state.scroll_to_col : void 0,
+      height: this.state.grid_h,
+      width: this.state.grid_w,
+      rowHeight: this.rowHeight,
+      rowCount: Math.max(data.length + 1, 2)
+    });
     if (this.state.show_method_menu || this.props.show_layouts_view || this.props.show_bookmarks_view) {
       overlay_visible = true;
     }
