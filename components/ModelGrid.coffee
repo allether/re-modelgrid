@@ -188,7 +188,8 @@ class ModelGrid extends Component
 		if @props.data_item_id != props.data_item_id
 			@state.data_item_id = @props.data_item_id
 			if @state.data_item_id
-				@getDataItem()
+				if @props.schema.name isnt 'week'
+					@getDataItem()
 			else
 				@state.data_item = null
 			

@@ -1341,7 +1341,9 @@ ModelGrid = class ModelGrid extends Component {
     if (this.props.data_item_id !== props.data_item_id) {
       this.state.data_item_id = this.props.data_item_id;
       if (this.state.data_item_id) {
-        this.getDataItem();
+        if (this.props.schema.name !== 'week') {
+          this.getDataItem();
+        }
       } else {
         this.state.data_item = null;
       }
